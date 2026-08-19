@@ -49,6 +49,8 @@ export async function POST(req: Request) {
             instruction: t.instruction,
             status: 'PENDING',
             requiresApproval: approvalSet.has(t.agent.toLowerCase()),
+            attachmentIds: t.attachmentIds?.length ? JSON.stringify(t.attachmentIds) : null,
+            phase: t.phase || 1,
           }
         })
       )

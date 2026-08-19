@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
-import { Mail, UploadCloud, Link2, Send, ChevronLeft, Type, ChevronRight, AlertTriangle, Shield, ShieldCheck, ShieldAlert, AtSign, Loader2, Info, CheckCircle2, Zap, UserCheck } from 'lucide-react';
+import { Mail, UploadCloud, Link2, Send, ChevronLeft, Type, ChevronRight, AlertTriangle, Shield, ShieldCheck, ShieldAlert, AtSign, Loader2, Info, CheckCircle2, Zap, UserCheck, X, Paperclip, FileText } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Tooltip } from 'antd';
 
@@ -23,7 +23,7 @@ export default function NewTaskPage() {
   const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1 states
-  const [inputMode, setInputMode] = useState<'text' | 'file' | 'email'>('text');
+  const [inputMode, setInputMode] = useState<'text' | 'email'>('text');
   const [input, setInput] = useState('');
 
   // Auto-fill from group chat conversion
@@ -37,6 +37,41 @@ export default function NewTaskPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [emails, setEmails] = useState<any[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
+
+  // Attachment states
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const attachInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle attachment upload
+  const handleAttachmentUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append('files', f));
+      const res = await fetch('/api/bristh/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.attachments) {
+        setAttachments(prev => [...prev, ...data.attachments]);
+      }
+    } catch (e) {
+      console.error('Upload failed:', e);
+    }
+    setUploading(false);
+    if (attachInputRef.current) attachInputRef.current.value = '';
+  };
+
+  const removeAttachment = (attId: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== attId));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  };
 
   // Step 2 states
   const [analyzing, setAnalyzing] = useState(false);
@@ -98,20 +133,7 @@ export default function NewTaskPage() {
     setInputMode('text');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result;
-      if (typeof result === 'string') {
-        setInput(`[File: ${file.name}]\n\n${result}`);
-        setInputMode('text');
-      }
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  // Legacy file upload removed — now using attachment system
 
   // Full-auto mode: skip Step 2, use legacy orchestrate flow
   const handleAutoDispatch = async () => {
@@ -119,7 +141,7 @@ export default function NewTaskPage() {
     setAutoDispatching(true);
     try {
       // Use the original single-step orchestrate (no approval)
-      setPendingDispatchTask({ input, inputMode: 'text' });
+      setPendingDispatchTask({ input, inputMode: 'text', attachments });
       router.push('/office');
     } catch (err: any) {
       alert(err.message || '派发失败，请重试');
@@ -136,7 +158,7 @@ export default function NewTaskPage() {
       const res = await fetch('/api/bristh/orchestrate/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'TEXT', rawContent: input, locale: i18n.language }),
+        body: JSON.stringify({ source: 'TEXT', rawContent: input, locale: i18n.language, attachments }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -200,7 +222,7 @@ export default function NewTaskPage() {
       if (!res.ok) throw new Error(data.error || 'Confirm failed');
 
       // Dispatch to office for execution
-      setPendingDispatchTask({ input, inputMode: 'text', contextId, tasks: data.tasks });
+      setPendingDispatchTask({ input, inputMode: 'text', contextId, tasks: data.tasks, attachments });
       router.push('/office');
     } catch (err: any) {
       alert(err.message || '确认失败，请重试');
@@ -250,18 +272,13 @@ export default function NewTaskPage() {
           {step === 1 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fade-in-up">
               {/* Mode Selector */}
+              {/* Mode Selector — text and email only, attachments always visible */}
               <div className="flex border-b border-gray-200 mb-8 space-x-8">
                 <button 
                   onClick={() => setInputMode('text')} 
                   className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'text' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <Type className="w-4 h-4 mr-2" /> 文本录入
-                </button>
-                <button 
-                  onClick={() => setInputMode('file')} 
-                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'file' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  <UploadCloud className="w-4 h-4 mr-2" /> 上传文件
                 </button>
                 <button 
                   onClick={() => setInputMode('email')} 
@@ -274,41 +291,89 @@ export default function NewTaskPage() {
               {/* Form Content */}
               <div className="min-h-[300px]">
                 {inputMode === 'text' && (
-                  <div className="relative animate-fade-in-up">
-                    <textarea
-                      className="w-full h-64 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none shadow-inner"
-                      placeholder="[例] 客户已经同意报价，请根据最新的会议记录生成一份保密协议和项目排期日历..."
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                    />
-                    <div className="absolute bottom-4 left-4">
-                      <VoiceInputButton
-                        onTranscript={(text) => setInput(prev => prev + text)}
-                        lang={i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'}
+                  <div className="space-y-4 animate-fade-in-up">
+                    {/* Text Area */}
+                    <div className="relative">
+                      <textarea
+                        className="w-full h-52 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none shadow-inner"
+                        placeholder="[例] 客户已经同意报价，请根据最新的会议记录生成一份保密协议和项目排期日历..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
                       />
+                      <div className="absolute bottom-4 left-4">
+                        <VoiceInputButton
+                          onTranscript={(text) => setInput(prev => prev + text)}
+                          lang={i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'}
+                        />
+                      </div>
+                      <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
+                        {input.length} 字符
+                      </div>
                     </div>
-                    <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
-                      {input.length} 字符
-                    </div>
-                  </div>
-                )}
 
-                {inputMode === 'file' && (
-                  <div className="animate-fade-in-up w-full h-64 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer relative group"
-                       onClick={() => fileInputRef.current?.click()}
-                  >
-                     <input 
-                       type="file" 
-                       ref={fileInputRef} 
-                       onChange={handleFileUpload} 
-                       className="hidden" 
-                       accept=".txt,.json,.md"
-                     />
-                     <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                       <UploadCloud className="w-8 h-8 text-blue-400" />
-                     </div>
-                     <p className="text-base font-bold text-gray-600">点击此处选择并读取文本文件</p>
-                     <p className="text-sm text-gray-400 mt-2">支持 .txt, .json, .md 格式</p>
+                    {/* Attachment Upload Zone */}
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
+                        dragOver ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => attachInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOver(false);
+                        handleAttachmentUpload(e.dataTransfer.files);
+                      }}
+                    >
+                      <input
+                        type="file"
+                        ref={attachInputRef}
+                        onChange={(e) => e.target.files && handleAttachmentUpload(e.target.files)}
+                        className="hidden"
+                        multiple
+                        accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.json,.csv,.yaml,.yml"
+                      />
+                      <div className="flex items-center justify-center gap-2 text-gray-400">
+                        {uploading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm font-medium">上传解析中...</span></>
+                        ) : (
+                          <><Paperclip className="w-4 h-4" /> <span className="text-sm font-medium">点击或拖放添加附件</span>
+                            <span className="text-xs text-gray-300">PDF / DOCX / XLSX / TXT / MD</span></>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Uploaded Attachments List */}
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> 已上传 {attachments.length} 个附件
+                        </p>
+                        {attachments.map(att => (
+                          <div key={att.id} className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-lg group hover:border-blue-200 transition-colors">
+                            <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{att.originalName}</p>
+                              <p className="text-[10px] text-gray-400">
+                                {formatFileSize(att.size)}
+                                {att.storageType === 'cloud' && ' · ☁️ 已上云'}
+                                {att.pageCount && ` · ${att.pageCount} 页`}
+                                {att.sheetNames?.length && ` · ${att.sheetNames.length} 个工作表`}
+                              </p>
+                            </div>
+                            <Tooltip title={att.summary}>
+                              <Info className="w-3.5 h-3.5 text-gray-300 hover:text-blue-500 cursor-help shrink-0" />
+                            </Tooltip>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                              className="p-1 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

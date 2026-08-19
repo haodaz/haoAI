@@ -1,4 +1,4 @@
-# Bristh Agent Capability Dictionary
+# 平方 Agent Capability Dictionary
 # Chief 使用此文件了解每个 Agent 的能力范围，进行动态任务规划。
 # 运营人员可直接编辑此文件来调整 Chief 的分发策略。
 
@@ -90,6 +90,70 @@ agents:
     trigger_keywords: ["宣传页", "着陆页", "建站", "网页", "网站", "landing page", "brochure", "webpage", "官网", "画册", "landing", "page", "web"]
     notes: "Iris 生成完整的多页 HTML 网站。产出可发布到 /sites/slug 供外部访问。适合招生宣传、项目推广等场景。"
 
+  - name: "Jarvis"
+    title: "人才AI助手 / Talent Intelligence Specialist"
+    capabilities:
+      - 多源人才深度检索 (Multi-source Talent Deep Search)
+      - ORCID 学术身份验证 (ORCID Academic Identity Verification)
+      - Google Scholar 影响力分析 (Scholar Impact Analysis)
+      - 平方数据平台人才库检索 (VisionSquare Talent Database Search)
+      - 人才消歧与交叉验证 (Talent Disambiguation & Cross-validation)
+      - 学术背景画像报告 (Academic Profile Report Generation)
+    output_format: "markdown (structured talent profile)"
+    trigger_keywords: ["人才", "学者", "教授", "博士", "检索", "验真", "talent", "scholar", "professor", "ORCID", "h-index", "学术", "候选人", "背景调查", "background check"]
+    notes: "Jarvis 调用平方工作台的行业深度工具（4+1多源检索引擎），适合处理需要学者背景调查、人才验真、学术影响力评估的任务。"
+
+  - name: "Nova"
+    title: "政策AI助手 / Policy Intelligence Specialist"
+    capabilities:
+      - 平方产业政策库检索 (VisionSquare Industry Policy Search)
+      - 平方高校政策库检索 (VisionSquare Institute Policy Search)
+      - 全网政策信息检索 (Internet Policy Search)
+      - 政策适配评估 (Policy Eligibility Assessment)
+      - 多地区政策比较分析 (Cross-region Policy Comparison)
+      - 结构化政策简报 (Structured Policy Brief Generation)
+    output_format: "markdown (structured policy report)"
+    trigger_keywords: ["政策", "人才引进", "补贴", "资助", "落户", "policy", "subsidy", "talent program", "引才", "海归", "创业扶持", "税收优惠", "安居", "人才计划"]
+    notes: "Nova 调用平方工作台的三阶段政策检索引擎，适合处理需要政策咨询、政策比较、申请条件评估的任务。"
+
+  - name: "Atlas"
+    title: "物资AI助手 / Research Resource Specialist"
+    capabilities:
+      - 平方科研物资库检索 (VisionSquare Research Materials Search)
+      - 科研仪器检索与比较 (Lab Instrument Search & Comparison)
+      - 科研耗材/试剂检索 (Consumables & Reagents Search)
+      - 供应商信息交叉验证 (Supplier Cross-validation)
+      - 物资选型报告 (Procurement Report Generation)
+    output_format: "markdown (structured procurement report)"
+    trigger_keywords: ["物资", "仪器", "耗材", "试剂", "设备", "实验室", "科研", "采购", "PCR", "冰箱", "离心", "显微镜", "instrument", "equipment", "lab", "reagent", "consumable"]
+    notes: "Atlas 调用平方工作台的科研物资深度检索引擎，适合处理需要实验室设备采购、物资选型、供应商比较的任务。"
+
+  - name: "Nexus"
+    title: "产研转化助理 / Industry-Research Transfer Specialist"
+    capabilities:
+      - 产业需求分析 (Industry Needs Analysis)
+      - 产研匹配度评估 (R&D Matching Assessment)
+      - 技术转化路径规划 (Technology Transfer Planning)
+      - 合作路线图生成 (Cooperation Roadmap Generation)
+      - 科研团队推荐 (Research Team Recommendation)
+      - 转化可行性评估 (Transfer Feasibility Analysis)
+    output_format: "markdown (structured transfer analysis report)"
+    trigger_keywords: ["产研", "产学研", "转化", "合作", "落地", "对接", "匹配", "技术转移", "产业化", "商业化", "联合研发", "transfer", "commercialize", "R&D partner", "产业需求", "科研方向", "技术需求", "高校合作"]
+    notes: "Nexus 是产研转化枢纽角色，不直接调用工具，而是综合调度 Jarvis(人才)、Nova(政策) 等专业AI的数据来生成跨域产研分析报告。当任务涉及'研究如何落地到产业'或'产业需要什么科研支撑'时必选。"
+
+  - name: "Kelly"
+    title: "文档处理专员 / Document Processing Specialist"
+    capabilities:
+      - 文档翻译 (Document Translation, Chinese↔English)
+      - 表格填写 (Form/Template Filling)
+      - 数据提取与汇总 (Data Extraction & Summarization)
+      - 格式转换 (Format Conversion)
+      - 多文件信息交叉整合 (Cross-file Information Integration)
+      - 附件内容结构化分析 (Attachment Content Analysis)
+    output_format: "markdown (processed document)"
+    trigger_keywords: ["翻译", "填写", "提取", "表格", "转换", "汇总", "translate", "fill", "extract", "template", "form", "convert", "整理", "摘要"]
+    notes: "Kelly 是文件型任务的专属处理者。当 Chief 判断某个附件需要被「处理」（fileRole=target）而非「参考」时，必须分配给 Kelly。她接收附件的 extractedText 并直接产出处理结果。"
+
   - name: "Grace"
     title: "邮件分发专员 / Email Dispatch Specialist"
     capabilities:
@@ -99,3 +163,4 @@ agents:
     output_format: "json → physical email sent"
     trigger_keywords: ["邮件", "发送", "email", "回复", "reply", "dispatch", "发给"]
     notes: "Grace 应该始终是管线中最后执行的 Agent。她需要等待其他 Agent 产出附件后统一发出。"
+

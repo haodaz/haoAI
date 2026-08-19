@@ -88,6 +88,7 @@ model TaskContext {
   source          String
   rawContent      String
   parsedData      String?
+  attachments    String?          // JSON: AttachmentMeta[] from upload
   modelUsed       String?
   userId          String?
   approvalConfig  String?          // JSON: ["Alice", "Eric"] — agents that require approval
@@ -106,6 +107,8 @@ model Task {
   status           String      @default("PENDING")
   requiresApproval Boolean     @default(false)
   resultPayload    String?
+  attachmentIds    String?        // JSON: string[] of attachment IDs for this task
+  phase            Int     @default(1)  // Execution phase: 1, 2, 3
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   copilotHistory   String?

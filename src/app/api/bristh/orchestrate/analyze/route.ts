@@ -45,25 +45,41 @@ async function getSessionUserId(): Promise<string | null> {
 
 export async function POST(req: Request) {
   try {
-    const { source, rawContent, locale } = await req.json();
+    const { source, rawContent, locale, attachments } = await req.json();
 
     if (!rawContent) {
       return NextResponse.json({ error: 'Missing rawContent' }, { status: 400 });
     }
 
     const { config: modelConfig } = await getModelClient();
-    const userId = await getSessionUserId();
+    let userId = await getSessionUserId();
+
+    // Validate userId exists in DB to avoid FK constraint violation
+    if (userId) {
+      const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+      if (!userExists) userId = null;
+    }
 
     // Create a DRAFT context (no tasks yet)
     const context = await prisma.taskContext.create({
       data: {
         source: source || 'TEXT_PASTE',
         rawContent,
+        attachments: attachments?.length ? JSON.stringify(attachments) : null,
         modelUsed: modelConfig.name,
         userId,
         pipelineStatus: 'DRAFT',
       }
     });
+
+    // Build attachment context for Chief
+    let attachmentContext = '';
+    if (attachments?.length) {
+      const attList = attachments.map((a: any, i: number) =>
+        `[${i + 1}] id="${a.id}" | 文件名: ${a.originalName} | 类型: ${a.mimeType} | 大小: ${(a.size / 1024).toFixed(0)}KB\n    摘要: ${a.summary || '无摘要'}`
+      ).join('\n');
+      attachmentContext = `\n\n## 用户上传的附件\n${attList}\n\n【附件分配规则】\n- 如果任务需要「参考」某个附件的内容来完成工作（如基于报告写方案），设置 fileRole 为 "context"\n- 如果任务的目标是「处理」某个附件本身（如翻译文档、填写表格、提取数据），设置 fileRole 为 "target"，并分配给 Kelly\n- 一个任务可以关联多个附件，用 attachmentIds 数组指定`;
+    }
 
     // Load Chief's persona + capability dictionary
     const chiefConfig = await loadAgentConfig('chief');
@@ -85,16 +101,41 @@ ${capabilityDict}
 
 Output format: JSON object with a "tasks" array.
 Each task object must have:
-- "agent": The EXACT name of the agent (e.g. "Alice", "Bob")
+- "agent": The EXACT name of the agent (e.g. "Alice", "Bob", "Kelly")
 - "instruction": Specific, actionable instruction for this agent based on the input text.
+- "phase": 1 | 2 | 3 — the execution stage (see phasing rules below). THIS IS CRITICAL.
 - "complexity": "high" | "medium" | "low" — assess how complex and risky this sub-task is.
 - "reason": A short explanation of why this complexity level was assigned, to help the user decide whether to add human approval.
+${attachments?.length ? '- "attachmentIds": Array of attachment IDs this agent needs (from the attachment list below). Omit if no attachments needed.\n- "fileRole": "context" (file is reference material) or "target" (file is the work object, e.g. translate/fill). Omit if no attachments.' : ''}
+
+【阶段编排规则 — 非常重要】
+系统会严格按 phase 顺序执行任务。同一 phase 内的任务并行执行，phase 1 全部完成后才会启动 phase 2，以此类推。
+前一阶段所有 Agent 的产出会自动注入到后续阶段 Agent 的上下文中。
+
+Phase 1 — 信息准备阶段（解析、提取、结构化）:
+  适合: 文件解析、数据提取、信息结构化、翻译原文、表格整理
+  这些任务的产出会自动流入 Phase 2 的 Agent
+
+Phase 2 — 核心工作阶段（创作、分析、生成）:
+  适合: 方案撰写、PPT制作、审计分析、合同起草、财务分析
+  可以引用 Phase 1 的产出来提升质量
+
+Phase 3 — 整合分发阶段（汇总、通知、发送）:
+  适合: 邮件发送（Grace 始终在此阶段）、最终汇总通报
+  可以引用所有前序阶段的产出
+
+关键规则:
+- 如果任务 B 需要任务 A 的产出才能高质量完成，A 必须在更早的 phase
+- 文件解析/提取类任务 → Phase 1
+- 基于解析结果的撰写/分析类任务 → Phase 2
+- Grace 始终 → Phase 3
+- 如果没有信息准备需求（无附件、无需预处理），可以所有任务都在 Phase 1
 
 Complexity guidelines:
 - "high": Legal documents, financial commitments, external-facing materials, audit/compliance tasks. Recommend human review.
 - "medium": Internal memos, presentations, scheduling. May benefit from review.
 - "low": Simple, routine tasks with low risk. Usually safe to auto-approve.
-${langInstruction}`;
+${attachmentContext}${langInstruction}`;
 
     let tasksAnalysis: any[] = [];
     let parsedJson: any = {};
@@ -116,12 +157,15 @@ ${langInstruction}`;
       const response = await client.chat.completions.create(
         buildCompletionParams(config, [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Input Context:\n\n${rawContent}` }
-        ], { requireJson: true })
+          { role: 'user', content: `Input Context:\n\n${rawContent}${attachments?.length ? '\n\n[注意: 用户上传了 ' + attachments.length + ' 个附件，请参考上方附件列表进行任务分配]' : ''}` }
+        ], { requireJson: true, maxTokens: 8192 })
       );
       let rawResponse = response.choices[0].message.content || '{"tasks":[]}';
       console.log('[Orchestrate/Analyze] Raw AI response:', rawResponse.substring(0, 300));
       
+      // Remove DeepSeek <think> blocks
+      rawResponse = rawResponse.replace(/<think>[\s\S]*?<\/think>/g, '');
+
       // Robust JSON extraction
       rawResponse = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       try {

@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Spin, Modal, message } from 'antd';
-import { BookOpen, ClipboardList, Brain, Plus, Trash2, FileText, ChevronRight, ChevronDown, User, Upload, Edit3, Save, X, Sparkles, Clock, Tag } from 'lucide-react';
+import { BookOpen, ClipboardList, Brain, Plus, Trash2, FileText, ChevronRight, ChevronDown, User, Upload, Edit3, Save, X, Sparkles, Clock, Tag, Database } from 'lucide-react';
+import { marked } from 'marked';
+import { Input, Button } from 'antd';
 
 // ── Types ──────────────────────────────────────────────────────────
 interface KbLibrary { id: string; name: string; desc?: string; emoji?: string; fileCount?: number; updatedAt?: string; }
@@ -23,7 +25,14 @@ const TAB_CONFIG: { key: TabKey; label: string; icon: React.ReactNode; color: st
 function BusinessTab() {
   const router = useRouter();
   const [libs, setLibs] = useState<KbLibrary[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewItem, setViewItem] = useState<any | null>(null);
+
+  // Add Knowledge State
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [addForm, setAddForm] = useState({ title: '', content: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchLibs = async () => {
     try {
@@ -33,37 +42,207 @@ function BusinessTab() {
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchLibs(); }, []);
+  const fetchItems = async () => {
+    try {
+      const res = await fetch('/api/kb/knowledge', { cache: 'no-store' });
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch {}
+  };
+
+  useEffect(() => { fetchLibs(); fetchItems(); }, []);
+
+  const handleDeleteItem = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/kb/knowledge?id=${id}`, { method: 'DELETE' });
+      message.success('已删除');
+      fetchItems();
+    } catch {
+      message.error('删除失败');
+    }
+  };
+
+  const handleAddSubmit = async () => {
+    if (!addForm.title || !addForm.content) {
+      message.error('标题和内容不能为空');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await fetch('/api/kb/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...addForm, category: '业务知识', audience: '全体成员' })
+      });
+      message.success('添加成功');
+      setIsAddModalVisible(false);
+      setAddForm({ title: '', content: '' });
+      fetchItems();
+    } catch {
+      message.error('添加失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    setAddForm(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, ""), content: text }));
+    e.target.value = ''; // reset
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spin size="large" /></div>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">主动上传关于公司、客户和行业的知识文档</p>
-        <button onClick={() => router.push('/kb')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-md">
-          <Plus className="w-3.5 h-3.5" /> 管理知识库
-        </button>
-      </div>
-      {libs.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-3xl">📚</div>
-          <p className="text-gray-500 font-bold mb-1">还没有业务知识库</p>
-          <p className="text-gray-400 text-sm">上传公司资料、客户信息、行业报告等</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p className="text-sm text-gray-400">主动维护关于公司、客户和行业的知识数据</p>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsAddModalVisible(true)} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-indigo-100 shadow-sm transition-colors border border-indigo-100">
+            <Upload className="w-3.5 h-3.5" /> 上传单条知识
+          </button>
+          <button onClick={() => router.push('/kb')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-md">
+            <Plus className="w-3.5 h-3.5" /> 管理知识库项目
+          </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {libs.map(lib => (
-            <div key={lib.id} onClick={() => router.push(`/kb/${lib.id}?name=${encodeURIComponent(lib.name)}&emoji=${encodeURIComponent(lib.emoji || '📚')}`)}
-              className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
-              <div className="text-3xl mb-3">{lib.emoji || '📚'}</div>
-              <h3 className="font-bold text-gray-900 mb-1">{lib.name}</h3>
-              {lib.desc && <p className="text-xs text-gray-400 mb-3">{lib.desc}</p>}
-              <div className="text-[10px] text-gray-300">{lib.fileCount || 0} 个文档</div>
-            </div>
-          ))}
+      </div>
+
+      {/* 知识数据条目 */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <Database className="w-4 h-4 text-indigo-600" /> 知识数据条目
+        </h3>
+        {items.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-200">
+            <div className="w-16 h-16 mx-auto bg-indigo-50 rounded-2xl flex items-center justify-center mb-4 text-3xl">🗂️</div>
+            <p className="text-gray-500 font-bold mb-1">暂无知识数据</p>
+            <p className="text-gray-400 text-sm">点击「上传单条知识」添加公司知识、客户信息等</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+            {items.map(item => (
+              <div 
+                key={item.id} 
+                onClick={() => setViewItem(item)}
+                className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
+                      <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{item.category}</span>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">{item.audience}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.content}</p>
+                    <div className="text-[10px] text-gray-300 mt-2">
+                      存储于 Supabase · 更新时间: {new Date(item.updatedAt).toLocaleString('zh-CN')}
+                    </div>
+                  </div>
+                  <button onClick={(e) => handleDeleteItem(item.id, e)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 知识库项目卡片 */}
+      {libs.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-emerald-600" /> 知识库项目
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {libs.map(lib => (
+              <div key={lib.id} onClick={() => router.push(`/kb/${lib.id}?name=${encodeURIComponent(lib.name)}&emoji=${encodeURIComponent(lib.emoji || '📚')}`)}
+                className="bg-white border border-gray-100 rounded-xl p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
+                <div className="text-3xl mb-3">{lib.emoji || '📚'}</div>
+                <h3 className="font-bold text-gray-900 mb-1">{lib.name}</h3>
+                {lib.desc && <p className="text-xs text-gray-400 mb-3">{lib.desc}</p>}
+                <div className="text-[10px] text-gray-300">{lib.fileCount || 0} 个文档</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* View Content Modal */}
+      <Modal
+        title={viewItem?.title}
+        open={!!viewItem}
+        onCancel={() => setViewItem(null)}
+        footer={null}
+        width={800}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      >
+        <style dangerouslySetInnerHTML={{__html: `
+          .markdown-body h1 { font-size: 1.5rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+          .markdown-body h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+          .markdown-body h3 { font-size: 1.1rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+          .markdown-body p { margin-bottom: 1rem; line-height: 1.6; }
+          .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+          .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+          .markdown-body li { margin-bottom: 0.25rem; }
+          .markdown-body strong { font-weight: bold; }
+        `}} />
+        <div 
+          className="markdown-body text-gray-700 mt-4" 
+          dangerouslySetInnerHTML={{ __html: viewItem ? marked(viewItem.content) : '' }} 
+        />
+      </Modal>
+
+      {/* Add Knowledge Modal */}
+      <Modal
+        title="添加知识数据"
+        open={isAddModalVisible}
+        onCancel={() => setIsAddModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
+            取消
+          </Button>,
+          <Button key="submit" type="primary" loading={isSubmitting} onClick={handleAddSubmit} className="bg-indigo-600 hover:bg-indigo-700">
+            保存至数据库
+          </Button>,
+        ]}
+        width={600}
+      >
+        <div className="space-y-4 mt-4">
+          <div className="flex items-center gap-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50">
+            <div className="flex-1">
+              <h4 className="text-xs font-bold text-indigo-700 mb-1">快捷导入</h4>
+              <p className="text-[10px] text-gray-500">支持上传 .txt 或 .md 文件，自动提取标题和内容</p>
+            </div>
+            <label className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg text-xs font-bold cursor-pointer hover:bg-indigo-50 transition-colors">
+              选择文件
+              <input type="file" accept=".txt,.md" className="hidden" onChange={handleFileUpload} />
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">知识标题</label>
+            <Input 
+              placeholder="例如：公司愿景与价值观" 
+              value={addForm.title}
+              onChange={e => setAddForm(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">知识内容 (支持 Markdown)</label>
+            <Input.TextArea 
+              placeholder="粘贴或输入知识内容..." 
+              value={addForm.content}
+              onChange={e => setAddForm(prev => ({ ...prev, content: e.target.value }))}
+              rows={8}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

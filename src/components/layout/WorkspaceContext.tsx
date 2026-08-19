@@ -7,8 +7,8 @@ interface WorkspaceContextProps {
   setPendingPptData: (data: { slides: any[]; fileUrl: string; topic: string } | null) => void;
   copilotView: { taskId: string; agent: string } | null;
   setCopilotView: (data: { taskId: string; agent: string } | null) => void;
-  pendingDispatchTask: { input: string; inputMode: string; contextId?: string; tasks?: any[] } | null;
-  setPendingDispatchTask: (data: { input: string; inputMode: string; contextId?: string; tasks?: any[] } | null) => void;
+  pendingDispatchTask: { input: string; inputMode: string; contextId?: string; tasks?: any[]; attachments?: any[] } | null;
+  setPendingDispatchTask: (data: { input: string; inputMode: string; contextId?: string; tasks?: any[]; attachments?: any[] } | null) => void;
   pendingNewTaskInput: string | null;
   setPendingNewTaskInput: (data: string | null) => void;
   pendingAgentTask: { agentId: string; context: string } | null;
@@ -33,7 +33,7 @@ export const useWorkspace = () => useContext(WorkspaceContext);
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [pendingPptData, setPendingPptData] = useState<{ slides: any[]; fileUrl: string; topic: string } | null>(null);
   const [copilotView, setCopilotView] = useState<{ taskId: string; agent: string } | null>(null);
-  const [pendingDispatchTask, setPendingDispatchTask] = useState<{ input: string; inputMode: string; contextId?: string; tasks?: any[] } | null>(null);
+  const [pendingDispatchTask, setPendingDispatchTask] = useState<{ input: string; inputMode: string; contextId?: string; tasks?: any[]; attachments?: any[] } | null>(null);
   const [pendingNewTaskInput, setPendingNewTaskInput] = useState<string | null>(null);
   const [pendingAgentTask, setPendingAgentTask] = useState<{ agentId: string; context: string } | null>(null);
 

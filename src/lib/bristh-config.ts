@@ -60,13 +60,16 @@ export async function loadAgentContext(agentId: string): Promise<string> {
  * 4. Agent-specific private knowledge (context/ files)
  * 5. Soul file (accumulated experience from Dreaming Agent)
  * 6. Recent memories (lessons learned, user feedback)
+ * 7. Attached files content (if any)
  */
 export async function buildAgentPrompt(
   agentId: string,
   instruction: string,
   rawContent: string,
   fallbackPersona: string,
-  locale?: string
+  locale?: string,
+  attachments?: { originalName: string; mimeType: string; extractedText: string }[],
+  priorPhaseResults?: { agent: string; summary: string; content: string }[]
 ): Promise<string> {
   const config = await loadAgentConfig(agentId);
   const privateContext = await loadAgentContext(agentId);
@@ -99,6 +102,28 @@ export async function buildAgentPrompt(
     prompt += `\n\n【Recent memories from past tasks — apply these lessons】:\n${memStr}`;
   }
 
+  // Inject attachment content
+  if (attachments?.length) {
+    const MAX_TEXT_PER_FILE = 3000;
+    const attachmentSections = attachments.map(a => {
+      const text = a.extractedText?.substring(0, MAX_TEXT_PER_FILE) || '[无法解析文件内容]';
+      const truncated = a.extractedText?.length > MAX_TEXT_PER_FILE ? '\n...(内容已截断)' : '';
+      return `### 📎 附件: ${a.originalName} (${a.mimeType})\n${text}${truncated}`;
+    }).join('\n\n');
+    prompt += `\n\n【任务关联附件 — 以下是 Chief 指定给你参考或处理的文件内容】:\n${attachmentSections}`;
+  }
+
+  // Inject prior phase results (inter-phase data flow)
+  if (priorPhaseResults?.length) {
+    const MAX_CONTENT_PER_AGENT = 2000;
+    const priorSections = priorPhaseResults.map(r => {
+      const truncContent = r.content?.substring(0, MAX_CONTENT_PER_AGENT) || '';
+      const truncated = r.content?.length > MAX_CONTENT_PER_AGENT ? '\n...(内容已截断)' : '';
+      return `### ${r.agent} 的产出\n摘要: ${r.summary}\n${truncContent}${truncated}`;
+    }).join('\n\n---\n\n');
+    prompt += `\n\n【前序阶段产出 — 请基于这些结果工作，它们是在你之前完成的任务的输出】:\n${priorSections}`;
+  }
+
   // Inject language instruction based on user's UI locale
   if (locale?.startsWith('zh')) {
     prompt += '\n\n【语言要求】请始终使用简体中文进行输出，所有内容请用简体中文撰写，不要使用英文。';
@@ -107,6 +132,39 @@ export async function buildAgentPrompt(
   }
   
   return prompt;
+}
+
+/**
+ * Helper: Extract the attachments relevant to a specific task.
+ * Reads all attachments from TaskContext, then filters by task.attachmentIds.
+ * If task has no attachmentIds, returns all attachments (backward compatible).
+ */
+export function getTaskAttachments(
+  contextAttachments: string | null,
+  taskAttachmentIds: string | null
+): { originalName: string; mimeType: string; extractedText: string; storagePath: string }[] {
+  if (!contextAttachments) return [];
+
+  try {
+    const allAttachments = JSON.parse(contextAttachments);
+    if (!Array.isArray(allAttachments) || allAttachments.length === 0) return [];
+
+    // If task has specific attachmentIds, filter
+    if (taskAttachmentIds) {
+      try {
+        const ids = JSON.parse(taskAttachmentIds);
+        if (Array.isArray(ids) && ids.length > 0) {
+          const idSet = new Set(ids);
+          return allAttachments.filter((a: any) => idSet.has(a.id));
+        }
+      } catch {}
+    }
+
+    // No specific IDs — return all (for backward compatibility)
+    return allAttachments;
+  } catch {
+    return [];
+  }
 }
 
 /**
