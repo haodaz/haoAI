@@ -47,6 +47,11 @@ model KnowledgeItem {
   audience  String?
   type      String   @default("FILE") // "FILE" or "FOLDER"
   parentId  String?
+  fileUrl   String?
+  fileName  String?
+  fileType  String?
+  fileSize  Int?
+  author    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

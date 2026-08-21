@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Spin, Modal, message, Input, Button, Breadcrumb } from 'antd';
-import { Folder, FileText, Plus, Trash2, ChevronRight, Upload, FolderPlus, ArrowRightLeft } from 'lucide-react';
+import { Folder, FileText, Plus, Trash2, ChevronRight, Upload, FolderPlus, ArrowRightLeft, PenTool, FileSpreadsheet, FileIcon, FileType2, FileCode2, Image as ImageIcon } from 'lucide-react';
 import { marked } from 'marked';
 
 export default function BusinessKnowledgePage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   
   // Navigation State
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -16,7 +18,6 @@ export default function BusinessKnowledgePage() {
   ]);
 
   // Modals State
-  const [viewItem, setViewItem] = useState<any | null>(null);
   const [isAddFileVisible, setIsAddFileVisible] = useState(false);
   const [isAddFolderVisible, setIsAddFolderVisible] = useState(false);
   const [addForm, setAddForm] = useState({ title: '', content: '' });
@@ -98,14 +99,52 @@ export default function BusinessKnowledgePage() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRealFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    setAddForm(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, ""), content: text }));
-    e.target.value = '';
+    
+    setIsSubmitting(true);
+    message.loading({ content: '正在上传文件...', key: 'uploading' });
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadRes = await fetch('/api/kb/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!uploadRes.ok) throw new Error('上传失败');
+      
+      const { url, fileName, fileType, fileSize } = await uploadRes.json();
+      
+      const kbRes = await fetch('/api/kb/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: fileName,
+          type: 'FILE',
+          parentId: currentFolderId || 'root',
+          fileUrl: url,
+          fileName,
+          fileType,
+          fileSize,
+          author: 'Ying.liu' // Set default admin author for now
+        })
+      });
+      
+      if (!kbRes.ok) throw new Error('保存文件记录失败');
+      
+      message.success({ content: '文件上传成功', key: 'uploading' });
+      fetchItems(currentFolderId);
+    } catch {
+      message.error({ content: '文件上传失败', key: 'uploading' });
+    } finally {
+      setIsSubmitting(false);
+      e.target.value = '';
+    }
   };
-
   // Move Logic (Simplified: Fetch all folders flat for selection)
   // In a real app, you'd fetch a proper tree or avoid cycles.
   const handleOpenMove = async (item: any, e: React.MouseEvent) => {
@@ -151,7 +190,7 @@ export default function BusinessKnowledgePage() {
         <p className="text-xs text-gray-400 mt-1">云盘模式：管理公司、客户、行业的知识文档</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-4 min-h-0">
         
         {/* Actions & Breadcrumb */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -173,14 +212,19 @@ export default function BusinessKnowledgePage() {
             <button onClick={() => setIsAddFolderVisible(true)} className="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 shadow-sm transition-colors">
               <FolderPlus className="w-3.5 h-3.5 text-blue-500" /> 新建文件夹
             </button>
-            <button onClick={() => setIsAddFileVisible(true)} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-sm transition-colors border border-emerald-700">
-              <Upload className="w-3.5 h-3.5" /> 上传单条知识
+            <button onClick={() => setIsAddFileVisible(true)} className="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 shadow-sm transition-colors">
+              <PenTool className="w-3.5 h-3.5 text-emerald-500" /> 手工录入
             </button>
+            <label className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-sm transition-colors border border-emerald-700 cursor-pointer">
+              <Upload className="w-3.5 h-3.5" /> 
+              {isSubmitting ? '上传中...' : '上传文件'}
+              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp" className="hidden" onChange={handleRealFileUpload} disabled={isSubmitting} />
+            </label>
           </div>
         </div>
 
         {/* File List */}
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden flex-1 flex flex-col">
+        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden flex-1 flex flex-col min-h-0">
           {loading ? (
             <div className="flex-1 flex items-center justify-center min-h-[300px]"><Spin /></div>
           ) : items.length === 0 ? (
@@ -190,24 +234,36 @@ export default function BusinessKnowledgePage() {
               <p className="text-sm">点击右上角新建文件夹或上传文件</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 overflow-y-auto flex-1 min-h-0">
               {items.map(item => (
                 <div 
                   key={item.id} 
-                  onClick={() => item.type === 'FOLDER' ? navigateToFolder(item) : setViewItem(item)}
+                  onClick={() => item.type === 'FOLDER' ? navigateToFolder(item) : router.push('/AIkb/preview/' + item.id)}
                   className="px-6 py-4 hover:bg-emerald-50/50 transition-colors group cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     {item.type === 'FOLDER' ? (
-                      <Folder className="w-6 h-6 text-blue-400 shrink-0" fill="currentColor" fillOpacity={0.2} />
+                      <Folder className="w-8 h-8 text-blue-400 shrink-0" fill="currentColor" fillOpacity={0.2} />
+                    ) : item.fileType?.includes('image') || item.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      <ImageIcon className="w-8 h-8 text-amber-500 shrink-0" fill="currentColor" fillOpacity={0.1} />
+                    ) : item.fileType?.includes('excel') || item.fileType?.includes('spreadsheet') || item.fileName?.endsWith('.csv') ? (
+                      <FileSpreadsheet className="w-8 h-8 text-green-500 shrink-0" fill="currentColor" fillOpacity={0.1} />
+                    ) : item.fileType?.includes('pdf') || item.fileName?.endsWith('.pdf') ? (
+                      <FileType2 className="w-8 h-8 text-red-500 shrink-0" fill="currentColor" fillOpacity={0.1} />
+                    ) : item.fileName?.endsWith('.md') || item.fileType?.includes('markdown') ? (
+                      <FileCode2 className="w-8 h-8 text-purple-500 shrink-0" fill="currentColor" fillOpacity={0.1} />
+                    ) : item.fileType?.includes('word') || item.fileName?.endsWith('.doc') || item.fileName?.endsWith('.docx') || item.fileName?.endsWith('.txt') || item.fileType?.includes('text') ? (
+                      <FileText className="w-8 h-8 text-blue-500 shrink-0" fill="currentColor" fillOpacity={0.1} />
                     ) : (
-                      <FileText className="w-6 h-6 text-gray-400 shrink-0" />
+                      <FileIcon className="w-8 h-8 text-gray-400 shrink-0" fill="currentColor" fillOpacity={0.1} />
                     )}
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
-                      <div className="text-[10px] text-gray-400 mt-1 flex items-center gap-3">
+                      <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-3">
                         <span>{new Date(item.updatedAt).toLocaleString('zh-CN')}</span>
-                        {!item.type || item.type === 'FILE' && (
+                        {item.author && <span>上传人: {item.author}</span>}
+                        {item.fileSize && <span>{(item.fileSize / 1024).toFixed(1)} KB</span>}
+                        {(!item.type || item.type === 'FILE') && (
                           <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{item.category}</span>
                         )}
                       </div>
@@ -229,27 +285,12 @@ export default function BusinessKnowledgePage() {
         </div>
       </div>
 
-      {/* Preview Modal */}
-      <Modal title={viewItem?.title} open={!!viewItem} onCancel={() => setViewItem(null)} footer={null} width={800} bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}>
-        <div className="markdown-body text-gray-700 mt-4" dangerouslySetInnerHTML={{ __html: viewItem?.content ? marked(viewItem.content) : '' }} />
-      </Modal>
-
-      {/* Add File Modal */}
-      <Modal title="上传单条知识" open={isAddFileVisible} onCancel={() => setIsAddFileVisible(false)} footer={[
+      {/* Add Text Modal */}
+      <Modal title="纯文本手工录入" open={isAddFileVisible} onCancel={() => setIsAddFileVisible(false)} footer={[
         <Button key="cancel" onClick={() => setIsAddFileVisible(false)}>取消</Button>,
         <Button key="submit" type="primary" loading={isSubmitting} onClick={() => handleAddSubmit('FILE')} className="bg-emerald-600">保存</Button>,
       ]} width={600}>
         <div className="space-y-4 mt-4">
-          <div className="flex items-center gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50">
-            <div className="flex-1">
-              <h4 className="text-xs font-bold text-emerald-700 mb-1">快捷导入</h4>
-              <p className="text-[10px] text-gray-500">支持上传 .txt 或 .md 文件，自动提取标题和内容</p>
-            </div>
-            <label className="px-4 py-2 bg-white text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold cursor-pointer hover:bg-emerald-50">
-              选择文件
-              <input type="file" accept=".txt,.md" className="hidden" onChange={handleFileUpload} />
-            </label>
-          </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">标题</label>
             <Input placeholder="例如：公司愿景与价值观" value={addForm.title} onChange={e => setAddForm(prev => ({ ...prev, title: e.target.value }))} />
