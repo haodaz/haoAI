@@ -10,7 +10,8 @@
       "skills": "Skill Management",
       "logic": "Design Doc",
       "users": "User Management",
-      "group_chat": "Roundtable"
+      "group_chat": "Roundtable",
+      "new_task": "New Task"
     },
     "model": {
       "current": "Current Model",

@@ -10,7 +10,8 @@
       "skills": "Skill 管理",
       "logic": "架构白皮书",
       "users": "用户管理",
-      "group_chat": "AI 群聊"
+      "group_chat": "AI 群聊",
+      "new_task": "发布新任务"
     },
     "model": {
       "current": "当前模型",

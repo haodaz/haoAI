@@ -877,17 +877,17 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
              <Terminal className="w-3 h-3 mr-1" /> 任务执行 Log
            </h3>
-           <div className="flex-1 bg-[#1e1b2e] rounded-xl p-4 overflow-y-auto font-mono text-[11px] text-gray-300 space-y-2 shadow-inner border border-[#2d2845] scrollbar-thin scrollbar-thumb-[#3d3660]">
+           <div className="flex-1 bg-white rounded-xl p-4 overflow-y-auto font-mono text-[11px] text-slate-700 space-y-2 shadow-inner border border-slate-200 scrollbar-thin scrollbar-thumb-slate-200">
              {logs.length === 0 ? (
-               <div className="text-slate-600 italic">Waiting for incoming tasks...</div>
+               <div className="text-slate-400 italic">Waiting for incoming tasks...</div>
              ) : (
                logs.map(log => (
                  <div key={log.id} className="leading-relaxed">
-                   <span className="text-slate-600">[{log.time}]</span>{' '}
-                    <span className={log.source === 'Chief' ? 'text-emerald-400 font-bold' : log.source === 'System' ? 'text-emerald-400' : 'text-violet-400'}>
+                   <span className="text-slate-400">[{log.time}]</span>{' '}
+                    <span className={log.source === 'Chief' ? 'text-emerald-600 font-bold' : log.source === 'System' ? 'text-slate-500' : 'text-blue-600 font-medium'}>
                      [{log.source}]
                    </span>{' '}
-                   <span className="text-slate-200">{log.message}</span>
+                   <span className="text-slate-700">{log.message}</span>
                  </div>
                ))
              )}

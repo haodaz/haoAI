@@ -102,10 +102,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       `}>
         <div className="p-5 pb-3 border-b border-gray-200/80 hidden md:block">
           <div className="flex items-center">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-[11px] font-black mr-3 shadow-lg shadow-emerald-500/30">
-              BEP
-            </div>
-            <h1 className="text-[14px] font-extrabold tracking-tight leading-tight text-gray-800">Bristh Enrollment<br/>Partners</h1>
+            <img src="/logo_transparent.png" alt="BEP Logo" className="h-10 w-auto object-contain" />
           </div>
         </div>
 
@@ -118,11 +115,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               className={`w-full flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 mb-3 ${
                 activeTab === 'new-task'
                   ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02]'
+                  : 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02] hover:bg-emerald-700'
               }`}
             >
               <PlusCircle className="w-[18px] h-[18px] mr-2" />
-              <span className="text-[13px]">发布新任务</span>
+              <span className="text-[13px]">{t('bristh.nav.new_task', '发布新任务')}</span>
             </Link>
           )}
 
