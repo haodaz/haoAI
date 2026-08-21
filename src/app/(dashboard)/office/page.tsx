@@ -53,7 +53,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .catch(() => {
         // Fallback: if API fails, use hardcoded defaults
         setSubAIs([
-          { id: 'Alice', name: 'Alice, 方案架构师', desc: '撰写商业方案', image: '/pixel_worker_analysis.png', color: 'border-blue-500', shadow: 'shadow-blue-500/20' },
+          { id: 'Alice', name: 'Alice, 方案架构师', desc: '撰写商业方案', image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
           { id: 'Bob', name: 'Bob, 日程安排专员', desc: '生成日历邀请', image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
           { id: 'Edda', name: 'Edda, PPT制作专员', desc: '生成幻灯片', image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
           { id: 'David', name: 'David, 内控纪检专员', desc: '内部整改', image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
@@ -641,7 +641,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 shrink-0">
                     <span className="text-xs font-bold text-gray-500">{json.summary}</span>
-                    <a href={json.fileUrl} download className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm">
+                    <a href={json.fileUrl} download className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm">
                       <Download className="w-3 h-3" /> 下载 .pptx
                     </a>
                   </div>
@@ -650,12 +650,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                       const titleEl = s.elements?.find((e: any) => e.style?.fontWeight === 'bold' && e.style?.fontSize >= 1.8);
                       return (
                         <button key={i} onClick={() => setViewSlide(i)}
-                          className={`shrink-0 w-24 rounded-lg border-2 overflow-hidden transition-all ${viewSlide === i ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
+                          className={`shrink-0 w-24 rounded-lg border-2 overflow-hidden transition-all ${viewSlide === i ? 'border-emerald-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
                           <div className="aspect-[16/9] bg-white relative p-1">
                             <div className="text-[5px] font-bold text-gray-800 truncate">{titleEl?.content || `Slide ${i+1}`}</div>
                           </div>
                           <div className="px-1 py-0.5 bg-gray-50 border-t border-gray-100">
-                            <span className={`text-[8px] font-bold ${viewSlide === i ? 'text-blue-600' : 'text-gray-400'}`}>第 {i+1} 页</span>
+                            <span className={`text-[8px] font-bold ${viewSlide === i ? 'text-emerald-600' : 'text-gray-400'}`}>第 {i+1} 页</span>
                           </div>
                         </button>
                       );
@@ -767,13 +767,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                       <Copy className="w-3 h-3" /> 复制
                     </button>
                     <button onClick={() => { const blob = new Blob([json.content], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'document.md'; a.click(); URL.revokeObjectURL(url); }}
-                      className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-indigo-100">
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-100">
                       <Download className="w-3 h-3" /> 下载 .md
                     </button>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="prose prose-sm max-w-none prose-headings:text-blue-900 prose-a:text-blue-600"
+                  <div className="prose prose-sm max-w-none prose-headings:text-emerald-900 prose-a:text-emerald-600"
                     dangerouslySetInnerHTML={{ __html: marked.parse(json.content) }} />
                 </div>
               </div>
@@ -787,7 +787,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     // Markdown render
     return (
       <div 
-        className="prose prose-sm max-w-none prose-headings:text-blue-900 prose-a:text-blue-600"
+        className="prose prose-sm max-w-none prose-headings:text-emerald-900 prose-a:text-emerald-600"
         dangerouslySetInnerHTML={{ __html: marked.parse(payload) }} 
       />
     );
@@ -817,7 +817,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           <div className="mt-4 flex space-x-2">
             {status === 'idle' ? (
               <>
-                <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-xs font-bold hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-500/20">
+                <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-xs font-bold hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-emerald-500/20">
                   <Plus className="w-3 h-3 mr-1" /> 新增 / 管理接入
                 </button>
                 <button onClick={() => loadHistory('latest')} className="flex-1 flex items-center justify-center py-2 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100 shadow-sm border border-purple-200">
@@ -847,7 +847,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         <div className="p-5 border-b border-gray-200">
           <div className={`relative w-full rounded-2xl bg-white border-2 shadow-lg transition-all duration-300 overflow-hidden flex items-center p-3 ${
               status === 'idle' ? 'border-gray-200' :
-              (status === 'analyzing' || status === 'dispatching') ? 'border-blue-500 shadow-blue-500/20' : 'border-gray-200'
+              (status === 'analyzing' || status === 'dispatching') ? 'border-emerald-500 shadow-emerald-500/20' : 'border-gray-200'
             }`}
           >
             <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center mr-4">
@@ -864,7 +864,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
             {status === 'analyzing' && (
               <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-end pr-8 backdrop-blur-[1px]">
-                 <div className="flex items-center text-blue-600 font-bold text-sm tracking-widest animate-pulse">
+                 <div className="flex items-center text-emerald-600 font-bold text-sm tracking-widest animate-pulse">
                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                    INITIALIZING...
                  </div>
@@ -884,7 +884,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                logs.map(log => (
                  <div key={log.id} className="leading-relaxed">
                    <span className="text-slate-600">[{log.time}]</span>{' '}
-                    <span className={log.source === 'Chief' ? 'text-indigo-400 font-bold' : log.source === 'System' ? 'text-emerald-400' : 'text-violet-400'}>
+                    <span className={log.source === 'Chief' ? 'text-emerald-400 font-bold' : log.source === 'System' ? 'text-emerald-400' : 'text-violet-400'}>
                      [{log.source}]
                    </span>{' '}
                    <span className="text-slate-200">{log.message}</span>
@@ -935,7 +935,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                   <div className="flex flex-col w-[200px] md:w-[240px]">
                     {/* Column header */}
                     <div className={`text-center mb-3 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                      col.depth === 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                      col.depth === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
                     }`}>
                       {col.label}
                     </div>
@@ -969,14 +969,14 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                           >
                             {/* Card Header */}
                             <div className={`px-3 py-2 flex items-center gap-2 border-b ${
-                              isChief ? 'border-indigo-100 bg-indigo-50/50' :
+                              isChief ? 'border-emerald-100 bg-emerald-50/50' :
                               isAwaitingApproval ? 'border-amber-100 bg-amber-50/50' :
                               isDone ? 'border-emerald-50' :
                               isFailed ? 'border-red-100' :
                               'border-gray-100'
                             }`}>
                               {isChief ? (
-                                <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[9px] font-black shrink-0">C</div>
+                                <div className="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-[9px] font-black shrink-0">C</div>
                               ) : ai?.image ? (
                                 <img src={ai.image} alt={node.agent} className="w-6 h-6 rounded-lg object-contain bg-white border border-gray-100" style={{ imageRendering: 'pixelated' }} />
                               ) : (
@@ -990,7 +990,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                               </div>
                               {isDone && <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[9px] shrink-0">✓</div>}
                               {isFailed && <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-[9px] shrink-0">✗</div>}
-                              {isWorking && <Activity className="w-4 h-4 text-indigo-500 animate-spin shrink-0" />}
+                              {isWorking && <Activity className="w-4 h-4 text-emerald-500 animate-spin shrink-0" />}
                               {isAwaitingApproval && <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-white text-[9px] shrink-0">!</div>}
                             </div>
 
@@ -1028,7 +1028,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                               <div className={`px-3 py-1.5 text-[10px] font-medium border-t ${
                                 isDone ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700' :
                                 isFailed ? 'bg-red-50/50 border-red-100 text-red-600' :
-                                isWorking ? 'bg-indigo-50/50 border-indigo-100 text-indigo-600' :
+                                isWorking ? 'bg-emerald-50/50 border-emerald-100 text-emerald-600' :
                                 'bg-gray-50 border-gray-100 text-gray-400'
                               }`}>
                                 {isDone && node.summary ? (
@@ -1080,11 +1080,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                 <div className="w-6 md:w-10 h-[2px] bg-gradient-to-r from-indigo-300 to-indigo-400 relative">
                                   {status === 'dispatching' && (
                                     <div className="absolute inset-0 overflow-hidden">
-                                      <div className="w-2 h-full bg-indigo-500 rounded-full animate-pulse" style={{ animation: 'flowRight 1s linear infinite' }} />
+                                      <div className="w-2 h-full bg-emerald-500 rounded-full animate-pulse" style={{ animation: 'flowRight 1s linear infinite' }} />
                                     </div>
                                   )}
                                 </div>
-                                <ChevronRight className="w-3 h-3 text-indigo-400 -ml-1" />
+                                <ChevronRight className="w-3 h-3 text-emerald-400 -ml-1" />
                               </div>
                             )}
                           </div>
@@ -1118,7 +1118,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                     <div className="absolute top-1 right-1 z-30">
                       <Tooltip title={ai.desc} placement="top">
                         <div className="p-1 cursor-pointer hover:bg-gray-100 rounded-full transition-colors bg-white/80">
-                          <Info className="w-4 h-4 text-gray-500 hover:text-blue-600" />
+                          <Info className="w-4 h-4 text-gray-500 hover:text-emerald-600" />
                         </div>
                       </Tooltip>
                     </div>
@@ -1147,7 +1147,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       <Modal
         title={
           <div className="flex items-center text-lg font-black text-gray-800">
-            <MessageSquare className="w-5 h-5 mr-2 text-blue-600" /> 
+            <MessageSquare className="w-5 h-5 mr-2 text-emerald-600" /> 
             {copilotNode?.agent} Copilot 共创空间
           </div>
         }
@@ -1165,7 +1165,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             <div className="w-[60%] bg-[#fcfcfc] border-r border-gray-200 flex flex-col">
                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">产物预览 (Live Preview)</span>
-                  <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold">Auto-Sync</span>
+                  <span className="text-[10px] bg-blue-100 text-emerald-600 px-2 py-0.5 rounded font-bold">Auto-Sync</span>
                </div>
                <div className="flex-1 overflow-y-auto p-6 relative">
                  {/* 加载遮罩 */}
@@ -1189,7 +1189,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                  
                  {/* 初始 AI 消息与 Think+Work */}
                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3 shrink-0">AI</div>
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-emerald-600 font-bold text-xs mr-3 shrink-0">AI</div>
                     <div className="w-[85%]">
                       {/* 初次执行的 Think+Work 过程 */}
                       {copilotData.thinkLog && <ThinkBlock content={copilotData.thinkLog} />}
@@ -1205,7 +1205,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                  {copilotData.copilotHistory && JSON.parse(copilotData.copilotHistory).map((msg: any, idx: number) => (
                    <div key={idx} className={`flex items-start ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                        msg.role === 'user' ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white ml-3' : 'bg-indigo-50 text-indigo-600 mr-3'
+                        msg.role === 'user' ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white ml-3' : 'bg-emerald-50 text-emerald-600 mr-3'
                       }`}>
                         {msg.role === 'user' ? 'ME' : 'AI'}
                       </div>
@@ -1226,7 +1226,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                  
                  {copilotLoading && (
                    <div className="flex items-start">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3 shrink-0">AI</div>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-emerald-600 font-bold text-xs mr-3 shrink-0">AI</div>
                       <div className="bg-gray-100 rounded-2xl rounded-tl-sm p-3 text-sm text-gray-800 flex items-center space-x-1">
                         <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
                         <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
@@ -1239,7 +1239,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                
                {/* 输入框 */}
                <div className="p-4 border-t border-gray-200 bg-gray-50">
-                  <div className="flex items-center bg-white border border-gray-300 rounded-full px-4 py-2 shadow-inner focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                  <div className="flex items-center bg-white border border-gray-300 rounded-full px-4 py-2 shadow-inner focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
                     <input 
                       type="text" 
                       className="flex-1 outline-none text-sm bg-transparent placeholder-gray-400"
@@ -1252,7 +1252,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                     <button 
                       onClick={sendCopilotMessage}
                       disabled={copilotLoading || !copilotMessage.trim()}
-                      className="ml-2 w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-full flex items-center justify-center text-white hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 transition-all shadow-md shadow-indigo-500/20"
+                      className="ml-2 w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-full flex items-center justify-center text-white hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 transition-all shadow-md shadow-emerald-500/20"
                     >
                       <Send className="w-4 h-4 -ml-0.5 mt-0.5" />
                     </button>

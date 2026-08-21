@@ -42,11 +42,16 @@ model Interaction {
 model KnowledgeItem {
   id        String   @id @default(cuid())
   title     String
-  content   String
-  category  String
-  audience  String
+  content   String?
+  category  String?
+  audience  String?
+  type      String   @default("FILE") // "FILE" or "FOLDER"
+  parentId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  parent    KnowledgeItem?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children  KnowledgeItem[] @relation("FolderHierarchy")
 }
 
 model Staff {

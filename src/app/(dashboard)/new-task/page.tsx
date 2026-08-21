@@ -258,9 +258,9 @@ export default function NewTaskPage() {
         </div>
         {/* Step Indicator */}
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${step === 1 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-blue-100 text-blue-600'}`}>1</div>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${step === 1 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30' : 'bg-blue-100 text-emerald-600'}`}>1</div>
           <div className={`w-6 h-[2px] ${step === 2 ? 'bg-blue-500' : 'bg-gray-200'}`} />
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${step === 2 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-gray-200 text-gray-400'}`}>2</div>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${step === 2 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30' : 'bg-gray-200 text-gray-400'}`}>2</div>
         </div>
       </div>
 
@@ -276,13 +276,13 @@ export default function NewTaskPage() {
               <div className="flex border-b border-gray-200 mb-8 space-x-8">
                 <button 
                   onClick={() => setInputMode('text')} 
-                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'text' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'text' ? 'border-b-2 border-blue-600 text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <Type className="w-4 h-4 mr-2" /> 文本录入
                 </button>
                 <button 
                   onClick={() => setInputMode('email')} 
-                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'email' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'email' ? 'border-b-2 border-blue-600 text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <Link2 className="w-4 h-4 mr-2" /> 关联邮件
                 </button>
@@ -295,7 +295,7 @@ export default function NewTaskPage() {
                     {/* Text Area */}
                     <div className="relative">
                       <textarea
-                        className="w-full h-52 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none shadow-inner"
+                        className="w-full h-52 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-emerald-500 focus:outline-none resize-none shadow-inner"
                         placeholder="[例] 客户已经同意报价，请根据最新的会议记录生成一份保密协议和项目排期日历..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -314,7 +314,7 @@ export default function NewTaskPage() {
                     {/* Attachment Upload Zone */}
                     <div
                       className={`border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
-                        dragOver ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
+                        dragOver ? 'border-emerald-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                       onClick={() => attachInputRef.current?.click()}
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -383,7 +383,7 @@ export default function NewTaskPage() {
                        <span className="text-sm font-bold text-gray-600 flex items-center">
                          <Mail className="w-4 h-4 mr-2 text-blue-400"/> CRM 收件箱
                        </span>
-                       <button onClick={fetchEmails} className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline px-3 py-1 bg-blue-50 rounded-lg transition-colors">
+                       <button onClick={fetchEmails} className="text-xs font-bold text-emerald-600 hover:text-blue-800 hover:underline px-3 py-1 bg-blue-50 rounded-lg transition-colors">
                          刷新收件箱
                        </button>
                      </div>
@@ -407,7 +407,7 @@ export default function NewTaskPage() {
                                 onClick={() => handleEmailSelect(email)}
                                 className="p-4 bg-white hover:bg-blue-50 cursor-pointer transition-colors group"
                               >
-                                <div className="font-bold text-sm text-gray-800 line-clamp-1 group-hover:text-blue-600 mb-1">
+                                <div className="font-bold text-sm text-gray-800 line-clamp-1 group-hover:text-emerald-600 mb-1">
                                   {email.summary || '无主题'}
                                 </div>
                                 <div className="text-xs text-gray-500 flex justify-between items-center">
@@ -440,7 +440,7 @@ export default function NewTaskPage() {
                 <button
                   onClick={handleAnalyze}
                   disabled={(inputMode === 'text' && !input.trim()) || analyzing || autoDispatching}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
                 >
                   {analyzing ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -569,7 +569,7 @@ export default function NewTaskPage() {
                           <button
                             onClick={handleSaveEmail}
                             disabled={savingEmail || !emailInput.includes('@')}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shrink-0"
+                            className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shrink-0"
                           >
                             {savingEmail ? '...' : '绑定'}
                           </button>
@@ -584,7 +584,7 @@ export default function NewTaskPage() {
               <button
                 onClick={handleConfirm}
                 disabled={confirming || (hasApprovalSelected && !userEmail)}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base"
+                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base"
               >
                 {confirming ? (
                   <>

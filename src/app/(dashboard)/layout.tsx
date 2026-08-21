@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthGuard';
 import { canAccessTab } from '@/lib/roles';
 import { useTranslation } from 'react-i18next';
-import { Building2, Cpu, History, BookOpen, Settings, Users, Layout, Wrench, PenTool, MessageSquare, CheckCircle, ChevronDown, Menu, X, LogOut, UserCircle, Phone, AtSign, Camera, Save, PlusCircle } from 'lucide-react';
+import { Building2, Cpu, History, BookOpen, Settings, Users, Layout, Wrench, PenTool, MessageSquare, CheckCircle, ChevronDown, Menu, X, LogOut, UserCircle, Phone, AtSign, Camera, Save, PlusCircle, ClipboardList, Brain, ChevronRight } from 'lucide-react';
 import { Modal } from 'antd';
 import { WorkspaceProvider, useWorkspace } from '@/components/layout/WorkspaceContext';
 import DocumentEditorView from '@/components/shared/DocumentEditorView';
@@ -22,6 +22,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const { t, i18n } = useTranslation();
   const pathname = usePathname();
   const activeTab = pathname.split('/')[1] || 'office'; // e.g. /office -> office
+  const [kbExpanded, setKbExpanded] = useState(activeTab === 'AIkb');
   
   // Profile modal
   const [showProfile, setShowProfile] = useState(false);
@@ -70,16 +71,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-[#f8f9fc] font-sans relative overflow-hidden">
       {/* Aurora gradient blobs */}
-      <div className="fixed top-[-10%] right-[10%] w-[500px] h-[500px] bg-gradient-to-br from-violet-200/40 via-blue-200/30 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-5%] left-[5%] w-[400px] h-[400px] bg-gradient-to-tr from-indigo-200/30 via-purple-100/20 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
-      <div className="fixed top-[40%] left-[40%] w-[300px] h-[300px] bg-gradient-to-br from-cyan-100/20 via-blue-100/15 to-transparent rounded-full blur-[80px] pointer-events-none z-0" />
+      <div className="fixed top-[-10%] right-[10%] w-[500px] h-[500px] bg-gradient-to-br from-emerald-200/40 via-teal-200/30 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-5%] left-[5%] w-[400px] h-[400px] bg-gradient-to-tr from-emerald-200/30 via-green-100/20 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="fixed top-[40%] left-[40%] w-[300px] h-[300px] bg-gradient-to-br from-teal-100/20 via-emerald-100/15 to-transparent rounded-full blur-[80px] pointer-events-none z-0" />
 
       {/* Mobile Header Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200/80 z-40 flex items-center px-4 shadow-sm">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-gray-100 mr-3">
           {sidebarOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
         </button>
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white text-[8px] font-black mr-2">BEP</div>
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-[8px] font-black mr-2">BEP</div>
         <span className="text-xs font-bold text-gray-700">Bristh Auto Office</span>
         {currentModel && (
           <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold ${PROVIDER_COLORS[currentModel.provider] || 'bg-gray-100 text-gray-500'}`}>
@@ -101,7 +102,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       `}>
         <div className="p-5 pb-3 border-b border-gray-200/80 hidden md:block">
           <div className="flex items-center">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white text-[11px] font-black mr-3 shadow-lg shadow-indigo-500/30">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-[11px] font-black mr-3 shadow-lg shadow-emerald-500/30">
               BEP
             </div>
             <h1 className="text-[14px] font-extrabold tracking-tight leading-tight text-gray-800">Bristh Enrollment<br/>Partners</h1>
@@ -116,8 +117,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               onClick={() => setSidebarOpen(false)}
               className={`w-full flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 mb-3 ${
                 activeTab === 'new-task'
-                  ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30'
-                  : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02]'
+                  ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02]'
               }`}
             >
               <PlusCircle className="w-[18px] h-[18px] mr-2" />
@@ -130,27 +131,75 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             { id: 'AImployee', path: '/AImployee', label: t('bristh.nav.employees'), icon: Users },
             { id: 'groupchat', path: '/groupchat', label: t('bristh.nav.group_chat', 'AI 群聊'), icon: MessageSquare },
             { id: 'history', path: '/history', label: t('bristh.nav.history'), icon: History },
-            { id: 'kb', path: '/AIkb', label: t('bristh.nav.kb'), icon: BookOpen },
+            { id: 'kb', label: t('bristh.nav.kb'), icon: BookOpen, children: [
+                { id: 'AIkb/business', path: '/AIkb/business', label: '业务知识', icon: BookOpen },
+                { id: 'AIkb/tasks', path: '/AIkb/tasks', label: '任务记忆', icon: ClipboardList },
+                { id: 'AIkb/memory', path: '/AIkb/memory', label: 'AI 私人记忆', icon: Brain },
+            ] },
             { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
             { id: 'toolbox', path: '/toolbox', label: t('bristh.nav.toolbox'), icon: Wrench },
             { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
             { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
             { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
-          ].filter(tab => canAccessTab(tab.id === 'AImployee' ? 'employees' : tab.id === 'groupchat' ? 'group_chat' : tab.id, user?.role || 'user')).map(tab => (
-            <Link
-              key={tab.id}
-              href={tab.path}
-              onClick={() => setSidebarOpen(false)}
-              className={`w-full flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 ${
-                activeTab === tab.id 
-                  ? 'bg-indigo-50 text-indigo-700 font-bold shadow-sm border border-indigo-100/80' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              }`}
-            >
-              <tab.icon className={`w-[18px] h-[18px] mr-3 ${activeTab === tab.id ? 'text-indigo-500' : 'text-gray-400'}`} />
-              <span className="text-[13px] font-semibold">{tab.label}</span>
-            </Link>
-          ))}
+          ].filter(tab => canAccessTab(tab.id === 'AImployee' ? 'employees' : tab.id === 'groupchat' ? 'group_chat' : tab.id, user?.role || 'user')).map(tab => {
+            if (tab.children) {
+              return (
+                <div key={tab.id} className="w-full mb-1">
+                  <button
+                    onClick={() => setKbExpanded(!kbExpanded)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                      activeTab === tab.id
+                        ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm border border-emerald-100/80'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <tab.icon className={`w-[18px] h-[18px] mr-3 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
+                      <span className="text-[13px] font-semibold">{tab.label}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${kbExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  {kbExpanded && (
+                    <div className="mt-1 pl-4 space-y-1">
+                      {tab.children.map(child => {
+                        const isActive = pathname.startsWith(child.path);
+                        return (
+                          <Link
+                            key={child.id}
+                            href={child.path}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`w-full flex items-center px-4 py-2 rounded-xl transition-all duration-200 ${
+                              isActive
+                                ? 'bg-emerald-50/60 text-emerald-600 font-bold'
+                                : 'text-gray-400 hover:bg-gray-50 hover:text-gray-700'
+                            }`}
+                          >
+                            <child.icon className={`w-[14px] h-[14px] mr-3 ${isActive ? 'text-emerald-500' : 'text-gray-300'}`} />
+                            <span className="text-xs font-semibold">{child.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={tab.id}
+                href={tab.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`w-full flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 mb-1 ${
+                  activeTab === tab.id 
+                    ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm border border-emerald-100/80' 
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                <tab.icon className={`w-[18px] h-[18px] mr-3 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
+                <span className="text-[13px] font-semibold">{tab.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="p-3 border-t border-gray-200/80 space-y-2">
@@ -161,7 +210,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-left"
             >
               <div className="flex items-center min-w-0">
-                <Cpu className="w-3.5 h-3.5 mr-2 text-indigo-400 shrink-0" />
+                <Cpu className="w-3.5 h-3.5 mr-2 text-emerald-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium leading-none">{t('bristh.model.current')}</p>
                   <p className="text-[11px] font-bold text-gray-700 truncate mt-0.5">{currentModel?.name || 'Loading...'}</p>
@@ -186,19 +235,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                       onClick={() => switchModel(m.id)}
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${
                         currentModel?.id === m.id
-                          ? 'bg-indigo-50 border border-indigo-100'
+                          ? 'bg-emerald-50 border border-emerald-100'
                           : m.hasKey
                             ? 'hover:bg-gray-50'
                             : 'opacity-40 cursor-not-allowed'
                       }`}
                     >
                       <div>
-                        <p className={`text-xs font-bold ${currentModel?.id === m.id ? 'text-indigo-700' : 'text-gray-700'}`}>{m.name}</p>
+                        <p className={`text-xs font-bold ${currentModel?.id === m.id ? 'text-emerald-700' : 'text-gray-700'}`}>{m.name}</p>
                         <p className="text-[10px] text-gray-400">{m.provider}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {!m.hasKey && <span className="text-[9px] text-red-400 font-medium">{t('bristh.model.noKey')}</span>}
-                        {currentModel?.id === m.id && <CheckCircle className="w-3.5 h-3.5 text-indigo-500" />}
+                        {currentModel?.id === m.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
                       </div>
                     </button>
                   ))}
@@ -223,7 +272,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               }}
               className="flex items-center flex-1 min-w-0 hover:opacity-80 transition-opacity"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white mr-2.5 shadow-md shadow-indigo-500/20 shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] font-bold text-white mr-2.5 shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
                 ) : (
@@ -278,7 +327,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   type="text"
                   value={profileData.displayName}
                   onChange={e => setProfileData(p => ({ ...p, displayName: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="Your display name"
                 />
               </div>
@@ -291,7 +340,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   type="tel"
                   value={profileData.phone}
                   onChange={e => setProfileData(p => ({ ...p, phone: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="+86 ..."
                 />
               </div>
@@ -304,7 +353,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   type="email"
                   value={profileData.email}
                   onChange={e => setProfileData(p => ({ ...p, email: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="you@example.com"
                 />
               </div>
@@ -317,7 +366,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   type="url"
                   value={profileData.avatarUrl}
                   onChange={e => setProfileData(p => ({ ...p, avatarUrl: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
                   placeholder="https://..."
                 />
               </div>
@@ -341,7 +390,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               }
             }}
             disabled={profileSaving}
-            className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+            className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
           >
             {profileSaving ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
