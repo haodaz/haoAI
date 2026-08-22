@@ -410,7 +410,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           });
           const notifyData = await notifyRes.json();
           if (notifyData.success) {
-            addLog('System', `✅ ${i18n.language === 'en' ? \`Approval notification sent to ${notifyData.emailSentTo} (${notifyData.tasksNotified} pending tasks)\` : \`审批通知已发送至 ${notifyData.emailSentTo}（${notifyData.tasksNotified} 项待审批）\`}`);
+            addLog('System', i18n.language === 'en' ? `✅ Approval notification sent to ${notifyData.emailSentTo} (${notifyData.tasksNotified} pending tasks)` : `✅ 审批通知已发送至 ${notifyData.emailSentTo}（${notifyData.tasksNotified} 项待审批）`);
           } else {
             addLog('System', `⚠️ ${i18n.language === 'en' ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${notifyData.error || notifyData.message || 'Unknown'}`);
           }
@@ -480,7 +480,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         return;
       }
 
-      addLog('System', `✅ ${agentName} ${i18n.language === 'en' ? \`approved (${data.remainingApprovals} pending approvals remaining)\` : \`已批准 (剩余 ${data.remainingApprovals} 项待审批)\`}`);
+      addLog('System', i18n.language === 'en' ? `✅ ${agentName} approved (${data.remainingApprovals} pending approvals remaining)` : `✅ ${agentName} 已批准 (剩余 ${data.remainingApprovals} 项待审批)`);
 
       // If all tasks are approved, execute remaining pipeline stages in depth order
       if (data.allApproved) {
