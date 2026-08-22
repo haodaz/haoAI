@@ -26,7 +26,32 @@ export async function POST(req: Request) {
 
     const fallbackPersona = 'You are Eric, the Legal and Compliance Officer at Bristh Enrollment Partners. Draft legal documents based on business agreements.';
     
-    const systemPrompt = await buildAgentPrompt('eric', task.instruction, task.context.rawContent, fallbackPersona, locale)
+    let finalBackground = task.context.rawContent;
+    if (task.attachmentIds) {
+      try {
+        const attIds = JSON.parse(task.attachmentIds);
+        const contextAttachments = task.context.attachments ? JSON.parse(task.context.attachments) : [];
+        const matched = contextAttachments.filter((a: any) => attIds.includes(a.id));
+        
+        const kbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
+        const localExtracted = matched.filter((a: any) => !a.isKbFile).map((a: any) => `【上传文件: ${a.originalName}】\n${a.extractedText || a.summary}`).join('\n\n');
+        
+        let kbTexts = '';
+        if (kbIds.length > 0) {
+          const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbIds } } });
+          kbTexts = kbFiles.map(f => `【知识库文件: ${f.title}】\n${f.content || '无正文'}`).join('\n\n');
+        }
+        
+        const extraContext = [localExtracted, kbTexts].filter(Boolean).join('\n\n');
+        if (extraContext) {
+           finalBackground = finalBackground + '\n\n' + extraContext;
+        }
+      } catch (e) {
+        console.error('Failed to parse attachments for Eric', e);
+      }
+    }
+
+    const systemPrompt = await buildAgentPrompt('eric', task.instruction, finalBackground, fallbackPersona, locale)
       + '\n\nDraft a legal document (Service Agreement, NDA, MOU, or Partnership Contract) using standard legal language. Extract variables from context. Use placeholders like [INSERT FEE AMOUNT HERE] for missing info. Format as a formal contract in Markdown with numbered clauses and signature blocks. Output ONLY raw Markdown.';
 
     const { client, config } = await getModelClient();

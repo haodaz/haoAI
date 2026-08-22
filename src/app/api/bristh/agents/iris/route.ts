@@ -75,20 +75,40 @@ export async function POST(req: Request) {
     // 2. Build prompt
     const fallbackPersona = 'You are Iris, the Web Designer at Bristh Enrollment Partners. You create stunning marketing landing pages using Tailwind CSS.';
     
-    const systemPrompt = await buildAgentPrompt('iris', task.instruction, task.context.rawContent, fallbackPersona, locale)
+    let finalBackground = task.context.rawContent;
+    if (task.attachmentIds) {
+      try {
+        const attIds = JSON.parse(task.attachmentIds);
+        const contextAttachments = task.context.attachments ? JSON.parse(task.context.attachments) : [];
+        const matched = contextAttachments.filter((a: any) => attIds.includes(a.id));
+        
+        const kbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
+        const localExtracted = matched.filter((a: any) => !a.isKbFile).map((a: any) => `【上传文件: ${a.originalName}】\n${a.extractedText || a.summary}`).join('\n\n');
+        
+        let kbTexts = '';
+        if (kbIds.length > 0) {
+          const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbIds } } });
+          kbTexts = kbFiles.map(f => `【知识库文件: ${f.title}】\n${f.content || '无正文'}`).join('\n\n');
+        }
+        
+        const extraContext = [localExtracted, kbTexts].filter(Boolean).join('\n\n');
+        if (extraContext) {
+           finalBackground = finalBackground + '\n\n' + extraContext;
+        }
+      } catch (e) {
+        console.error('Failed to parse attachments for Iris', e);
+      }
+    }
+
+    const systemPrompt = await buildAgentPrompt('iris', task.instruction, finalBackground, fallbackPersona, locale)
       + `\n\nBased on this context, generate a complete multi-page marketing website as a JSON object.
 
 CRITICAL REQUIREMENTS:
 1. All HTML must use Tailwind CSS classes (loaded via CDN)
-2. Include image placeholders with data-image-placeholder attribute:
-   <div class="relative group cursor-pointer" data-image-placeholder="true">
-     <div class="bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center" style="height:240px">
-       <div class="text-center"><div class="text-4xl mb-2">📷</div><div class="text-sm text-gray-500">点击替换图片</div></div>
-     </div>
-   </div>
-3. Make it mobile-responsive
-4. Use professional typography, colors, and spacing
-5. Focus on education marketing and enrollment
+2. Include image placeholders with data-image-placeholder attribute: <div class="bg-gray-200" data-image-placeholder="description"></div>
+3. Create fully functional responsive layouts.
+4. JSON ESCAPING: You MUST escape all double quotes inside the "html" string values using backslash (\\").
+5. JSON FORMATTING: Do NOT use literal newlines inside string values. The "html" string must be a single continuous string.
 
 OUTPUT FORMAT (strict JSON):
 {
@@ -99,7 +119,7 @@ OUTPUT FORMAT (strict JSON):
   ]
 }
 
-Generate 3-4 pages. Output ONLY valid JSON.`;
+Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`;
 
     const { client, config } = await getModelClient();
     const response = await client.chat.completions.create(
@@ -121,13 +141,22 @@ Generate 3-4 pages. Output ONLY valid JSON.`;
       console.warn('Auto-publish failed (non-fatal):', e.message);
     }
 
+    const generatedAsset = await prisma.generatedAsset.create({
+      data: {
+        type: 'WEB',
+        title: site.name || ('Iris 生成的站点 ' + new Date().toLocaleTimeString('zh-CN')),
+        payload: JSON.stringify({ site, publishedUrl })
+      }
+    });
+
     // 4. Save result with published URL for downstream agents (e.g. Grace)
     const summary = `🌐 已生成 ${site.pages.length} 页宣传站点「${site.name}」${publishedUrl ? ` → ${publishedUrl}` : ''}`;
     const resultPayload = JSON.stringify({
       summary,
       content: raw,
       site,
-      publishedUrl
+      publishedUrl,
+      assetId: generatedAsset.id
     });
 
     const updatedTask = await prisma.task.update({

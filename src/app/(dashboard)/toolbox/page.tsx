@@ -1,11 +1,13 @@
 
 'use client';
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { Modal, Tooltip, Spin } from 'antd';
 import { marked } from 'marked';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { ThinkBlock, ToolCallsBlock, renderPreviewStandalone, COLOR_BORDER_MAP } from '@/components/shared/UIBlocks';
+import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { Building2, Cpu, Activity, History, BookOpen, Settings, Send, CheckCircle2, ChevronRight, ChevronLeft, Users, Layout, Plus, FileText, Calendar, Presentation, AlertTriangle, Scale, Mail, StopCircle, Edit, Edit3, Link2, UploadCloud, Terminal, Info, Download, MessageSquare, Wrench, PenTool, CheckCircle, XCircle, Hourglass, ChevronDown, ChevronUp, Database, Menu, X, Copy, RefreshCw, GitMerge, LogOut, UserCircle, Phone, AtSign, Camera, Save, ArrowLeft, ArrowRight, SaveAll, Loader2, Globe, ExternalLink, Eye } from 'lucide-react';
 
 // Webpage types
@@ -13,10 +15,15 @@ interface WebPage { id: string; title: string; html: string; inNav: boolean; }
 interface WebSite { name: string; themeColor: string; pages: WebPage[]; }
 
 function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any[]; fileUrl: string; topic: string } | null; onPptConsumed?: () => void }) {
-  const [activeTool, setActiveTool] = useState<'ppt' | 'legal' | 'webpage' | null>(initialPpt ? 'ppt' : null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const assetId = searchParams?.get('assetId');
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+
+  const [activeTool, setActiveTool] = useState<'ppt' | 'legal' | 'webpage' | 'signature' | null>(initialPpt ? 'ppt' : null);
 
   // PPT State
-  const [pptForm, setPptForm] = useState({ topic: initialPpt?.topic || '', slideCount: '约10页', theme: 'blue', density: 'standard', background: '', preferences: '' });
+  const [pptForm, setPptForm] = useState({ topic: initialPpt?.topic || '', slideCount: '约10页', theme: 'blue', density: 'standard', background: '', preferences: '', kbFiles: [] as KbFile[] });
   const [pptResult, setPptResult] = useState<{ slides: any[]; fileUrl: string } | null>(initialPpt ? { slides: initialPpt.slides, fileUrl: initialPpt.fileUrl } : null);
   const [pptLoading, setPptLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -26,20 +33,17 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
   const [pptChatInput, setPptChatInput] = useState('');
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  // Consume initial data so it doesn't re-trigger on tab switch
-  useEffect(() => {
-    if (initialPpt && onPptConsumed) {
-      onPptConsumed();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Legal State
-  const [legalForm, setLegalForm] = useState({ docType: 'NDA', partyA: '', partyB: '', keyTerms: '', background: '', templateStyle: '标准英式' });
+  const [legalForm, setLegalForm] = useState({ docType: 'NDA', partyA: '', partyB: '', keyTerms: '', background: '', templateStyle: '标准英式', kbFiles: [] as KbFile[] });
   const [legalResult, setLegalResult] = useState<string | null>(null);
   const [legalLoading, setLegalLoading] = useState(false);
 
   // Webpage State
-  const [webForm, setWebForm] = useState({ topic: '', background: '', preferences: '', pageCount: '3', style: 'education' });
+  const [webForm, setWebForm] = useState({ topic: '', background: '', preferences: '', pageCount: '3', style: 'education', kbFiles: [] as KbFile[] });
+  
+  const [kbSelectorTarget, setKbSelectorTarget] = useState<'ppt' | 'legal' | 'webpage' | null>(null);
   const [webResult, setWebResult] = useState<WebSite | null>(null);
   const [webLoading, setWebLoading] = useState(false);
   const [webActivePageId, setWebActivePageId] = useState('');
@@ -50,6 +54,105 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
   const [webPublishing, setWebPublishing] = useState(false);
   const [webPublishedUrl, setWebPublishedUrl] = useState<string | null>(null);
   const webIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Signature State
+  const [sigForm, setSigForm] = useState({
+    slogan: 'Your always-on international enrolment office',
+    email: 'partners@bristhnrolmentpartners.com',
+    phone: '+44 7921 879 389',
+    address: '106 Great Charles Street, Birmingham, B3 3HN',
+    logoUrl: '/images/BEP_logo.png',
+    socials: [] as { type: string, url: string }[]
+  });
+  const [sigSaving, setSigSaving] = useState(false);
+
+  const generateSignatureHtml = () => {
+    return `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: Arial, sans-serif; max-width: 600px;">
+  <tr>
+    <td style="background-color: #16331E; padding: 20px;">
+      <img src="${sigForm.logoUrl}" alt="Bristh Enrollment Partners" style="height: 50px; display: block; max-width: 100%; margin-bottom: 8px;" />
+      <span style="color: #E2DFD8; font-size: 13px; font-style: italic;">${sigForm.slogan}</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 15px 0 0 0;">
+      <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666;">
+        ✉️ ${sigForm.email} &nbsp;|&nbsp; 📞 ${sigForm.phone}
+      </p>
+      <p style="margin: 0 0 12px 0; font-size: 13px; color: #666666;">
+        🏢 ${sigForm.address}
+      </p>
+      ${sigForm.socials.length > 0 ? `
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          ${sigForm.socials.map(s => `<td style="padding-right: 8px;"><a href="${s.url}"><img src="/images/social/${s.type}.png" width="24" height="24" alt="${s.type}" style="display:block;border:none;" /></a></td>`).join('')}
+        </tr>
+      </table>` : ''}
+    </td>
+  </tr>
+</table>`;
+  };
+
+  const handleSaveSignature = async () => {
+    setSigSaving(true);
+    try {
+      const html = generateSignatureHtml();
+      // Replace URLs with CID for email embedding
+      let emailHtml = html.replace(`src="${sigForm.logoUrl}"`, `src="cid:bep_signature"`);
+      emailHtml = emailHtml.replace(/src="\/images\/social\/([a-zA-Z0-9_-]+)\.png"/g, 'src="cid:icon_$1"');
+      
+      const res = await fetch('/api/toolbox/signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: emailHtml })
+      });
+      if (res.ok) {
+        alert('全局邮件签名保存成功！');
+      } else {
+        alert('保存失败');
+      }
+    } catch (err) {
+      alert('Network error');
+    }
+    setSigSaving(false);
+  };
+
+  // Consume initial data so it doesn't re-trigger on tab switch
+  useEffect(() => {
+    if (initialPpt && onPptConsumed) {
+      onPptConsumed();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    fetch('/api/toolbox/assets').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setHistoryItems(data);
+    }).catch(console.error);
+  }, [pptResult, webResult]); // refresh history when results change
+
+  useEffect(() => {
+    if (assetId) {
+       fetch(`/api/toolbox/assets?id=${assetId}`)
+         .then(r => r.json())
+         .then(data => {
+            if (data.error) return;
+            if (data.type === 'PPT') {
+               const payload = JSON.parse(data.payload);
+               setActiveTool('ppt');
+               setPptResult({ slides: payload.slides || payload.rawSlides || [], fileUrl: payload.fileUrl });
+               setPptForm(prev => ({...prev, topic: data.title }));
+               setPptChatHistory([{ role: 'bot', content: `已加载历史 PPT: ${data.title}` }]);
+            } else if (data.type === 'WEB') {
+               const payload = JSON.parse(data.payload);
+               setActiveTool('webpage');
+               setWebResult(payload.site);
+               setWebForm(prev => ({...prev, topic: data.title }));
+               if (payload.publishedUrl) setWebPublishedUrl(payload.publishedUrl);
+               setWebChatHistory([{ role: 'bot', content: `已加载历史网站: ${data.title}` }]);
+            }
+         }).catch(console.error);
+    }
+  }, [assetId]);
 
   // Handle iframe navigation messages (page switching)
   useEffect(() => {
@@ -65,7 +168,7 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
   const handleGeneratePPT = async () => {
     setPptLoading(true); setPptResult(null);
     try {
-      const res = await fetch('/api/toolbox/ppt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pptForm) });
+      const res = await fetch('/api/toolbox/ppt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...pptForm, kbFileIds: pptForm.kbFiles.map(f => f.id) }) });
       const data = await res.json();
       if (data.success) setPptResult({ slides: data.slides, fileUrl: data.fileUrl });
       else alert(data.error || 'Generation failed');
@@ -76,7 +179,7 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
   const handleGenerateLegal = async () => {
     setLegalLoading(true); setLegalResult(null);
     try {
-      const res = await fetch('/api/toolbox/legal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(legalForm) });
+      const res = await fetch('/api/toolbox/legal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...legalForm, kbFileIds: legalForm.kbFiles.map(f => f.id) }) });
       const data = await res.json();
       if (data.success) setLegalResult(data.document);
       else alert(data.error || 'Generation failed');
@@ -102,35 +205,59 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
   return (
     <div className="w-full h-full bg-[#f8f9fc] flex flex-col md:flex-row overflow-hidden">
       {/* Tool Sidebar */}
-      <div className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-gray-200/80 p-3 md:p-4 flex md:flex-col shrink-0 overflow-x-auto md:overflow-x-visible">
-        <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 md:mb-4 px-2 hidden md:block">原子工具库</h2>
-        <div className="flex md:flex-col gap-2 md:space-y-0">
-          <button onClick={() => { setActiveTool('ppt'); setPptResult(null); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'ppt' ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
+      <div className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden">
+        {/* Tools List */}
+        <div className="p-4 space-y-2 flex-1 overflow-y-auto">
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">生成工具</h2>
+          <button onClick={() => { setActiveTool('ppt'); setPptResult(null); router.push('/toolbox'); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'ppt' ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
             <h3 className={`text-xs font-bold flex items-center ${activeTool === 'ppt' ? 'text-indigo-700' : 'text-gray-700'}`}>
               <Presentation className={`w-3.5 h-3.5 mr-2 ${activeTool === 'ppt' ? 'text-indigo-500' : 'text-gray-400'}`} /> PPT 生成器
             </h3>
             <p className="text-[10px] text-gray-400 mt-1">物理渲染出可下载 .pptx 文件</p>
           </button>
-          <button onClick={() => { setActiveTool('legal'); setLegalResult(null); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'legal' ? 'bg-violet-50 border border-violet-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
+
+          <button onClick={() => { setActiveTool('legal'); setLegalResult(null); router.push('/toolbox'); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'legal' ? 'bg-violet-50 border border-violet-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
             <h3 className={`text-xs font-bold flex items-center ${activeTool === 'legal' ? 'text-violet-700' : 'text-gray-700'}`}>
               <FileText className={`w-3.5 h-3.5 mr-2 ${activeTool === 'legal' ? 'text-violet-500' : 'text-gray-400'}`} /> 法律文书生成器
             </h3>
             <p className="text-[10px] text-gray-400 mt-1">NDA / MOU / 合同草案</p>
           </button>
-          <button onClick={() => { setActiveTool('webpage'); setWebResult(null); setWebPublishedUrl(null); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'webpage' ? 'bg-teal-50 border border-teal-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
+          
+          <button onClick={() => { setActiveTool('webpage'); setWebResult(null); setWebPublishedUrl(null); router.push('/toolbox'); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'webpage' ? 'bg-teal-50 border border-teal-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
             <h3 className={`text-xs font-bold flex items-center ${activeTool === 'webpage' ? 'text-teal-700' : 'text-gray-700'}`}>
               <Globe className={`w-3.5 h-3.5 mr-2 ${activeTool === 'webpage' ? 'text-teal-500' : 'text-gray-400'}`} /> 宣传页生成器
             </h3>
-            <p className="text-[10px] text-gray-400 mt-1">AI 生成市场宣传着陆页</p>
+            <p className="text-[10px] text-gray-400 mt-1">Tailwind 响应式落地页设计</p>
           </button>
-          <div className="border border-gray-100 p-3 rounded-xl opacity-40 hidden md:block">
-            <h3 className="text-xs font-bold text-gray-500 flex items-center"><Calendar className="w-3.5 h-3.5 mr-2 text-gray-300" /> ICS 日历工具</h3>
-            <p className="text-[10px] text-gray-300 mt-1">即将上线</p>
-          </div>
-          <div className="border border-gray-100 p-3 rounded-xl opacity-40 hidden md:block">
-            <h3 className="text-xs font-bold text-gray-500 flex items-center"><Mail className="w-3.5 h-3.5 mr-2 text-gray-300" /> 邮件发送工具</h3>
-            <p className="text-[10px] text-gray-300 mt-1">即将上线</p>
-          </div>
+
+          <button onClick={() => { setActiveTool('signature'); router.push('/toolbox'); }} className={`w-full text-left p-3 rounded-xl transition-all ${activeTool === 'signature' ? 'bg-orange-50 border border-orange-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
+            <h3 className={`text-xs font-bold flex items-center ${activeTool === 'signature' ? 'text-orange-700' : 'text-gray-700'}`}>
+              <Mail className={`w-3.5 h-3.5 mr-2 ${activeTool === 'signature' ? 'text-orange-500' : 'text-gray-400'}`} /> 邮件签名编辑器
+            </h3>
+            <p className="text-[10px] text-gray-400 mt-1">全局发信 HTML 签名可视化</p>
+          </button>
+
+          {historyItems.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 mt-6">生成历史</h2>
+              <div className="space-y-1">
+                {historyItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => router.push(`/toolbox?assetId=${item.id}`)}
+                    className={`w-full text-left px-3 py-2 flex flex-col gap-1 rounded-lg transition-colors text-xs ${assetId === item.id ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.type === 'PPT' ? <Presentation className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> : <Globe className="w-3.5 h-3.5 text-teal-500 shrink-0" />}
+                      <span className="truncate">{item.title}</span>
+                    </div>
+                    <span className="text-[9px] text-gray-400 pl-5">{new Date(item.createdAt).toLocaleDateString()}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
         <div className="mt-auto pt-4 border-t border-gray-100 hidden md:block">
           <p className="text-[9px] text-gray-300 px-2">AI 在底层调用相同的入参结构</p>
@@ -146,6 +273,82 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
             </div>
             <h2 className="text-xl font-black text-gray-800 mb-2">选择一个工具开始</h2>
             <p className="text-sm text-gray-400 max-w-md">Toolbox 是人工可视化测试台。在这里验证工具的输入输出后，AI Agent 将以相同的参数协议自动调用。</p>
+          </div>
+        )}
+
+                {/* ===== SIGNATURE EDITOR ===== */}
+        {activeTool === 'signature' && (
+          <div className="max-w-6xl mx-auto p-8 pb-20 flex flex-col md:flex-row gap-8 h-full">
+            <div className="w-full md:w-[40%] space-y-5 flex-shrink-0">
+              <div className="mb-4">
+                <h1 className="text-2xl font-black text-gray-900">邮件签名编辑器</h1>
+                <p className="text-sm text-gray-400 mt-1">定制全局发信 HTML 签名</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4 shadow-sm h-full overflow-y-auto max-h-[70vh]">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">Logo 图片</label>
+                  <input value={sigForm.logoUrl} onChange={e => setSigForm({...sigForm, logoUrl: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400 bg-gray-50 text-gray-500" readOnly />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">Slogan</label>
+                  <input value={sigForm.slogan} onChange={e => setSigForm({...sigForm, slogan: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">邮箱</label>
+                  <input value={sigForm.email} onChange={e => setSigForm({...sigForm, email: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">联系电话</label>
+                  <input value={sigForm.phone} onChange={e => setSigForm({...sigForm, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">地址</label>
+                  <input value={sigForm.address} onChange={e => setSigForm({...sigForm, address: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
+                </div>
+                
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs font-bold text-gray-500">社交媒体链接</label>
+                    <button onClick={() => setSigForm({...sigForm, socials: [...sigForm.socials, { type: 'linkedin', url: '' }]})} className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded hover:bg-orange-100">+ 添加一条</button>
+                  </div>
+                  {sigForm.socials.map((s, idx) => (
+                    <div key={idx} className="flex gap-2 mb-2 items-center">
+                      <select value={s.type} onChange={e => { const ns = [...sigForm.socials]; ns[idx].type = e.target.value; setSigForm({...sigForm, socials: ns}); }} className="border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-orange-400 bg-white">
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="x">X / Twitter</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="xiaohongshu">小红书</option>
+                      </select>
+                      <input value={s.url} onChange={e => { const ns = [...sigForm.socials]; ns[idx].url = e.target.value; setSigForm({...sigForm, socials: ns}); }} placeholder="链接地址..." className="flex-1 border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-orange-400" />
+                      <button onClick={() => { const ns = [...sigForm.socials]; ns.splice(idx, 1); setSigForm({...sigForm, socials: ns}); }} className="text-gray-300 hover:text-red-500 shrink-0"><XCircle className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                  {sigForm.socials.length === 0 && <p className="text-[10px] text-gray-400 text-center py-2">暂无社媒链接，点击右上角添加</p>}
+                </div>
+                
+                <button onClick={handleSaveSignature} disabled={sigSaving} className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                  {sigSaving ? <Spin size="small" /> : <Save className="w-4 h-4" />} 保存为全局系统签名
+                </button>
+                <p className="text-[10px] text-gray-400 text-center mt-2">保存后，Grace及CRM都会自动读取此签名发信</p>
+              </div>
+            </div>
+            
+            <div className="w-full md:w-[60%] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-black text-gray-800">HTML 效果预览</h2>
+              </div>
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-inner p-8 overflow-y-auto max-h-[75vh]">
+                {/* 模拟邮件内容 */}
+                <div className="mb-8">
+                  <p className="text-sm text-gray-800 mb-4">Hello John,</p>
+                  <p className="text-sm text-gray-800 mb-4">This is a preview of your email body. Your signature will appear below exactly as configured.</p>
+                  <p className="text-sm text-gray-800">Best regards,</p>
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: generateSignatureHtml() }} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -195,8 +398,21 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
 
               {/* Step 3 */}
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">第 3 步：背景资料</h3></div>
+                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-600">第 3 步：背景资料</h3>
+                  <button onClick={() => setKbSelectorTarget('ppt')} className="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100 flex items-center gap-1"><Database className="w-3 h-3" /> 从知识库选择</button>
+                </div>
                 <div className="p-5">
+                  {pptForm.kbFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {pptForm.kbFiles.map(f => (
+                        <div key={f.id} className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-[11px]">
+                          <FileText className="w-3 h-3" /> <span className="truncate max-w-[150px]">{f.title}</span>
+                          <X className="w-3 h-3 cursor-pointer hover:text-red-500 ml-1" onClick={() => setPptForm({...pptForm, kbFiles: pptForm.kbFiles.filter(kf => kf.id !== f.id)})} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <textarea value={pptForm.background} onChange={e => setPptForm({...pptForm, background: e.target.value})} placeholder="在此粘贴背景资料、会议纪要、项目描述等..." rows={6} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
                 </div>
               </div>
@@ -567,8 +783,21 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
 
               {/* Background */}
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">背景资料（可选）</h3></div>
+                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-600">背景资料（可选）</h3>
+                  <button onClick={() => setKbSelectorTarget('legal')} className="text-[11px] font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded hover:bg-violet-100 flex items-center gap-1"><Database className="w-3 h-3" /> 从知识库选择</button>
+                </div>
                 <div className="p-5">
+                  {legalForm.kbFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {legalForm.kbFiles.map(f => (
+                        <div key={f.id} className="flex items-center gap-1 bg-violet-50 border border-violet-100 text-violet-700 px-2 py-1 rounded-md text-[11px]">
+                          <FileText className="w-3 h-3" /> <span className="truncate max-w-[150px]">{f.title}</span>
+                          <X className="w-3 h-3 cursor-pointer hover:text-red-500 ml-1" onClick={() => setLegalForm({...legalForm, kbFiles: legalForm.kbFiles.filter(kf => kf.id !== f.id)})} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <textarea value={legalForm.background} onChange={e => setLegalForm({...legalForm, background: e.target.value})} placeholder="补充商业背景、谈判要点等" rows={4} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
                 </div>
               </div>
@@ -642,8 +871,21 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
                 </div>
               </div>
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">背景资料（可选）</h3></div>
+                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-600">背景资料（可选）</h3>
+                  <button onClick={() => setKbSelectorTarget('webpage')} className="text-[11px] font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded hover:bg-teal-100 flex items-center gap-1"><Database className="w-3 h-3" /> 从知识库选择</button>
+                </div>
                 <div className="p-5">
+                  {webForm.kbFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {webForm.kbFiles.map(f => (
+                        <div key={f.id} className="flex items-center gap-1 bg-teal-50 border border-teal-100 text-teal-700 px-2 py-1 rounded-md text-[11px]">
+                          <FileText className="w-3 h-3" /> <span className="truncate max-w-[150px]">{f.title}</span>
+                          <X className="w-3 h-3 cursor-pointer hover:text-red-500 ml-1" onClick={() => setWebForm({...webForm, kbFiles: webForm.kbFiles.filter(kf => kf.id !== f.id)})} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <textarea value={webForm.background} onChange={e => setWebForm({...webForm, background: e.target.value})} placeholder="粘贴关于项目的背景资料、课程介绍、学校特色等" rows={5} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
                 </div>
               </div>
@@ -657,7 +899,7 @@ function ToolboxView({ initialPpt, onPptConsumed }: { initialPpt?: { slides: any
                 <button onClick={async () => {
                   setWebLoading(true); setWebResult(null);
                   try {
-                    const res = await fetch('/api/toolbox/webpage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(webForm) });
+                    const res = await fetch('/api/toolbox/webpage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...webForm, kbFileIds: webForm.kbFiles.map(f => f.id) }) });
                     const data = await res.json();
                     if (data.success && data.site) {
                       setWebResult(data.site);
@@ -848,11 +1090,30 @@ document.querySelectorAll('[data-image-placeholder]').forEach(el=>{el.addEventLi
           );
         })()}
       </div>
+      
+      {/* KB Selector Modal */}
+      {kbSelectorTarget && (
+        <KbFileSelector 
+          isOpen={true} 
+          onClose={() => setKbSelectorTarget(null)}
+          initialSelected={kbSelectorTarget === 'ppt' ? pptForm.kbFiles : kbSelectorTarget === 'legal' ? legalForm.kbFiles : webForm.kbFiles}
+          onConfirm={(files) => {
+            if (kbSelectorTarget === 'ppt') setPptForm({...pptForm, kbFiles: files});
+            else if (kbSelectorTarget === 'legal') setLegalForm({...legalForm, kbFiles: files});
+            else if (kbSelectorTarget === 'webpage') setWebForm({...webForm, kbFiles: files});
+            setKbSelectorTarget(null);
+          }} 
+        />
+      )}
     </div>
   );
 }
 
 export default function ToolboxPage() {
   const { pendingPptData, setPendingPptData } = useWorkspace();
-  return <ToolboxView initialPpt={pendingPptData} onPptConsumed={() => setPendingPptData(null)} />;
+  return (
+    <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Spin /></div>}>
+      <ToolboxView initialPpt={pendingPptData} onPptConsumed={() => setPendingPptData(null)} />
+    </Suspense>
+  );
 }

@@ -84,26 +84,23 @@ function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopi
   };
 
   const openCopilotForTask = async (task: any) => {
-    // For Edda, redirect to ToolboxView's mature PPT editor
-    if (task.agent === 'Edda' && onOpenPptCopilot) {
+    // For Edda and Iris, redirect to the Toolbox for the full editor experience
+    if (task.agent.startsWith('Edda') || task.agent.startsWith('Iris')) {
       try {
-        const res = await fetch(`/api/bristh/tasks/${task.id}`);
-        const data = await res.json();
-        if (data.resultPayload) {
-          const parsed = JSON.parse(data.resultPayload);
-          if (parsed.rawSlides) {
-            onOpenPptCopilot({
-              slides: parsed.rawSlides,
-              fileUrl: parsed.fileUrl || '',
-              topic: data.instruction || 'Edda PPT',
-            });
-            return;
-          }
+        const payload = JSON.parse(task.resultPayload || '{}');
+        if (payload.assetId) {
+          router.push(`/toolbox?assetId=${payload.assetId}`);
+          return;
         }
       } catch (e) {
-        console.error('Failed to load Edda PPT data:', e);
+        console.error('Failed to parse assetId:', e);
       }
+      // Even if assetId is missing, do not fall through to DocumentEditorView. 
+      // Go to toolbox directly or alert.
+      router.push('/toolbox');
+      return;
     }
+
     // For other agents, open DocumentEditorView
     if (onOpenDocCopilot) {
       onOpenDocCopilot({ taskId: task.id, agent: task.agent });

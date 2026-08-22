@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Spin, Modal, message, Input, Button, Breadcrumb } from 'antd';
-import { Folder, FileText, Plus, Trash2, ChevronRight, Upload, FolderPlus, ArrowRightLeft, PenTool, FileSpreadsheet, FileIcon, FileType2, FileCode2, Image as ImageIcon } from 'lucide-react';
+import { Folder, FileText, Plus, Trash2, ChevronRight, Upload, FolderPlus, ArrowRightLeft, PenTool, FileSpreadsheet, FileIcon, FileType2, FileCode2, Image as ImageIcon, Download } from 'lucide-react';
 import { marked } from 'marked';
 
 export default function BusinessKnowledgePage() {
@@ -271,10 +271,15 @@ export default function BusinessKnowledgePage() {
                   </div>
                   
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => handleOpenMove(item, e)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all shrink-0">
+                    {item.fileUrl && (
+                      <button onClick={(e) => { e.stopPropagation(); window.open(item.fileUrl, '_blank'); }} className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all shrink-0" title="查看/下载源文件">
+                        <Download className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={(e) => handleOpenMove(item, e)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all shrink-0" title="移动">
                       <ArrowRightLeft className="w-4 h-4" />
                     </button>
-                    <button onClick={(e) => handleDeleteItem(item.id, e)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0">
+                    <button onClick={(e) => handleDeleteItem(item.id, e)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0" title="删除">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

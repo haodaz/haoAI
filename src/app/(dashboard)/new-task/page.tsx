@@ -6,6 +6,8 @@ import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { Mail, UploadCloud, Link2, Send, ChevronLeft, Type, ChevronRight, AlertTriangle, Shield, ShieldCheck, ShieldAlert, AtSign, Loader2, Info, CheckCircle2, Zap, UserCheck, X, Paperclip, FileText } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Tooltip } from 'antd';
+import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
+import { Database } from 'lucide-react';
 
 interface AnalyzedTask {
   agent: string;
@@ -43,6 +45,26 @@ export default function NewTaskPage() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
+  
+  const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
+
+  const handleKbFileConfirm = (files: KbFile[]) => {
+    const newAttachments = files.map(f => ({
+      id: f.id,
+      originalName: f.title,
+      storagePath: '',
+      storageType: 'kb',
+      mimeType: f.fileType || 'unknown',
+      size: f.fileSize || 0,
+      extractedText: '', // Backend agent will fetch full content from DB
+      summary: '[Knowledge Base File]',
+      isKbFile: true
+    }));
+    setAttachments(prev => {
+      const existingIds = new Set(prev.map(a => a.id));
+      return [...prev, ...newAttachments.filter(a => !existingIds.has(a.id))];
+    });
+  };
 
   // Handle attachment upload
   const handleAttachmentUpload = async (files: FileList | File[]) => {
@@ -312,35 +334,45 @@ export default function NewTaskPage() {
                     </div>
 
                     {/* Attachment Upload Zone */}
-                    <div
-                      className={`border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
-                        dragOver ? 'border-emerald-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => attachInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setDragOver(false);
-                        handleAttachmentUpload(e.dataTransfer.files);
-                      }}
-                    >
-                      <input
-                        type="file"
-                        ref={attachInputRef}
-                        onChange={(e) => e.target.files && handleAttachmentUpload(e.target.files)}
-                        className="hidden"
-                        multiple
-                        accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.json,.csv,.yaml,.yml"
-                      />
-                      <div className="flex items-center justify-center gap-2 text-gray-400">
-                        {uploading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm font-medium">上传解析中...</span></>
-                        ) : (
-                          <><Paperclip className="w-4 h-4" /> <span className="text-sm font-medium">点击或拖放添加附件</span>
-                            <span className="text-xs text-gray-300">PDF / DOCX / XLSX / TXT / MD</span></>
-                        )}
+                    <div className="flex gap-3">
+                      <div
+                        className={`flex-1 border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
+                          dragOver ? 'border-emerald-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                        onClick={() => attachInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOver(false);
+                          handleAttachmentUpload(e.dataTransfer.files);
+                        }}
+                      >
+                        <input
+                          type="file"
+                          ref={attachInputRef}
+                          onChange={(e) => e.target.files && handleAttachmentUpload(e.target.files)}
+                          className="hidden"
+                          multiple
+                          accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.json,.csv,.yaml,.yml"
+                        />
+                        <div className="flex items-center justify-center gap-2 text-gray-400">
+                          {uploading ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm font-medium">上传解析中...</span></>
+                          ) : (
+                            <><Paperclip className="w-4 h-4" /> <span className="text-sm font-medium">点击或拖放本地附件</span>
+                              <span className="text-xs text-gray-300">PDF/Word/Excel</span></>
+                          )}
+                        </div>
                       </div>
+                      
+                      <button
+                        onClick={() => setKbSelectorOpen(true)}
+                        className="px-6 py-4 border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 rounded-xl transition-all flex flex-col items-center justify-center gap-1 group"
+                      >
+                        <Database className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                        <span className="text-xs font-bold text-indigo-600">从知识库引用</span>
+                      </button>
                     </div>
 
                     {/* Uploaded Attachments List */}
@@ -356,7 +388,8 @@ export default function NewTaskPage() {
                               <p className="text-sm font-medium text-gray-800 truncate">{att.originalName}</p>
                               <p className="text-[10px] text-gray-400">
                                 {formatFileSize(att.size)}
-                                {att.storageType === 'cloud' && ' · ☁️ 已上云'}
+                                {att.isKbFile && ' · 📚 知识库文件'}
+                                {!att.isKbFile && att.storageType === 'cloud' && ' · ☁️ 已上云'}
                                 {att.pageCount && ` · ${att.pageCount} 页`}
                                 {att.sheetNames?.length && ` · ${att.sheetNames.length} 个工作表`}
                               </p>
@@ -612,6 +645,14 @@ export default function NewTaskPage() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}} />
+      
+      {kbSelectorOpen && (
+        <KbFileSelector 
+          isOpen={true}
+          onClose={() => setKbSelectorOpen(false)}
+          onConfirm={handleKbFileConfirm}
+        />
+      )}
     </div>
   );
 }

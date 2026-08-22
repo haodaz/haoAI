@@ -187,3 +187,12 @@ model AgentSoul {
   content   String
   updatedAt DateTime @updatedAt
 }
+
+model GeneratedAsset {
+  id        String   @id @default(cuid())
+  type      String   // "PPT" | "WEB" | "LEGAL"
+  title     String
+  payload   String   // JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

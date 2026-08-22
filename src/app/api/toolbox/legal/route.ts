@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import prisma from '@/lib/prisma';
 
 /**
  * Legal Document Generator Toolbox API
@@ -25,7 +26,16 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const { docType, partyA, partyB, keyTerms, background, templateStyle } = await req.json();
+    const { docType, partyA, partyB, keyTerms, background, templateStyle, kbFileIds } = await req.json();
+
+    let finalBackground = background || '';
+    if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
+      const kbFiles = await prisma.knowledgeItem.findMany({
+        where: { id: { in: kbFileIds } }
+      });
+      const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || '无正文内容'}`).join('\n\n');
+      finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
+    }
 
     if (!docType || !partyA) {
       return NextResponse.json({ error: 'Missing required fields (docType, partyA)' }, { status: 400 });
@@ -42,13 +52,15 @@ Document Type: ${docTypeInstruction}
 
 Style: ${styleInstruction}
 
-Party A (甲方): ${partyA}
-Party B (乙方): ${partyB || '[To be specified]'}
+**Parties:**
+- Party A: ${partyA || 'TBD'}
+- Party B: ${partyB || 'TBD'}
 
-Key Terms & Conditions:
-${keyTerms || 'Standard terms apply.'}
+**Key Terms to Include:**
+${keyTerms || 'Standard terms'}
 
-${background ? `Additional Context:\n${background}` : ''}
+**Background Context / Additional Instructions:**
+${finalBackground || 'None'}
 
 Output a complete, professional legal document in Markdown format. Include:
 1. Document title and reference number

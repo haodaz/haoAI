@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
 import { renderPPTX, SlideData } from '@/lib/pptx-renderer';
 import { buildAgentPrompt } from '@/lib/bristh-config';
+import prisma from '@/lib/prisma';
 
 /**
  * Robust JSON extraction: handles markdown fences, trailing text, etc.
@@ -44,15 +45,25 @@ function slidesToLegacy(slides: any[]): SlideData[] {
   });
 }
 
+
 /**
  * POST — Generate new PPT from scratch
  */
 export async function POST(req: Request) {
   try {
-    const { topic, slideCount, theme, density, background, preferences } = await req.json();
+    const { topic, slideCount, theme, density, background, preferences, kbFileIds } = await req.json();
 
     if (!topic) {
-      return NextResponse.json({ error: 'Missing topic' }, { status: 400 });
+      return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
+    }
+    
+    let finalBackground = background || '';
+    if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
+      const kbFiles = await prisma.knowledgeItem.findMany({
+        where: { id: { in: kbFileIds } }
+      });
+      const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || '无正文内容'}`).join('\n\n');
+      finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
     }
 
     const { client, config } = await getModelClient();
@@ -63,7 +74,7 @@ export async function POST(req: Request) {
       personaPrefix = await buildAgentPrompt(
         'edda',
         `Generate a presentation about: ${topic}`,
-        background || '',
+        finalBackground || '',
         'You are Edda, the Presentation Specialist. Transform text into structured slide presentations.'
       );
     } catch {
@@ -80,7 +91,7 @@ Requirements:
 - Content density: ${density || 'standard'}
 - Preferences: ${preferences || 'Professional business style'}
 
-${background ? `Background material:\n${background}` : ''}
+Background Information: ${finalBackground || 'None'}
 
 Output EXACTLY a JSON array (NOT wrapped in an object) in this format:
 [

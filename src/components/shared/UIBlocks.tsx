@@ -24,11 +24,30 @@ export function renderPreviewStandalone(payload: string | null) {
         return (
           <div>
             <p className="text-xs font-bold text-gray-500 mb-3">{json.summary}</p>
+            {json.assetId && (
+              <div className="mb-4">
+                <a href={`/toolbox?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
+                  前往工作台查看/编辑完整生成结果 →
+                </a>
+              </div>
+            )}
             <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(json.content) }} />
           </div>
         );
       }
-      if (json.summary) return <div className="text-sm text-gray-700"><p className="font-bold mb-2">{json.summary}</p>{json.fileUrl && <a href={json.fileUrl} download className="text-blue-600 underline text-xs">下载文件</a>}</div>;
+      if (json.summary) return (
+        <div className="text-sm text-gray-700">
+          <p className="font-bold mb-2">{json.summary}</p>
+          {json.assetId && (
+            <div className="mt-4 mb-4">
+              <a href={`/toolbox?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
+                前往工作台查看/编辑完整生成结果 →
+              </a>
+            </div>
+          )}
+          {json.fileUrl && <a href={json.fileUrl} download className="text-blue-600 underline text-xs inline-block mt-2">下载文件</a>}
+        </div>
+      );
     } catch {}
   }
   return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(payload) }} />;

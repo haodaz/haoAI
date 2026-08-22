@@ -5,11 +5,14 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const parentId = searchParams.get('parentId');
+    const allFiles = searchParams.get('allFiles') === '1';
+
+    const whereClause = allFiles 
+      ? { type: 'FILE' } 
+      : { parentId: parentId === 'root' || !parentId ? null : parentId };
 
     const items = await prisma.knowledgeItem.findMany({
-      where: {
-        parentId: parentId === 'root' || !parentId ? null : parentId
-      },
+      where: whereClause as any,
       orderBy: [
         { type: 'desc' }, // 'FOLDER' comes before 'FILE' alphabetically, wait: F is before F? No, FOLDER and FILE. O is after I. So 'FILE' is before 'FOLDER'. We should order by type 'desc' to put FOLDER first.
         { createdAt: 'desc' }

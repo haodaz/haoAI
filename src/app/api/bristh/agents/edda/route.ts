@@ -32,7 +32,32 @@ export async function POST(req: Request) {
 
     const fallbackPersona = 'You are Edda, the Presentation Specialist at Bristh Enrollment Partners. Transform text into structured slide presentations.';
     
-    const systemPrompt = await buildAgentPrompt('edda', task.instruction, task.context.rawContent, fallbackPersona, locale)
+    let finalBackground = task.context.rawContent;
+    if (task.attachmentIds) {
+      try {
+        const attIds = JSON.parse(task.attachmentIds);
+        const contextAttachments = task.context.attachments ? JSON.parse(task.context.attachments) : [];
+        const matched = contextAttachments.filter((a: any) => attIds.includes(a.id));
+        
+        const kbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
+        const localExtracted = matched.filter((a: any) => !a.isKbFile).map((a: any) => `【上传文件: ${a.originalName}】\n${a.extractedText || a.summary}`).join('\n\n');
+        
+        let kbTexts = '';
+        if (kbIds.length > 0) {
+          const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbIds } } });
+          kbTexts = kbFiles.map(f => `【知识库文件: ${f.title}】\n${f.content || '无正文'}`).join('\n\n');
+        }
+        
+        const extraContext = [localExtracted, kbTexts].filter(Boolean).join('\n\n');
+        if (extraContext) {
+           finalBackground = finalBackground + '\n\n' + extraContext;
+        }
+      } catch (e) {
+        console.error('Failed to parse attachments for Edda', e);
+      }
+    }
+
+    const systemPrompt = await buildAgentPrompt('edda', task.instruction, finalBackground, fallbackPersona, locale)
       + `\n\nOutput exactly in this JSON format:
 {
   "think": "Write your step-by-step thinking in Markdown here",
@@ -182,10 +207,19 @@ Rules:
 
     const fileUrl = `/api/bristh/download?file=${fileName}`;
 
+    const generatedAsset = await prisma.generatedAsset.create({
+      data: {
+        type: 'PPT',
+        title: 'Edda 生成的演示文稿 ' + new Date().toLocaleTimeString('zh-CN'),
+        payload: JSON.stringify({ slides, fileUrl })
+      }
+    });
+
     const resultPayload = JSON.stringify({
         summary: `成功生成 PPTX 文件，共包含 ${slides.length} 页幻灯片。`,
         fileUrl: fileUrl,
-        rawSlides: slides  // Now stores Slide[] format for WYSIWYG editing
+        rawSlides: slides,
+        assetId: generatedAsset.id
     });
 
     const updatedTask = await prisma.task.update({

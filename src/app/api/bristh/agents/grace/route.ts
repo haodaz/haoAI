@@ -114,12 +114,50 @@ export async function POST(req: Request) {
 
     const toEmail = parsedEmail.to && parsedEmail.to.includes('@') ? parsedEmail.to : 'haoz214@gmail.com';
 
+    // Fetch global signature from DB
+    const sigMeta = await prisma.systemMeta.findUnique({
+      where: { key: 'global_email_signature' }
+    });
+    
+    const signatureHtml = sigMeta?.value ? `<br><br>${sigMeta.value}` : '<br><br><img src="cid:bep_signature" alt="Bristh Enrollment Partners" style="max-width: 250px;"/>';
+
+    const cidRegex = /src="cid:([^"]+)"/g;
+    let match;
+    while ((match = cidRegex.exec(signatureHtml)) !== null) {
+      const cid = match[1];
+      if (cid === 'bep_signature') {
+        mailAttachments.push({
+          filename: 'BEP_logo.png',
+          path: path.join(process.cwd(), 'public', 'images', 'BEP_logo.png'),
+          cid: cid
+        });
+      } else if (cid.startsWith('icon_')) {
+        const iconName = cid.replace('icon_', '') + '.png';
+        mailAttachments.push({
+          filename: iconName,
+          path: path.join(process.cwd(), 'public', 'images', 'social', iconName),
+          cid: cid
+        });
+      }
+    }
+    
+    // Fallback if regex found nothing but it's the default
+    if (mailAttachments.length === 0 && !sigMeta?.value) {
+       mailAttachments.push({
+         filename: 'BEP_logo.png',
+         path: path.join(process.cwd(), 'public', 'images', 'BEP_logo.png'),
+         cid: 'bep_signature'
+       });
+    }
+
+    const finalHtmlBody = parsedEmail.htmlBody + signatureHtml;
+
     await transporter.sendMail({
       from: `"Bristh Enrollment Partners" <${process.env.IMAP_USER}>`,
       to: toEmail,
       cc: parsedEmail.cc || undefined,
       subject: parsedEmail.subject,
-      html: parsedEmail.htmlBody,
+      html: finalHtmlBody,
       attachments: mailAttachments
     });
 
