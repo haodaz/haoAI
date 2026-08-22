@@ -129,9 +129,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             { id: 'groupchat', path: '/groupchat', label: t('bristh.nav.group_chat', 'AI 群聊'), icon: MessageSquare },
             { id: 'history', path: '/history', label: t('bristh.nav.history'), icon: History },
             { id: 'kb', label: t('bristh.nav.kb'), icon: BookOpen, children: [
-                { id: 'AIkb/business', path: '/AIkb/business', label: '业务知识', icon: BookOpen },
-                { id: 'AIkb/tasks', path: '/AIkb/tasks', label: '任务记忆', icon: ClipboardList },
-                { id: 'AIkb/memory', path: '/AIkb/memory', label: 'AI 私人记忆', icon: Brain },
+                { id: 'AIkb/business', path: '/AIkb/business', label: t('bristh.nav.kb_business', '业务知识'), icon: BookOpen },
+                { id: 'AIkb/tasks', path: '/AIkb/tasks', label: t('bristh.nav.kb_tasks', '任务记忆'), icon: ClipboardList },
+                { id: 'AIkb/memory', path: '/AIkb/memory', label: t('bristh.nav.kb_memory', 'AI 私人记忆'), icon: Brain },
             ] },
             { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
             { id: 'toolbox', path: '/toolbox', label: t('bristh.nav.toolbox'), icon: Wrench },

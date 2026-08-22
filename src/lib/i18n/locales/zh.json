@@ -11,7 +11,10 @@
       "logic": "架构白皮书",
       "users": "用户管理",
       "group_chat": "AI 群聊",
-      "new_task": "发布新任务"
+      "new_task": "发布新任务",
+      "kb_business": "业务知识",
+      "kb_tasks": "任务记忆",
+      "kb_memory": "AI 私人记忆"
     },
     "model": {
       "current": "当前模型",

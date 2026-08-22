@@ -277,7 +277,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       for (const phase of [...phaseGroups.keys()].sort()) {
         const group = phaseGroups.get(phase)!;
         const label = PHASE_LABELS[phase] || `Phase ${phase}`;
-        if (phase > 1) addLog('System', `⏩ Phase ${phase} (${label}): ${group.map((t: any) => t.agent).join(', ')} — 前序阶段产出已注入`);
+        if (phase > 1) addLog('System', `⏩ Phase ${phase} (${label}): ${group.map((t: any) => t.agent).join(', ')} — ${i18n.language === 'en' ? 'Previous phase outputs injected' : '前序阶段产出已注入'}`);
         
         const results = await Promise.all(group.map((t: any) => executeAgent(t, allPriorResults)));
         
@@ -357,7 +357,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         // Check if this task requires approval
         const finalStatus = taskRecord.requiresApproval ? 'awaiting_approval' : 'done';
         if (taskRecord.requiresApproval) {
-          addLog(agentName, `🟡 需要人工审批确认才能继续。`);
+          addLog(agentName, `🟡 ${i18n.language === 'en' ? 'Requires manual approval to continue.' : '需要人工审批确认才能继续。'}`);
         }
         setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: finalStatus, summary} : n));
         return { agent: agentName, summary, content };
@@ -381,10 +381,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     for (const phase of sortedPhases) {
       const group = phaseGroups2.get(phase)!;
       if (hasAwaitingApproval) {
-        addLog('System', `⏸️ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} 等待审批完成后执行...`);
+        addLog('System', `⏸️ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} ${i18n.language === 'en' ? 'waiting for approval to execute...' : '等待审批完成后执行...'}`);
         break;
       }
-      if (phase > 1) addLog('System', `⏩ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} — 前序阶段产出已注入`);
+      if (phase > 1) addLog('System', `⏩ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} — ${i18n.language === 'en' ? 'Previous phase outputs injected' : '前序阶段产出已注入'}`);
       
       const results = await Promise.all(group.map((t: any) => executeAgent(t, allPriorResults2)));
       const phaseOutput = results.filter(Boolean) as { agent: string; summary: string; content: string }[];
@@ -401,7 +401,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       // Send approval notification email
       const ctxId = preCreatedTasks[0]?.contextId;
       if (ctxId) {
-        addLog('System', '📧 正在发送审批通知邮件...');
+        addLog('System', `📧 ${i18n.language === 'en' ? 'Sending approval notification email...' : '正在发送审批通知邮件...'}`);
         try {
           const notifyRes = await fetch('/api/bristh/notify', {
             method: 'POST',
@@ -410,12 +410,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           });
           const notifyData = await notifyRes.json();
           if (notifyData.success) {
-            addLog('System', `✅ 审批通知已发送至 ${notifyData.emailSentTo}（${notifyData.tasksNotified} 项待审批）`);
+            addLog('System', `✅ ${i18n.language === 'en' ? \`Approval notification sent to ${notifyData.emailSentTo} (${notifyData.tasksNotified} pending tasks)\` : \`审批通知已发送至 ${notifyData.emailSentTo}（${notifyData.tasksNotified} 项待审批）\`}`);
           } else {
-            addLog('System', `⚠️ 通知邮件发送失败: ${notifyData.error || notifyData.message || 'Unknown'}`);
+            addLog('System', `⚠️ ${i18n.language === 'en' ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${notifyData.error || notifyData.message || 'Unknown'}`);
           }
         } catch (err: any) {
-          addLog('System', `⚠️ 通知邮件发送失败: ${err.message}`);
+          addLog('System', `⚠️ ${i18n.language === 'en' ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${err.message}`);
         }
       }
       addLog('Chief', 'Pipeline paused. Waiting for human approval on flagged tasks.');
@@ -425,7 +425,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
   // Handle retrying a failed task
   const handleRetryTask = async (taskId: string, agentName: string) => {
-    addLog(agentName, '🔄 用户手动重试执行...');
+    addLog(agentName, `🔄 ${i18n.language === 'en' ? 'User manually retrying execution...' : '用户手动重试执行...'}`);
     setActiveNodes(prev => prev.map(n => n.taskId === taskId ? { ...n, status: 'working' } : n));
     try {
       const agentRes = await fetch(`/api/bristh/agents/${agentName.toLowerCase()}`, {
@@ -456,7 +456,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
   // Handle approving a single task
   const handleApproveTask = async (taskId: string, agentName: string) => {
-    addLog(agentName, '✅ 用户批准通过');
+    addLog(agentName, `✅ ${i18n.language === 'en' ? 'User approved' : '用户批准通过'}`);
     
     // Update card status immediately for responsiveness
     setActiveNodes(prev => prev.map(n => 
@@ -472,7 +472,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       const data = await res.json();
 
       if (!res.ok) {
-        addLog('System', `⚠️ 审批失败: ${data.error}`);
+        addLog('System', `⚠️ ${i18n.language === 'en' ? 'Approval failed:' : '审批失败:'} ${data.error}`);
         // Revert card status
         setActiveNodes(prev => prev.map(n => 
           n.taskId === taskId ? { ...n, status: 'awaiting_approval' } : n
@@ -480,11 +480,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         return;
       }
 
-      addLog('System', `✅ ${agentName} 已批准 (剩余 ${data.remainingApprovals} 项待审批)`);
+      addLog('System', `✅ ${agentName} ${i18n.language === 'en' ? \`approved (${data.remainingApprovals} pending approvals remaining)\` : \`已批准 (剩余 ${data.remainingApprovals} 项待审批)\`}`);
 
       // If all tasks are approved, execute remaining pipeline stages in depth order
       if (data.allApproved) {
-        addLog('System', '🎉 所有审批已通过！正在恢复管线执行...');
+        addLog('System', `🎉 ${i18n.language === 'en' ? 'All approvals passed! Resuming pipeline execution...' : '所有审批已通过！正在恢复管线执行...'}`);
         
         // Helper to execute a single agent
         const executeAgent = async (node: { agent: string; taskId: string; depth: number }) => {
@@ -519,7 +519,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         const pendingNodes: { agent: string; taskId: string; depth: number }[] = [];
         setActiveNodes(prev => {
           prev.forEach(n => {
-            if (n.status === 'working' && n.taskId && n.agent.toLowerCase() !== 'chief') {
+            if ((n.status === 'working' || n.status === 'idle') && n.taskId && n.agent.toLowerCase() !== 'chief') {
               pendingNodes.push({ agent: n.agent, taskId: n.taskId, depth: n.depth });
             }
           });
@@ -541,7 +541,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         addLog('Chief', 'All approvals complete. Pipeline finished. ✅');
       }
     } catch (err: any) {
-      addLog('System', `⚠️ 审批请求失败: ${err.message}`);
+      addLog('System', `⚠️ ${i18n.language === 'en' ? 'Approval request failed:' : '审批请求失败:'} ${err.message}`);
       setActiveNodes(prev => prev.map(n => 
         n.taskId === taskId ? { ...n, status: 'awaiting_approval' } : n
       ));
@@ -557,26 +557,25 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
   // --- Copilot Methods ---
   const openCopilot = async (agent: string, taskId: string) => {
-    // For Edda, redirect to ToolboxView's mature PPT editor
-    if (agent.startsWith('Edda') && onOpenPptCopilot) {
+    // For Edda and Iris, redirect to the Toolbox for the full editor experience
+    if (agent.startsWith('Edda') || agent.startsWith('Iris')) {
       try {
         const res = await fetch(`/api/bristh/tasks/${taskId}`);
         const data = await res.json();
-        if (data.resultPayload) {
-          const parsed = JSON.parse(data.resultPayload);
-          if (parsed.rawSlides) {
-            onOpenPptCopilot({
-              slides: parsed.rawSlides,
-              fileUrl: parsed.fileUrl || '',
-              topic: data.instruction || 'Edda PPT',
-            });
-            return;
-          }
+        const payload = JSON.parse(data.resultPayload || '{}');
+        if (payload.assetId) {
+          router.push(`/toolbox?assetId=${payload.assetId}`);
+          return;
         }
       } catch (e) {
-        console.error('Failed to load Edda PPT data:', e);
+        console.error('Failed to get assetId:', e);
       }
+      
+      // Do not fall through if assetId is missing
+      router.push('/toolbox');
+      return;
     }
+
     // For all other agents, open DocumentEditorView
     if (onOpenDocCopilot) {
       onOpenDocCopilot({ taskId, agent });

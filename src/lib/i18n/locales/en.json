@@ -11,7 +11,10 @@
       "logic": "Design Doc",
       "users": "User Management",
       "group_chat": "Roundtable",
-      "new_task": "New Task"
+      "new_task": "New Task",
+      "kb_business": "Business KB",
+      "kb_tasks": "Task Memory",
+      "kb_memory": "AI Personal Memory"
     },
     "model": {
       "current": "Current Model",
