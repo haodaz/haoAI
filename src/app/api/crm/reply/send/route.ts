@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       where: { key: 'global_email_signature' }
     });
     
-    const signatureHtml = sigMeta?.value ? `<br><br>${sigMeta.value}` : '<br><br><img src="cid:bep_signature" alt="Bristh Enrollment Partners" style="max-width: 250px;"/>';
+    const signatureHtml = sigMeta?.value ? `<br><br>${sigMeta.value}` : '<br><br><table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: Arial, sans-serif; max-width: 600px;">\n  <tr>\n    <td style="background-color: #16331E; padding: 20px;">\n      <img src="cid:bep_signature" alt="Bristh Enrollment Partners" style="height: 50px; display: block; max-width: 100%; margin-bottom: 8px;" />\n      <span style="color: #E2DFD8; font-size: 13px; font-style: italic;">Your always-on international enrolment office</span>\n    </td>\n  </tr>\n  <tr>\n    <td style="padding: 15px 0 0 0;">\n      <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666;">\n        ✉️ partners@bristhnrolmentpartners.com &nbsp;|&nbsp; 📞 +44 7921 879 389\n      </p>\n      <p style="margin: 0 0 12px 0; font-size: 13px; color: #666666;">\n        🏢 106 Great Charles Street, Birmingham, B3 3HN\n      </p>\n    </td>\n  </tr>\n</table>';
 
     const mailAttachments: any[] = [];
     const cidRegex = /src="cid:([^"]+)"/g;
