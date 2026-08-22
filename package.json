@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5859",
-    "build": "prisma generate && prisma db push && next build",
+    "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "next start -p 5859",
     "lint": "next lint",
     "daemon": "npx tsx scripts/email-daemon.ts"
