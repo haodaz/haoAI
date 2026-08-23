@@ -11,7 +11,8 @@ export default function ProChatArea({
   customCards,
   customQuickPrompts,
   customLogo,
-  customDisclaimer
+  customDisclaimer,
+  customPlaceholder
 }: { 
   api?: string; 
   variant?: 'external' | 'internal'; 
@@ -22,6 +23,7 @@ export default function ProChatArea({
   customQuickPrompts?: string[];
   customLogo?: React.ReactNode;
   customDisclaimer?: string;
+  customPlaceholder?: string;
 }) {
   const { messages, sendMessage, loading: isLoading } = useChat([], api);
   const [localInput, setLocalInput] = useState('');
@@ -330,7 +332,7 @@ export default function ProChatArea({
             <input
               value={localInput}
               onChange={(e) => setLocalInput(e.target.value)}
-              placeholder={isInternal ? "指派工作任务、查询客户信息..." : (language === 'en' ? "Ask about admissions, fees, or campus life..." : "询问招生政策、学费信息或校园环境...")}
+              placeholder={customPlaceholder || (isInternal ? "指派工作任务、查询客户信息..." : (language === 'en' ? "Ask about admissions, fees, or campus life..." : "询问招生政策、学费信息或校园环境..."))}
               className="flex-1 bg-transparent px-5 py-3 outline-none text-[#141b38] placeholder-slate-400 text-[15px]"
               disabled={isLoading}
             />

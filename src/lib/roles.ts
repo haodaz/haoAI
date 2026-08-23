@@ -25,6 +25,7 @@ export const TAB_PERMISSIONS: Record<string, UserRole[]> = {
   skills:    ['admin'],
   logic:     ['admin'],
   users:     ['admin'],
+  external_ai: ['admin', 'user'],
 };
 
 export function canAccessTab(tabId: string, role: UserRole): boolean {

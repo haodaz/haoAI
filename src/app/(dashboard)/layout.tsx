@@ -138,6 +138,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
             { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
             { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
+            { id: 'external_ai', path: '/chat/bep', label: 'BEP 对外 AI', icon: MessageSquare, target: '_blank' },
           ].filter(tab => canAccessTab(tab.id === 'AImployee' ? 'employees' : tab.id === 'groupchat' ? 'group_chat' : tab.id, user?.role || 'user')).map(tab => {
             if (tab.children) {
               return (
@@ -186,6 +187,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 key={tab.id}
                 href={tab.path}
                 onClick={() => setSidebarOpen(false)}
+                {...('target' in tab && tab.target === '_blank' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className={`w-full flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 mb-1 ${
                   activeTab === tab.id 
                     ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm border border-emerald-100/80' 

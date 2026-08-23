@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { Lock, User, ArrowRight, Shield, UserPlus } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import type { SessionUser } from '@/lib/roles';
 
 // ── Auth Context ────────────────────────────────────────────────────────────
@@ -30,8 +31,11 @@ const VIDEOS = [
 // ── AuthGuard Component ─────────────────────────────────────────────────────
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isPublicPath = pathname?.startsWith('/chat/') || pathname?.startsWith('/sites/');
+
   const [user, setUser] = useState<SessionUser | null>(null);
-  const [checking, setChecking] = useState(true); // initial session check
+  const [checking, setChecking] = useState(!isPublicPath); // Skip checking for public paths
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -45,12 +49,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Check existing session on mount
   useEffect(() => {
+    if (isPublicPath) return;
+    
     fetch('/api/auth/me')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setUser(data.user))
       .catch(() => setUser(null))
       .finally(() => setChecking(false));
-  }, []);
+  }, [isPublicPath]);
 
   // Video carousel
   useEffect(() => {
@@ -145,9 +151,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // ── Authenticated ─────────────────────────────────────────────────────────
+  // ── Authenticated or Public ───────────────────────────────────────────────
 
-  if (user) {
+  if (user || isPublicPath) {
     return (
       <AuthContext.Provider value={{ user, logout: handleLogout }}>
         {children}
