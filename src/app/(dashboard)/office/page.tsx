@@ -25,6 +25,34 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [currentTaskDisplay, setCurrentTaskDisplay] = useState(t('bristh.office.noTask'));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Restore pipeline state from session on mount (Bug 2 fix)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('office_pipeline');
+      if (saved) {
+        const { nodes, pipelineStatus, taskDisplay } = JSON.parse(saved);
+        if (nodes?.length > 0) {
+          setActiveNodes(nodes);
+          setStatus(pipelineStatus || 'completed');
+          setCurrentTaskDisplay(taskDisplay || '');
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist pipeline state on every change
+  useEffect(() => {
+    if (activeNodes.length > 0) {
+      try {
+        sessionStorage.setItem('office_pipeline', JSON.stringify({
+          nodes: activeNodes,
+          pipelineStatus: status,
+          taskDisplay: currentTaskDisplay,
+        }));
+      } catch { /* ignore */ }
+    }
+  }, [activeNodes, status]);
   
   // Dynamic agent config from API
   const [subAIs, setSubAIs] = useState<{id: string, name: string, desc: string, image: string, color: string, shadow: string, category: string}[]>([]);
@@ -176,6 +204,9 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const handleDispatch = async (dispatchInput: string, dispatchMode: string, dispatchAttachments?: any[]) => {
     if (dispatchMode === 'text' && !dispatchInput.trim()) return;
     
+    // Clear persisted pipeline for new task
+    try { sessionStorage.removeItem('office_pipeline'); } catch { /* ignore */ }
+
     setCurrentTaskDisplay(dispatchMode === 'text' ? dispatchInput.substring(0, 50) + '...' : `已关联${dispatchMode === 'file' ? '上传文件' : 'CRM邮件'}`);
     setStatus('analyzing');
     setActiveNodes([]);
@@ -1032,7 +1063,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                 'bg-gray-50 border-gray-100 text-gray-400'
                               }`}>
                                 {isDone && node.summary ? (
-                                  <p className="truncate">{node.summary}</p>
+                                  <div>
+                                    <p className="truncate">{node.summary}</p>
+                                    {node.summary.includes('工具中生成') && <p className="text-[9px] text-blue-500 mt-0.5 font-bold">→ 点击前往工具生成 Draft 1</p>}
+                                  </div>
                                 ) : isDone ? (
                                   <p>✅ 已完成</p>
                                 ) : isFailed ? (

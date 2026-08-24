@@ -2,6 +2,7 @@
 'use client';
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
 import { Modal, Tooltip, Spin } from 'antd';
 import { marked } from 'marked';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
@@ -10,6 +11,7 @@ import { Building2, Cpu, Activity, History, BookOpen, Settings, Send, CheckCircl
 
 function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopilot?: (data: { slides: any[]; fileUrl: string; topic: string }) => void; onOpenDocCopilot?: (data: { taskId: string; agent: string }) => void }) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const [contexts, setContexts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCtx, setSelectedCtx] = useState<any>(null);
@@ -84,21 +86,15 @@ function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopi
   };
 
   const openCopilotForTask = async (task: any) => {
-    // For Edda and Iris, redirect to the Toolbox for the full editor experience
-    if (task.agent.startsWith('Edda') || task.agent.startsWith('Iris')) {
-      try {
-        const payload = JSON.parse(task.resultPayload || '{}');
-        if (payload.assetId) {
-          router.push(`/toolbox?assetId=${payload.assetId}`);
-          return;
-        }
-      } catch (e) {
-        console.error('Failed to parse assetId:', e);
+    // Universal: check payload.toolboxUrl first (Alice, Eric, Edda, Iris all set this)
+    try {
+      const payload = JSON.parse(task.resultPayload || '{}');
+      if (payload.toolboxUrl) {
+        router.push(payload.toolboxUrl);
+        return;
       }
-      // Even if assetId is missing, do not fall through to DocumentEditorView. 
-      // Go to toolbox directly or alert.
-      router.push('/toolbox/ppt');
-      return;
+    } catch (e) {
+      console.error('Failed to parse resultPayload:', e);
     }
 
     // For other agents, open DocumentEditorView
