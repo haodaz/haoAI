@@ -104,7 +104,9 @@ export async function POST(req: Request) {
             `data: ${JSON.stringify({ type: 'log', data: { step, message } })}\n\n`
           ));
         };
+        let fullText = '';
         const sendChunk = (text: string) => {
+          fullText += text;
           controller.enqueue(new TextEncoder().encode(
             `data: ${JSON.stringify({ type: 'ai_chunk', data: text })}\n\n`
           ));
@@ -112,6 +114,11 @@ export async function POST(req: Request) {
         const sendError = (message: string) => {
           controller.enqueue(new TextEncoder().encode(
             `data: ${JSON.stringify({ type: 'error', data: { message } })}\n\n`
+          ));
+        };
+        const sendDone = (assetId: string) => {
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({ type: 'done', data: { assetId } })}\n\n`
           ));
         };
 
@@ -168,6 +175,15 @@ Use [INSERT ...] placeholders for any missing specific values. Output ONLY raw M
           // --- BLOCK 4: Footer ---
           sendLog('[4/4]', '✅ 标准条款已拼装完毕。法律文书生成完成！');
 
+          // Save to GeneratedAsset for history
+          const asset = await prisma.generatedAsset.create({
+            data: {
+              type: 'LEGAL',
+              title: `${docType} — ${partyA}${partyB ? ' × ' + partyB : ''}`,
+              payload: JSON.stringify({ content: fullText, docType, partyA, partyB, templateStyle }),
+            }
+          });
+          sendDone(asset.id);
           controller.close();
         } catch (err: any) {
           console.error(err);

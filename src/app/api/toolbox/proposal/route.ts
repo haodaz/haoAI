@@ -32,11 +32,16 @@ export async function POST(req: Request) {
         const sendLog = (step: string, message: string) => {
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'log', data: { step, message } })}\n\n`));
         };
+        let fullText = '';
         const sendChunk = (text: string) => {
+          fullText += text;
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'ai_chunk', data: text })}\n\n`));
         };
         const sendError = (message: string) => {
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', data: { message } })}\n\n`));
+        };
+        const sendDone = (assetId: string) => {
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', data: { assetId } })}\n\n`));
         };
 
         try {
@@ -108,6 +113,16 @@ Requirement: Provide a bulleted list of 5-7 highly compelling benefits tailored 
           sendChunk(nextStepsBlock);
 
           sendLog('[完毕]', '✅ Proposal 全部生成完毕！');
+
+          // Save to GeneratedAsset for history
+          const asset = await prisma.generatedAsset.create({
+            data: {
+              type: 'PROPOSAL',
+              title: `${targetSchool} — Proposal`,
+              payload: JSON.stringify({ content: fullText, targetSchool, businessModel }),
+            }
+          });
+          sendDone(asset.id);
           controller.close();
         } catch (err: any) {
           console.error(err);
