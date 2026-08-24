@@ -189,3 +189,77 @@ Use [INSERT ...] placeholders for any missing specific values. Output ONLY raw M
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
+
+/**
+ * PUT — Copilot Refinement: modify existing legal document based on instruction
+ */
+export async function PUT(req: Request) {
+  try {
+    const { currentDocument, instruction, docType, templateStyle } = await req.json();
+    if (!currentDocument || !instruction) {
+      return new Response(JSON.stringify({ error: 'Missing currentDocument or instruction' }), { status: 400 });
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (type: string, data: any) => {
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({ type, data })}\n\n`
+          ));
+        };
+
+        try {
+          const { client, config } = await getModelClient();
+          const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['标准英式'];
+
+          const systemPrompt = `You are an expert legal document editor.
+The user has a draft legal document (${docType || 'legal document'}) and wants to make specific modifications.
+Style: ${styleInstruction}
+
+Current Document:
+${currentDocument}
+
+Your task:
+1. Understand the user's modification instruction.
+2. Apply the changes to the document.
+3. Reply with a very brief confirmation message (1 sentence) followed by "---DOCUMENT---" then the COMPLETE updated document.
+
+IMPORTANT:
+- Keep ALL existing clauses that are not mentioned in the instruction.
+- Keep the hardcoded standard clauses (Governing Law, Confidentiality, Remedies etc.) exactly as-is.
+- Output format MUST be: "Brief reply\n---DOCUMENT---\n[full updated markdown document]"`;
+
+          const response = await client.chat.completions.create(
+            buildCompletionParams(config, [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: instruction }
+            ])
+          );
+
+          const text = response.choices[0].message.content || '';
+          const parts = text.split('---DOCUMENT---');
+          const reply = parts[0].trim();
+          const updatedDoc = parts[1]?.trim() || currentDocument;
+
+          send('reply', reply || '✅ 文书已根据指令更新。');
+          send('document', updatedDoc);
+          controller.close();
+        } catch (err: any) {
+          console.error(err);
+          send('error', { message: err.message });
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+}

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Spin } from 'antd';
 import { marked } from 'marked';
-import { Briefcase, Database, X, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Briefcase, Database, X, FileText, CheckCircle, Clock, Send, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 
 const BUSINESS_MODELS = ['Fixed Retainer', 'Performance Partnership', 'Hybrid (混合模式)'];
@@ -22,6 +22,9 @@ export default function ProposalPage() {
   const [loading, setLoading] = useState(false);
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
   const [logs, setLogs] = useState<{ message: string; step: string }[]>([]);
+  const [copilotHistory, setCopilotHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
+  const [copilotInput, setCopilotInput] = useState('');
+  const [copilotLoading, setCopilotLoading] = useState(false);
 
   const toggleFocusArea = (area: string) => {
     setProposalForm(prev => {
@@ -81,6 +84,44 @@ export default function ProposalPage() {
       alert('Network error');
     }
     setLoading(false);
+    setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 已生成完毕！\n\n你可以在下方输入修改指令，例如：\n- "将商业模式改为 Performance Partnership"\n- "添加对韩国市场的描述"\n- "第3节添加馐高的群体招生数据"` }]);
+  };
+
+  const handleCopilot = async () => {
+    if (!copilotInput.trim() || copilotLoading) return;
+    const instruction = copilotInput.trim();
+    setCopilotInput('');
+    setCopilotHistory(p => [...p, { role: 'user', content: instruction }]);
+    setCopilotLoading(true);
+    try {
+      const res = await fetch('/api/toolbox/proposal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentDocument: proposalResult, instruction, targetSchool: proposalForm.targetSchool, businessModel: proposalForm.businessModel })
+      });
+      if (!res.body) throw new Error('No stream');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let reply = '';
+      while (!done) {
+        const { value, done: dr } = await reader.read();
+        done = dr;
+        if (value) {
+          const lines = decoder.decode(value, { stream: true }).split('\n\n');
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.substring(6));
+              if (data.type === 'reply') reply = data.data;
+              else if (data.type === 'document') setProposalResult(data.data);
+            } catch { /* ignore */ }
+          }
+        }
+      }
+      setCopilotHistory(p => [...p, { role: 'bot', content: reply || '✅ Proposal 已更新。' }]);
+    } catch { setCopilotHistory(p => [...p, { role: 'bot', content: '❌ 网络错误，请重试。' }]); }
+    setCopilotLoading(false);
   };
 
   if (proposalResult || loading) {
@@ -102,30 +143,70 @@ export default function ProposalPage() {
         </div>
         <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50 flex gap-6">
           
-          {/* Execution Logs */}
+          {/* Left Panel: SSE Logs → Copilot Chat */}
           <div className="w-80 shrink-0">
-            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 border-b border-gray-50 pb-2">多步执行日志 (SSE Pipeline)</h3>
-              <div className="space-y-4">
-                {logs.map((log, idx) => (
-                  <div key={idx} className="flex gap-3">
-                    <div className="mt-0.5">
-                      {log.message.includes('✅') ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Clock className="w-4 h-4 text-blue-500 animate-pulse" />}
+            {!loading && proposalResult ? (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col h-[calc(100vh-130px)]">
+                <div className="flex items-center gap-2 p-4 border-b border-gray-50">
+                  <MessageSquare className="w-4 h-4 text-blue-500" />
+                  <h3 className="text-sm font-bold text-gray-800">Copilot 精修</h3>
+                  <span className="ml-auto text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">Draft 1 ✓</span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {copilotHistory.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-line ${
+                        msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-50 border border-gray-100 text-gray-700 rounded-bl-sm'
+                      }`}>{msg.content}</div>
                     </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-gray-400">{log.step}</div>
-                      <div className="text-xs text-gray-700 mt-0.5">{log.message}</div>
+                  ))}
+                  {copilotLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl rounded-bl-sm"><Spin size="small" /></div>
                     </div>
+                  )}
+                </div>
+                <div className="p-3 border-t border-gray-50">
+                  <div className="flex gap-2">
+                    <input value={copilotInput} onChange={e => setCopilotInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleCopilot()}
+                      placeholder="修改指令（如：添加韩国市场分析）..."
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-400" />
+                    <button onClick={handleCopilot} disabled={copilotLoading || !copilotInput.trim()}
+                      className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 shrink-0">
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                ))}
-                {loading && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 font-medium pt-2">
-                    <Spin size="small" /> AI Agent 正在组装...
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
+                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  <h3 className="text-sm font-bold text-gray-800">多步执行日志 (SSE Pipeline)</h3>
+                </div>
+                <div className="space-y-4">
+                  {logs.map((log, idx) => (
+                    <div key={idx} className="flex gap-3">
+                      <div className="mt-0.5">
+                        {log.message.includes('✅') ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Clock className="w-4 h-4 text-blue-500 animate-pulse" />}
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold text-gray-400">{log.step}</div>
+                        <div className="text-xs text-gray-700 mt-0.5">{log.message}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {loading && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 font-medium pt-2">
+                      <Spin size="small" /> AI Agent 正在组装...
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* Markdown Result */}
           <div className="flex-1">

@@ -129,3 +129,76 @@ Requirement: Provide a bulleted list of 5-7 highly compelling benefits tailored 
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+/**
+ * PUT — Copilot Refinement: modify existing proposal based on instruction
+ */
+export async function PUT(req: Request) {
+  try {
+    const { currentDocument, instruction, targetSchool, businessModel } = await req.json();
+    if (!currentDocument || !instruction) {
+      return new Response(JSON.stringify({ error: 'Missing currentDocument or instruction' }), { status: 400 });
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (type: string, data: any) => {
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({ type, data })}\n\n`
+          ));
+        };
+
+        try {
+          const { client, config } = await getModelClient();
+
+          const systemPrompt = `You are an expert business proposal editor at British Enrolment Partners (BEP).
+The user has a draft proposal for ${targetSchool || 'a school'} (${businessModel || 'Fixed Retainer'} model) and wants to make specific modifications.
+
+Current Proposal:
+${currentDocument}
+
+Your task:
+1. Understand the user's modification instruction.
+2. Apply ONLY the requested changes. Keep everything else identical.
+3. Reply with a very brief confirmation message (1 sentence) followed by "---DOCUMENT---" then the COMPLETE updated proposal in Markdown.
+
+IMPORTANT:
+- Keep ALL hardcoded commercial terms (£4,800/month, 15% fee) exactly as-is.
+- Keep the 4-section structure (Initial Conversation / Commercial Model / What School Gains / Next Steps).
+- Output format MUST be: "Brief reply\n---DOCUMENT---\n[full updated markdown]"`;
+
+          const response = await client.chat.completions.create(
+            buildCompletionParams(config, [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: instruction }
+            ])
+          );
+
+          const text = response.choices[0].message.content || '';
+          const parts = text.split('---DOCUMENT---');
+          const reply = parts[0].trim();
+          const updatedDoc = parts[1]?.trim() || currentDocument;
+
+          send('reply', reply || '✅ Proposal 已根据指令更新。');
+          send('document', updatedDoc);
+          controller.close();
+        } catch (err: any) {
+          console.error(err);
+          send('error', { message: err.message });
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+}
+

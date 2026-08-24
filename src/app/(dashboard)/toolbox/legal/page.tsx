@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Spin } from 'antd';
 import { marked } from 'marked';
-import { FileText, Database, X, CheckCircle, Clock, Scale } from 'lucide-react';
+import { FileText, Database, X, CheckCircle, Clock, Scale, Send, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 
 const DOC_TYPES = ['NDA', 'MOU', '服务协议', '合作合同', '劳动合同'];
@@ -26,6 +26,9 @@ export default function LegalPage() {
   const [loading, setLoading] = useState(false);
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
   const [logs, setLogs] = useState<{ step: string; message: string }[]>([]);
+  const [copilotHistory, setCopilotHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
+  const [copilotInput, setCopilotInput] = useState('');
+  const [copilotLoading, setCopilotLoading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -60,6 +63,45 @@ export default function LegalPage() {
       }
     } catch { alert('Network error'); }
     setLoading(false);
+    setCopilotHistory([{ role: 'bot', content: `✅ 文书草案 (Draft 1) 已生成完毕！\n\n你可以在下方 Copilot 输入修改指令，例如：\n- "将甲方名称改为 ABC 公司"\n- "把有效期改为5年"\n- "增加一条关于数据隐私的条款"` }]);
+  };
+
+  const handleCopilot = async () => {
+    if (!copilotInput.trim() || copilotLoading) return;
+    const instruction = copilotInput.trim();
+    setCopilotInput('');
+    setCopilotHistory(p => [...p, { role: 'user', content: instruction }]);
+    setCopilotLoading(true);
+    try {
+      const res = await fetch('/api/toolbox/legal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentDocument: result, instruction, docType: form.docType, templateStyle: form.templateStyle })
+      });
+      if (!res.body) throw new Error('No stream');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let newDoc = '';
+      let reply = '';
+      while (!done) {
+        const { value, done: dr } = await reader.read();
+        done = dr;
+        if (value) {
+          const lines = decoder.decode(value, { stream: true }).split('\n\n');
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.substring(6));
+              if (data.type === 'reply') reply = data.data;
+              else if (data.type === 'document') { newDoc = data.data; setResult(newDoc); }
+            } catch { /* ignore */ }
+          }
+        }
+      }
+      setCopilotHistory(p => [...p, { role: 'bot', content: reply || '\u2705 文书已根据指令更新。' }]);
+    } catch { setCopilotHistory(p => [...p, { role: 'bot', content: '❌ 网络错误，请重试。' }]); }
+    setCopilotLoading(false);
   };
 
   if (result || loading) {
@@ -86,13 +128,55 @@ export default function LegalPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 flex gap-5">
-          {/* Pipeline Logs */}
+          {/* Left Panel: SSE Logs → Copilot Chat */}
           <div className="w-72 shrink-0">
-            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
-                <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-                <h3 className="text-sm font-bold text-gray-800">SSE 执行管线</h3>
+            {!loading && result ? (
+              // Copilot Chat Mode
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col h-[calc(100vh-130px)]">
+                <div className="flex items-center gap-2 p-4 border-b border-gray-50">
+                  <MessageSquare className="w-4 h-4 text-violet-500" />
+                  <h3 className="text-sm font-bold text-gray-800">Copilot 精修</h3>
+                  <span className="ml-auto text-[9px] bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded font-bold">Draft 1 ✓</span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {copilotHistory.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-line ${
+                        msg.role === 'user' ? 'bg-violet-600 text-white rounded-br-sm' : 'bg-gray-50 border border-gray-100 text-gray-700 rounded-bl-sm'
+                      }`}>{msg.content}</div>
+                    </div>
+                  ))}
+                  {copilotLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl rounded-bl-sm">
+                        <Spin size="small" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 border-t border-gray-50">
+                  <div className="flex gap-2">
+                    <input
+                      value={copilotInput}
+                      onChange={e => setCopilotInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleCopilot()}
+                      placeholder="修改指令..."
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-violet-400"
+                    />
+                    <button onClick={handleCopilot} disabled={copilotLoading || !copilotInput.trim()}
+                      className="w-8 h-8 bg-violet-600 text-white rounded-lg flex items-center justify-center hover:bg-violet-700 disabled:opacity-50 shrink-0">
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
+            ) : (
+              // SSE Logs Mode (while generating)
+              <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
+                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
+                  <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                  <h3 className="text-sm font-bold text-gray-800">SSE 执行管线</h3>
+                </div>
               <div className="space-y-4">
                 {logs.map((log, idx) => (
                   <div key={idx} className="flex gap-3">
@@ -120,6 +204,7 @@ export default function LegalPage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* Result */}
