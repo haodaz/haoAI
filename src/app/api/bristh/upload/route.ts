@@ -136,7 +136,9 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // Local disk storage
-        fs.writeFileSync(path.join(LOCAL_UPLOADS_DIR, contextId, safeFileName), buffer);
+        const localDir = path.join(LOCAL_UPLOADS_DIR, contextId);
+        fs.mkdirSync(localDir, { recursive: true });
+        fs.writeFileSync(path.join(localDir, safeFileName), buffer);
         storagePath = `/uploads/${contextId}/${safeFileName}`;
       }
 
