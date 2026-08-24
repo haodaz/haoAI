@@ -45,129 +45,103 @@ function slidesToLegacy(slides: any[]): SlideData[] {
   });
 }
 
-
 /**
- * POST — Generate new PPT from scratch
+ * POST — Generate new PPT from scratch (SSE streaming)
  */
 export async function POST(req: Request) {
   try {
     const { topic, slideCount, theme, density, background, preferences, kbFileIds } = await req.json();
 
     if (!topic) {
-      return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
-    }
-    
-    let finalBackground = background || '';
-    if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
-      const kbFiles = await prisma.knowledgeItem.findMany({
-        where: { id: { in: kbFileIds } }
-      });
-      const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || '无正文内容'}`).join('\n\n');
-      finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
+      return new Response(JSON.stringify({ error: 'Topic is required' }), { status: 400 });
     }
 
-    const { client, config } = await getModelClient();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (type: string, data: any) => {
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({ type, data })}
 
-    // Use Edda's persona if available
-    let personaPrefix = '';
-    try {
-      personaPrefix = await buildAgentPrompt(
-        'edda',
-        `Generate a presentation about: ${topic}`,
-        finalBackground || '',
-        'You are Edda, the Presentation Specialist. Transform text into structured slide presentations.'
-      );
-    } catch {
-      personaPrefix = 'You are a professional presentation designer.';
-    }
+`
+          ));
+        };
 
-    const systemPrompt = `${personaPrefix}
+        try {
+          send('log', { step: '[1/4]', message: '✅ 初始化，加载知识库资料...' });
 
-Generate a structured PPT as a JSON array of Slide objects.
+          let finalBackground = background || '';
+          if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
+            const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
+            const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}]\n${f.content || '无正文内容'}`).join('\n\n');
+            finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
+          }
 
-Requirements:
-- Topic: "${topic}"
-- Number of slides: ${slideCount || '约10页'}
-- Content density: ${density || 'standard'}
-- Preferences: ${preferences || 'Professional business style'}
+          const { client, config } = await getModelClient();
+          send('log', { step: '[2/4]', message: '🔄 AI Edda 正在设计幻灯片大纲与内容...' });
 
-Background Information: ${finalBackground || 'None'}
+          let personaPrefix = '';
+          try {
+            personaPrefix = await buildAgentPrompt(
+              'edda',
+              `Generate a presentation about: ${topic}`,
+              finalBackground || '',
+              'You are Edda, the Presentation Specialist. Transform text into structured slide presentations.'
+            );
+          } catch {
+            personaPrefix = 'You are a professional presentation designer.';
+          }
 
-Output EXACTLY a JSON array (NOT wrapped in an object) in this format:
-[
-  {
-    "backgroundColor": "#ffffff",
-    "elements": [
-      {
-        "id": "s0-title",
-        "type": "TEXT_BOX",
-        "content": "Text content here",
-        "x": 10,
-        "y": 10,
-        "width": 80,
-        "height": 15,
-        "style": {
-          "fontSize": 2.4,
-          "fontWeight": "bold",
-          "textAlign": "center",
-          "color": "#1a1a2e",
-          "backgroundColor": "transparent",
-          "padding": 1,
-          "borderRadius": 0
+          const systemPrompt = `${personaPrefix}\n\nGenerate a structured PPT as a JSON array of Slide objects.\n\nRequirements:\n- Topic: "${topic}"\n- Number of slides: ${slideCount || '约10页'}\n- Content density: ${density || 'standard'}\n- Preferences: ${preferences || 'Professional business style'}\n\nBackground Information: ${finalBackground || 'None'}\n\nOutput EXACTLY a JSON array (NOT wrapped in an object) in this format:\n[\n  {\n    "backgroundColor": "#ffffff",\n    "elements": [\n      {\n        "id": "s0-title",\n        "type": "TEXT_BOX",\n        "content": "Text content here",\n        "x": 10,\n        "y": 10,\n        "width": 80,\n        "height": 15,\n        "style": {\n          "fontSize": 2.4,\n          "fontWeight": "bold",\n          "textAlign": "center",\n          "color": "#1a1a2e",\n          "backgroundColor": "transparent",\n          "padding": 1,\n          "borderRadius": 0\n        }\n      }\n    ]\n  }\n]\n\nCRITICAL RULES:\n- Output ONLY the JSON array. No extra text, no markdown fences.\n- x, y, width, height are percentages (0-100). ALWAYS ensure: x + width <= 100 and y + height <= 100\n- Each slide typically has 2-3 elements: a title (fontSize ~2.4, fontWeight bold, y ~8-12) and body text (fontSize ~1.1, y ~28-35)\n- First slide: centered title (large font ~3rem) + subtitle below it\n- Body text: use "• " bullet prefix for each point, separated by \\n\n- Use clean, professional styling. Keep backgroundColor "transparent" for text boxes unless creating accent blocks\n- Generate unique ids like "s0-title", "s0-body", "s1-title" etc\n- Content should be concise and professional in the requested language`;
+
+          const response = await client.chat.completions.create(
+            buildCompletionParams(config, [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `请为主题 "${topic}" 生成幻灯片 JSON 数组。仅输出 JSON，不要其他文字。` }
+            ], { requireJson: true })
+          );
+
+          const rawContent = response.choices[0].message.content || '';
+          send('log', { step: '[3/4]', message: `✅ AI 内容生成完毕，正在渲染 PPTX 文件...` });
+
+          const parsed = extractJSON(rawContent);
+          if (!parsed) {
+            send('error', { message: 'AI returned invalid JSON. Please try again.' });
+            controller.close();
+            return;
+          }
+
+          const slides = Array.isArray(parsed) ? parsed : (parsed.slides || []);
+          if (slides.length === 0) {
+            send('error', { message: 'AI generated empty slides' });
+            controller.close();
+            return;
+          }
+
+          const legacySlides = slidesToLegacy(slides);
+          const { fileUrl, fileName } = await renderPPTX({
+            slides: legacySlides,
+            theme: theme || 'blue',
+            coverTitle: topic,
+            coverSubtitle: 'Generated by BEP Auto Office',
+          });
+
+          send('log', { step: '[4/4]', message: `✅ PPTX 已渲染完成！共 ${slides.length} 张幻灯片。` });
+          send('result', { slides, fileUrl, fileName, slideCount: slides.length });
+          controller.close();
+        } catch (err: any) {
+          console.error('PPT Toolbox error:', err);
+          send('error', { message: err.message || 'Server error' });
+          controller.close();
         }
       }
-    ]
-  }
-]
-
-CRITICAL RULES:
-- Output ONLY the JSON array. No extra text, no markdown fences.
-- x, y, width, height are percentages (0-100). ALWAYS ensure: x + width <= 100 and y + height <= 100
-- Each slide typically has 2-3 elements: a title (fontSize ~2.4, fontWeight bold, y ~8-12) and body text (fontSize ~1.1, y ~28-35)
-- First slide: centered title (large font ~3rem) + subtitle below it
-- Body text: use "• " bullet prefix for each point, separated by \\n
-- Use clean, professional styling. Keep backgroundColor "transparent" for text boxes unless creating accent blocks
-- Generate unique ids like "s0-title", "s0-body", "s1-title" etc
-- Content should be concise and professional in the requested language`;
-
-    const response = await client.chat.completions.create(
-      buildCompletionParams(config, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `请为主题 "${topic}" 生成幻灯片 JSON 数组。仅输出 JSON，不要其他文字。` }
-      ], { requireJson: true })
-    );
-
-    const rawContent = response.choices[0].message.content || '';
-    console.log('[PPT] Raw AI response length:', rawContent.length);
-
-    const parsed = extractJSON(rawContent);
-    if (!parsed) {
-      console.error('[PPT] Failed to parse JSON from:', rawContent.substring(0, 500));
-      return NextResponse.json({ error: 'AI returned invalid JSON. Please try again.' }, { status: 500 });
-    }
-
-    // Handle both direct array and { slides: [...] } format
-    const slides = Array.isArray(parsed) ? parsed : (parsed.slides || []);
-
-    if (slides.length === 0) {
-      return NextResponse.json({ error: 'AI generated empty slides' }, { status: 500 });
-    }
-
-    // Render .pptx file using legacy converter
-    const legacySlides = slidesToLegacy(slides);
-    const { fileUrl, fileName } = await renderPPTX({
-      slides: legacySlides,
-      theme: theme || 'blue',
-      coverTitle: topic,
-      coverSubtitle: 'Generated by BEP Auto Office',
     });
 
-    return NextResponse.json({
-      success: true,
-      slides,
-      fileUrl,
-      fileName,
-      slideCount: slides.length,
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
     });
   } catch (error: any) {
     console.error('PPT Toolbox error:', error);

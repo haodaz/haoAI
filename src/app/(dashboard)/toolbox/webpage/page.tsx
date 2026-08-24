@@ -15,6 +15,7 @@ function WebpageView() {
   const [webForm, setWebForm] = useState({ topic: '', background: '', preferences: '', pageCount: '3', style: 'education', kbFiles: [] as KbFile[] });
   const [webResult, setWebResult] = useState<WebSite | null>(null);
   const [webLoading, setWebLoading] = useState(false);
+  const [webLogs, setWebLogs] = useState<{ step: string; message: string }[]>([]);
   const [webActivePageId, setWebActivePageId] = useState('');
   const [webEditorMode, setWebEditorMode] = useState<'ai' | 'manual'>('ai');
   const [webChatHistory, setWebChatHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
@@ -49,6 +50,33 @@ function WebpageView() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  if (!webResult && webLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-8">
+        <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-3 h-3 rounded-full bg-teal-500 animate-pulse" />
+            <h3 className="text-sm font-bold text-gray-800">SSE 执行管线 — 网页生成中</h3>
+          </div>
+          <div className="space-y-4">
+            {webLogs.map((log, idx) => (
+              <div key={idx} className="flex gap-3">
+                <div className="mt-0.5 shrink-0 text-base">
+                  {log.message.includes('✅') ? '✅' : log.message.includes('❌') ? '❌' : '🔄'}
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{log.step}</div>
+                  <div className="text-xs text-gray-700 mt-0.5 leading-relaxed">{log.message}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 pt-4 border-t border-gray-50 text-xs text-gray-400">并发生成所有页面，完成后自动展示结果...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!webResult) {
     return (
@@ -113,19 +141,40 @@ function WebpageView() {
           </div>
           <div className="flex justify-center pt-4">
             <button onClick={async () => {
-              setWebLoading(true); setWebResult(null);
+              setWebLoading(true); setWebResult(null); setWebLogs([]);
               try {
                 const res = await fetch('/api/toolbox/webpage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...webForm, kbFileIds: webForm.kbFiles.map(f => f.id) }) });
-                const data = await res.json();
-                if (data.success && data.site) {
-                  setWebResult(data.site);
-                  setWebActivePageId(data.site.pages?.[0]?.id || '');
-                  setWebChatHistory([{ role: 'bot', content: `已生成 ${data.site.pages?.length || 0} 个页面的宣传站点。\n\n你可以在右侧输入修改指令，或切换到手动模式直接编辑内容。\n\n💡 点击页面中的图片占位区域可以替换为真实图片。` }]);
-                } else { alert(data.error || '生成失败'); }
+                if (!res.body) throw new Error('No stream');
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+                while (!done) {
+                  const { value, done: dr } = await reader.read();
+                  done = dr;
+                  if (value) {
+                    const lines = decoder.decode(value, { stream: true }).split('\n\n');
+                    for (const line of lines) {
+                      if (!line.startsWith('data: ')) continue;
+                      try {
+                        const data = JSON.parse(line.substring(6));
+                        if (data.type === 'log') setWebLogs(p => [...p, data.data]);
+                        else if (data.type === 'result' && data.data.site) {
+                          setWebResult(data.data.site);
+                          setWebActivePageId(data.data.site.pages?.[0]?.id || '');
+                          setWebChatHistory([{ role: 'bot', content: `已生成 ${data.data.site.pages?.length || 0} 个页面的宣传站点。
+
+你可以在右侧输入修改指令，或切换到手动模式直接编辑内容。
+
+💡 点击页面中的图片占位区域可以替换为真实图片。` }]);
+                        } else if (data.type === 'error') { alert(data.data.message || '生成失败'); }
+                      } catch { /* ignore */ }
+                    }
+                  }
+                }
               } catch { alert('网络错误'); }
               setWebLoading(false);
             }} disabled={!webForm.topic || webLoading} className="px-10 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-full shadow-lg shadow-teal-500/20 hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2">
-              {webLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> 生成中（约30-60秒）...</> : <><Globe className="w-4 h-4" /> 生成宣传页</>}
+              {webLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> 生成中（查看左侧日志）...</> : <><Globe className="w-4 h-4" /> 生成宣传页</>}
             </button>
           </div>
         </div>

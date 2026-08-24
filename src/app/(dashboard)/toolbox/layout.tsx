@@ -2,10 +2,11 @@
 import React, { Suspense } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Spin } from 'antd';
-import { Presentation, FileText, Globe, Mail } from 'lucide-react';
+import { Presentation, FileText, Globe, Mail, Briefcase } from 'lucide-react';
 
 const TOOLS = [
   { id: 'ppt', path: '/toolbox/ppt', label: 'PPT 生成器', desc: '物理渲染出可下载 .pptx 文件', icon: Presentation, color: 'indigo' },
+  { id: 'proposal', path: '/toolbox/proposal', label: 'Proposal 写作', desc: '定制化业务提案与合同草案', icon: Briefcase, color: 'blue' },
   { id: 'legal', path: '/toolbox/legal', label: '法律文书生成器', desc: 'NDA / MOU / 合同草案', icon: FileText, color: 'violet' },
   { id: 'webpage', path: '/toolbox/webpage', label: '宣传页生成器', desc: 'Tailwind 响应式落地页设计', icon: Globe, color: 'teal' },
   { id: 'signature', path: '/toolbox/signature', label: '邮件签名编辑器', desc: '全局发信 HTML 签名可视化', icon: Mail, color: 'orange' },
@@ -13,6 +14,7 @@ const TOOLS = [
 
 const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon: string }> = {
   indigo: { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-700', icon: 'text-indigo-500' },
+  blue: { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', icon: 'text-blue-500' },
   violet: { bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700', icon: 'text-violet-500' },
   teal: { bg: 'bg-teal-50', border: 'border-teal-100', text: 'text-teal-700', icon: 'text-teal-500' },
   orange: { bg: 'bg-orange-50', border: 'border-orange-100', text: 'text-orange-700', icon: 'text-orange-500' },

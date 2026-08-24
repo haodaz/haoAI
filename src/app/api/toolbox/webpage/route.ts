@@ -1,190 +1,149 @@
-import { NextResponse } from 'next/server';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
 import prisma from '@/lib/prisma';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
-/**
- * Robust JSON extraction: handles markdown fences, trailing text, etc.
- */
 function extractJSON(raw: string): any {
   let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  // Clean trailing commas (common LLM error)
   cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
   try { return JSON.parse(cleaned); } catch {}
   const objMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (objMatch) {
-    try { return JSON.parse(objMatch[0]); } catch {}
-  }
+  if (objMatch) { try { return JSON.parse(objMatch[0]); } catch {} }
   return null;
 }
 
-/**
- * POST — Generate a multi-page marketing website using Planner-Worker batch architecture
- */
+const STYLE_GUIDE: Record<string, string> = {
+  'modern-tech': 'Modern tech aesthetic: dark navy/slate backgrounds, vibrant accent colors, geometric patterns, gradient overlays, glass-morphism cards',
+  'education': 'Education/academic: warm whites, trustworthy blue tones, campus imagery placeholders, serif headings for tradition',
+  'business': 'Business professional: clean white backgrounds, navy/gray palette, minimal borders, executive feel',
+};
+
 export async function POST(req: Request) {
   try {
     const { topic, background, preferences, pageCount, style, kbFileIds } = await req.json();
 
     if (!topic) {
-      return NextResponse.json({ error: 'Missing topic' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'Missing topic' }), { status: 400 });
     }
 
-    let finalBackground = background || '';
-    if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
-      const kbFiles = await prisma.knowledgeItem.findMany({
-        where: { id: { in: kbFileIds } }
-      });
-      const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || '无正文内容'}`).join('\n\n');
-      finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (type: string, data: any) => {
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({ type, data })}\n\n`
+          ));
+        };
 
-    const { client, config } = await getModelClient();
+        try {
+          send('log', { step: '[1/4]', message: '✅ 系统启动，加载知识库资料...' });
 
-    const styleGuide: Record<string, string> = {
-      'modern-tech': 'Modern tech aesthetic: dark navy/slate backgrounds, vibrant accent colors, geometric patterns, gradient overlays, glass-morphism cards',
-      'education': 'Education/academic: warm whites, trustworthy blue tones, campus imagery placeholders, serif headings for tradition',
-      'business': 'Business professional: clean white backgrounds, navy/gray palette, minimal borders, executive feel',
-    };
+          let finalBackground = background || '';
+          if (kbFileIds?.length > 0) {
+            const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
+            const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || ''}`).join('\n\n');
+            finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
+          }
 
-    // ==========================================
-    // PHASE 1: PLANNER (Design site structure)
-    // ==========================================
-    const plannerPrompt = await buildAgentPrompt(
-        'iris',
-        `Plan a ${pageCount || 3}-page website about: ${topic}`,
-        finalBackground,
-        'You are Iris, the Web Site Architect. Output ONLY a JSON site map.'
-    ) + `
+          const { client, config } = await getModelClient();
+          send('log', { step: '[2/4]', message: '🔄 AI Planner 正在设计网站结构与页面大纲...' });
 
-CRITICAL REQUIREMENTS:
-1. Design the structure of the website based on the topic.
-2. Define the global theme color.
-3. List the pages to be created. For each page, provide an 'id', a 'title', and a detailed 'description' of the sections and content that should be on this page.
-4. Do NOT write HTML yet.
-
-OUTPUT FORMAT (strict JSON):
+          // Phase 1: Planner
+          const plannerPrompt = await buildAgentPrompt(
+            'iris',
+            `Plan a ${pageCount || 3}-page website about: ${topic}`,
+            finalBackground,
+            'You are Iris, the Web Site Architect. Output ONLY a JSON site map.'
+          ) + `\n\nDesign exactly ${pageCount || 3} pages. Output this strict JSON:
 {
   "name": "Site Name",
   "themeColor": "#hex_color",
-  "pages": [
-    {
-      "id": "home",
-      "title": "首页",
-      "description": "Hero section with catchy headline, 3 feature cards, and a call-to-action footer",
-      "inNav": true
-    }
-  ]
+  "pages": [{ "id": "home", "title": "页面标题", "description": "详细内容描述", "inNav": true }]
 }
-
-Plan exactly ${pageCount || 3} pages. Output ONLY valid JSON.`;
-
-    const userPrompt = `- Style/Vibe: ${style || 'modern'}
-- Additional Preferences: ${preferences || 'None'}
-
-${finalBackground ? `Background Context:\n${finalBackground}` : ''}
-${preferences ? `\nAdditional requirements:\n${preferences}` : ''}
-
-Output ONLY valid JSON. No markdown, no explanations.`;
-
-    console.log('[Toolbox Webpage] Starting Phase 1: Planner...');
-    const plannerResponse = await client.chat.completions.create(
-      buildCompletionParams(config, [
-        { role: 'system', content: plannerPrompt },
-        { role: 'user', content: userPrompt },
-      ], { requireJson: true, maxTokens: 4096 })
-    );
-
-    const plannerRaw = plannerResponse.choices?.[0]?.message?.content || '';
-    const sitePlan = extractJSON(plannerRaw);
-
-    if (!sitePlan || !sitePlan.pages || !Array.isArray(sitePlan.pages)) {
-      console.error('Failed to parse planner JSON:', plannerRaw.substring(0, 500));
-      return NextResponse.json({ error: 'Failed to parse AI site plan', raw: plannerRaw.substring(0, 200) }, { status: 500 });
-    }
-
-    console.log(`[Toolbox Webpage] Planner finished. Generating ${sitePlan.pages.length} pages concurrently...`);
-
-    // ==========================================
-    // PHASE 2: WORKERS (Generate HTML for each page concurrently)
-    // ==========================================
-    const workerPromises = sitePlan.pages.map(async (page: any) => {
-      const workerSystemPrompt = await buildAgentPrompt(
-          'iris',
-          `Generate HTML for page: ${page.title}`,
-          finalBackground,
-          'You are Iris, the Web HTML Builder.'
-      ) + `
-
-CRITICAL REQUIREMENTS:
-1. All HTML must use Tailwind CSS classes (loaded via CDN).
-2. Use inline styles only for custom colors/gradients not available in Tailwind.
-3. Include image placeholders using this EXACT format:
-   <div class="relative group cursor-pointer" data-image-placeholder="true">
-     <div class="bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center" style="height:240px">
-       <div class="text-center">
-         <div class="text-4xl mb-2">📷</div>
-         <div class="text-sm text-gray-500 font-medium">点击替换图片</div>
-         <div class="text-xs text-gray-400 mt-1">建议尺寸: 800×600</div>
-       </div>
-     </div>
-   </div>
-4. Make it mobile-responsive with Tailwind.
-5. Use professional typography and spacing.
-6. Design style: ${styleGuide[style] || styleGuide['education']}
-7. The HTML should be self-contained sections (no <html>, <head>, <body> tags — just the content sections).
-8. JSON ESCAPING: You MUST escape all double quotes inside the "html" string values using backslash (\\").
-9. JSON FORMATTING: Do NOT use literal newlines inside string values. The "html" string must be a single continuous string.
-
-OUTPUT FORMAT (strict JSON):
-{
-  "html": "<section>...full HTML content...</section>"
-}
-
-PAGE TO GENERATE:
-ID: ${page.id}
-Title: ${page.title}
-Detailed Description: ${page.description}
-
 Output ONLY valid JSON.`;
 
-      try {
-        const workerResponse = await client.chat.completions.create(
-          buildCompletionParams(config, [
-            { role: 'system', content: workerSystemPrompt },
-            { role: 'user', content: `Generate the HTML for "${page.title}" as specified.` },
-          ], { requireJson: true, maxTokens: 8192 })
-        );
+          const planRes = await client.chat.completions.create(
+            buildCompletionParams(config, [
+              { role: 'system', content: plannerPrompt },
+              { role: 'user', content: `Style: ${style || 'education'}\nPreferences: ${preferences || 'None'}\n${finalBackground ? `Context:\n${finalBackground}` : ''}\nOutput ONLY valid JSON.` }
+            ], { requireJson: true, maxTokens: 4096 })
+          );
 
-        const pageRaw = workerResponse.choices?.[0]?.message?.content || '';
-        const pageData = extractJSON(pageRaw);
+          const sitePlan = extractJSON(planRes.choices?.[0]?.message?.content || '');
+          if (!sitePlan?.pages?.length) {
+            send('error', { message: 'Planner failed to produce site structure.' });
+            controller.close();
+            return;
+          }
 
-        return {
-          ...page,
-          html: pageData?.html || `<div class="p-8 text-center text-red-500">Failed to generate content for ${page.title}</div>`
-        };
-      } catch (err: any) {
-        console.error(`Worker failed for page ${page.id}:`, err);
-        return {
-          ...page,
-          html: `<div class="p-8 text-center text-red-500">Generation error: ${err.message}</div>`
-        };
+          send('log', { step: '[2/4]', message: `✅ 网站结构设计完毕: ${sitePlan.name}，共 ${sitePlan.pages.length} 页` });
+          send('log', { step: '[3/4]', message: `🔄 开始逐页生成 HTML (共 ${sitePlan.pages.length} 页，并发执行)...` });
+
+          // Phase 2: Workers (concurrent)
+          const workerPromises = sitePlan.pages.map(async (page: any, idx: number) => {
+            send('log', { step: `[页面${idx + 1}]`, message: `🔄 正在生成: ${page.title}...` });
+
+            const workerSystemPrompt = await buildAgentPrompt(
+              'iris',
+              `Generate HTML for page: ${page.title}`,
+              finalBackground,
+              'You are Iris, the Web HTML Builder.'
+            ) + `
+CRITICAL REQUIREMENTS:
+1. Use Tailwind CSS classes (loaded via CDN).
+2. Include image placeholders with data-image-placeholder="true".
+3. Make it mobile-responsive.
+4. Design style: ${STYLE_GUIDE[style] || STYLE_GUIDE['education']}
+5. Output sections only (no <html>, <head>, <body> tags).
+6. JSON ESCAPING: Escape all double quotes in the "html" string.
+7. No literal newlines inside string values.
+
+OUTPUT FORMAT (strict JSON):
+{ "html": "<section>...full HTML...</section>" }
+
+PAGE: ${page.title} - ${page.description}
+Output ONLY valid JSON.`;
+
+            try {
+              const workerRes = await client.chat.completions.create(
+                buildCompletionParams(config, [
+                  { role: 'system', content: workerSystemPrompt },
+                  { role: 'user', content: `Generate HTML for "${page.title}".` }
+                ], { requireJson: true, maxTokens: 8192 })
+              );
+              const pageData = extractJSON(workerRes.choices?.[0]?.message?.content || '');
+              send('log', { step: `[页面${idx + 1}]`, message: `✅ ${page.title} 生成完毕` });
+              return { ...page, html: pageData?.html || `<div class="p-8 text-center text-red-500">Failed: ${page.title}</div>` };
+            } catch (err: any) {
+              send('log', { step: `[页面${idx + 1}]`, message: `❌ ${page.title} 生成失败: ${err.message}` });
+              return { ...page, html: `<div class="p-8 text-center text-red-500">Error: ${err.message}</div>` };
+            }
+          });
+
+          const generatedPages = await Promise.all(workerPromises);
+          sitePlan.pages = generatedPages;
+
+          // Phase 3: Assembly — send final result as a special event
+          send('log', { step: '[4/4]', message: '✅ 所有页面已汇总组装，网站生成完毕！' });
+          send('result', { site: sitePlan });
+          controller.close();
+        } catch (err: any) {
+          console.error(err);
+          send('error', { message: err.message || 'Server error' });
+          controller.close();
+        }
       }
     });
 
-    const generatedPages = await Promise.all(workerPromises);
-    
-    // ==========================================
-    // PHASE 3: ASSEMBLY
-    // ==========================================
-    sitePlan.pages = generatedPages;
-
-    console.log('[Toolbox Webpage] Assembly complete.');
-    return NextResponse.json({ success: true, site: sitePlan });
-
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
   } catch (error: any) {
     console.error('Webpage generation error:', error);
-    return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
