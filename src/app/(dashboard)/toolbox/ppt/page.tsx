@@ -291,23 +291,41 @@ function PptView() {
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex-1 flex items-center justify-center p-4 md:p-10 bg-gray-50 overflow-hidden relative group">
                   <div style={{ backgroundColor: slide?.backgroundColor || '#fff', aspectRatio: '16 / 9' }} className="w-full max-w-[900px] shadow-2xl relative rounded-sm overflow-hidden border border-gray-100" onClick={() => setSelectedElementId(null)}>
-                    {slide?.elements?.map((element: any) => (
-                      <div key={element.id} onClick={(e) => { e.stopPropagation(); setSelectedElementId(element.id); }}
-                        style={{
-                          position: 'absolute', left: `${element.x}%`, top: `${element.y}%`, width: `${element.width}%`, height: `${element.height}%`,
-                          color: element.style?.color || '#000', backgroundColor: element.style?.backgroundColor || 'transparent',
-                          fontSize: `clamp(0.4rem, ${element.style?.fontSize || 1}vw, ${element.style?.fontSize || 1}rem)`,
-                          fontWeight: element.style?.fontWeight || 'normal', textAlign: element.style?.textAlign || 'left',
-                          padding: `${(element.style?.padding || 0) * 0.5}rem`, borderRadius: `${element.style?.borderRadius || 0}px`,
-                          display: 'flex', alignItems: 'center',
-                          justifyContent: element.style?.textAlign === 'center' ? 'center' : element.style?.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                          overflow: 'hidden', transition: 'all 0.1s ease-out',
-                        }}
-                        className={`cursor-pointer ${selectedElementId === element.id ? 'ring-2 ring-indigo-500 ring-offset-1' : 'hover:ring-1 hover:ring-indigo-300'}`}
-                      >
-                        <div className="w-full h-full whitespace-pre-wrap leading-snug">{element.content}</div>
-                      </div>
-                    ))}
+                    {slide?.elements?.map((element: any) => {
+                      const isShape = element.type === 'SHAPE_BOX';
+                      const isSelected = selectedElementId === element.id;
+                      return (
+                        <div key={element.id}
+                          onClick={(e) => { e.stopPropagation(); setSelectedElementId(element.id); }}
+                          style={{
+                            position: 'absolute',
+                            left: `${element.x}%`, top: `${element.y}%`,
+                            width: `${element.width}%`, height: `${element.height}%`,
+                            backgroundColor: element.style?.backgroundColor || (isShape ? '#1a2f5e' : 'transparent'),
+                            borderRadius: element.style?.borderRadius ? `${element.style.borderRadius}px` : '0',
+                            zIndex: isShape ? 0 : 1,
+                            transition: 'all 0.1s ease-out',
+                            // TEXT_BOX only
+                            ...(!isShape ? {
+                              color: element.style?.color || '#000',
+                              fontSize: `clamp(0.35rem, ${(element.style?.fontSize || 1) * 0.9}vw, ${element.style?.fontSize || 1}rem)`,
+                              fontWeight: element.style?.fontWeight || 'normal',
+                              textAlign: element.style?.textAlign || 'left',
+                              padding: `${(element.style?.padding || 0) * 0.4}rem`,
+                              display: 'flex', alignItems: 'center',
+                              justifyContent: element.style?.textAlign === 'center' ? 'center' : element.style?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                              overflow: 'hidden',
+                              lineHeight: 1.5,
+                            } : {}),
+                          }}
+                          className={`cursor-pointer ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : isShape ? 'hover:brightness-110' : 'hover:ring-1 hover:ring-indigo-300'}`}
+                        >
+                          {!isShape && (
+                            <div className="w-full h-full whitespace-pre-wrap leading-snug">{element.content}</div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur p-1 rounded-lg shadow border border-white opacity-0 group-hover:opacity-100 transition-all">
                     <span className="text-[8px] font-bold text-gray-400 px-1">BG</span>

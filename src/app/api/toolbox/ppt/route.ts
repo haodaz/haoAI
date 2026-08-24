@@ -4,36 +4,22 @@ import { renderPPTX, SlideData } from '@/lib/pptx-renderer';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import prisma from '@/lib/prisma';
 
-/**
- * Robust JSON extraction: handles markdown fences, trailing text, etc.
- */
+export const maxDuration = 300;
+
 function extractJSON(raw: string): any {
-  // Strip markdown code fences
   let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-  // Try direct parse first
   try { return JSON.parse(cleaned); } catch {}
-
-  // Try to find JSON array [...] or object {...}
   const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
-    try { return JSON.parse(arrayMatch[0]); } catch {}
-  }
+  if (arrayMatch) { try { return JSON.parse(arrayMatch[0]); } catch {} }
   const objMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (objMatch) {
-    try { return JSON.parse(objMatch[0]); } catch {}
-  }
-
+  if (objMatch) { try { return JSON.parse(objMatch[0]); } catch {} }
   return null;
 }
 
-/**
- * Convert Slide[] (element-level) to legacy SlideData[] for pptx-renderer
- */
 function slidesToLegacy(slides: any[]): SlideData[] {
   return slides.map((s: any) => {
     const titleEl = s.elements?.find((e: any) => e.style?.fontWeight === 'bold' && e.style?.fontSize >= 1.8);
-    const bodyEls = s.elements?.filter((e: any) => e !== titleEl) || [];
+    const bodyEls = s.elements?.filter((e: any) => e !== titleEl && e.type === 'TEXT_BOX') || [];
     const bullets = bodyEls
       .map((e: any) => (e.content || '').split('\n').filter((l: string) => l.trim()))
       .flat()
@@ -60,9 +46,7 @@ export async function POST(req: Request) {
       async start(controller) {
         const send = (type: string, data: any) => {
           controller.enqueue(new TextEncoder().encode(
-            `data: ${JSON.stringify({ type, data })}
-
-`
+            `data: ${JSON.stringify({ type, data })}\n\n`
           ));
         };
 
@@ -72,12 +56,20 @@ export async function POST(req: Request) {
           let finalBackground = background || '';
           if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
             const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
-            const kbTexts = kbFiles.map((f: any) => `【参考资料: ${f.title}]\n${f.content || '无正文内容'}`).join('\n\n');
+            const kbTexts = kbFiles.map((f: any) => `[Reference: ${f.title}]\n${f.content || ''}`).join('\n\n');
             finalBackground = finalBackground + (finalBackground ? '\n\n' : '') + kbTexts;
+          }
+          // Always load BEP core KB for contact info
+          const bepCoreKb = await prisma.knowledgeItem.findMany({
+            where: { OR: [{ title: { startsWith: 'BEP Introduction' } }, { title: { contains: 'contact' } }, { title: { contains: 'Contact' } }] },
+            take: 3
+          });
+          if (bepCoreKb.length > 0) {
+            finalBackground += '\n\n[BEP Core Info]\n' + bepCoreKb.map((f: any) => f.content).join('\n\n');
           }
 
           const { client, config } = await getModelClient();
-          send('log', { step: '[2/4]', message: '🔄 AI Edda 正在设计幻灯片大纲与内容...' });
+          send('log', { step: '[2/4]', message: '🎨 AI Edda 正在设计幻灯片布局与内容...' });
 
           let personaPrefix = '';
           try {
@@ -88,16 +80,113 @@ export async function POST(req: Request) {
               'You are Edda, the Presentation Specialist. Transform text into structured slide presentations.'
             );
           } catch {
-            personaPrefix = 'You are a professional presentation designer.';
+            personaPrefix = 'You are Edda, a professional presentation designer at British Enrolment Partners (BEP).';
           }
 
-          const systemPrompt = `${personaPrefix}\n\nGenerate a structured PPT as a JSON array of Slide objects.\n\nRequirements:\n- Topic: "${topic}"\n- Number of slides: ${slideCount || '约10页'}\n- Content density: ${density || 'standard'}\n- Preferences: ${preferences || 'Professional business style'}\n\nBackground Information: ${finalBackground || 'None'}\n\nOutput EXACTLY a JSON array (NOT wrapped in an object) in this format:\n[\n  {\n    "backgroundColor": "#ffffff",\n    "elements": [\n      {\n        "id": "s0-title",\n        "type": "TEXT_BOX",\n        "content": "Text content here",\n        "x": 10,\n        "y": 10,\n        "width": 80,\n        "height": 15,\n        "style": {\n          "fontSize": 2.4,\n          "fontWeight": "bold",\n          "textAlign": "center",\n          "color": "#1a1a2e",\n          "backgroundColor": "transparent",\n          "padding": 1,\n          "borderRadius": 0\n        }\n      }\n    ]\n  }\n]\n\nCRITICAL RULES:\n- Output ONLY the JSON array. No extra text, no markdown fences.\n- x, y, width, height are percentages (0-100). ALWAYS ensure: x + width <= 100 and y + height <= 100\n- Each slide typically has 2-3 elements: a title (fontSize ~2.4, fontWeight bold, y ~8-12) and body text (fontSize ~1.1, y ~28-35)\n- First slide: centered title (large font ~3rem) + subtitle below it\n- Body text: use "• " bullet prefix for each point, separated by \\n\n- Use clean, professional styling. Keep backgroundColor "transparent" for text boxes unless creating accent blocks\n- Generate unique ids like "s0-title", "s0-body", "s1-title" etc\n- Content should be concise and professional in the requested language`;
+          // ─── PREMIUM DESIGN SYSTEM PROMPT ────────────────────────────────────
+          const systemPrompt = `${personaPrefix}
+
+## YOUR MISSION
+Create a PREMIUM, VISUALLY STUNNING presentation for British Enrolment Partners (BEP).
+This is a professional business presentation. The visual quality MUST be exceptional.
+
+## BEP BRAND PALETTE
+- Navy (primary):  #1a2f5e
+- Gold (accent):   #c9a84c
+- Light Blue:      #4a90d9
+- White:           #ffffff
+- Light Gray:      #f4f6f9
+- Body text:       #374151
+- Light text:      #a0c4e8
+
+## ELEMENT TYPES
+- TEXT_BOX: has "content" field with text
+- SHAPE_BOX: decorative shape/color block, content MUST be ""
+
+## 6 LAYOUT PATTERNS — USE ALL OF THEM, VARIED
+
+PATTERN A — DARK COVER (slide 0 ONLY):
+backgroundColor: "#1a2f5e"
+[ SHAPE_BOX x:0,y:0,w:100,h:2 bg:#c9a84c ] ← gold top bar
+[ TEXT_BOX x:10,y:25,w:80,h:22 fontSize:3.4 bold white centered ] ← main title
+[ TEXT_BOX x:15,y:56,w:70,h:8 fontSize:1.4 normal #a0c4e8 centered ] ← subtitle
+[ TEXT_BOX x:15,y:68,w:70,h:7 fontSize:1.1 normal #c9a84c centered ] ← date/tagline
+[ SHAPE_BOX x:0,y:97,w:100,h:3 bg:#c9a84c ] ← gold bottom bar
+
+PATTERN B — SECTION DIVIDER (use every 3rd-4th slide):
+backgroundColor: "#1a2f5e"
+[ SHAPE_BOX x:0,y:0,w:1.5,h:100 bg:#c9a84c ] ← gold left bar
+[ TEXT_BOX x:8,y:28,w:85,h:20 fontSize:2.8 bold white ] ← section name
+[ SHAPE_BOX x:8,y:51,w:30,h:0.8 bg:#c9a84c ] ← decorative underline
+[ TEXT_BOX x:8,y:56,w:78,h:12 fontSize:1.3 normal #a0c4e8 ] ← section subtitle
+
+PATTERN C — TWO COLUMN:
+backgroundColor: "#ffffff"
+[ SHAPE_BOX x:0,y:0,w:100,h:19 bg:#1a2f5e ] ← navy header bar
+[ TEXT_BOX x:4,y:2,w:92,h:14 fontSize:1.9 bold white ] ← title in header
+[ TEXT_BOX x:4,y:23,w:44,h:71 fontSize:1.05 normal #374151 ] ← left column bullets
+[ SHAPE_BOX x:49.5,y:23,w:0.5,h:69 bg:#e2e8f0 ] ← divider
+[ TEXT_BOX x:52,y:23,w:44,h:71 fontSize:1.05 normal #374151 ] ← right column bullets
+
+PATTERN D — BULLET LIST (most common for content):
+backgroundColor: "#ffffff"
+[ SHAPE_BOX x:0,y:0,w:0.9,h:100 bg:#c9a84c ] ← gold left accent bar
+[ TEXT_BOX x:5,y:7,w:90,h:14 fontSize:2.1 bold #1a2f5e ] ← title
+[ SHAPE_BOX x:5,y:22,w:22,h:0.7 bg:#c9a84c ] ← gold underline
+[ TEXT_BOX x:5,y:27,w:90,h:67 fontSize:1.1 normal #374151 ] ← bullet text
+
+PATTERN E — KPI STATS CARD:
+backgroundColor: "#f4f6f9"
+[ SHAPE_BOX x:0,y:0,w:100,h:22 bg:#1a2f5e ] ← navy header
+[ TEXT_BOX x:4,y:3,w:92,h:15 fontSize:1.9 bold white ] ← title
+[ SHAPE_BOX x:4,y:26,w:28,h:36 bg:#1a2f5e borderRadius:8 ] ← card 1 (navy)
+[ SHAPE_BOX x:36,y:26,w:28,h:36 bg:#c9a84c borderRadius:8 ] ← card 2 (gold)
+[ SHAPE_BOX x:68,y:26,w:28,h:36 bg:#4a90d9 borderRadius:8 ] ← card 3 (blue)
+[ TEXT_BOX x:4,y:28,w:28,h:12 fontSize:2.6 bold white centered ] ← number 1
+[ TEXT_BOX x:36,y:28,w:28,h:12 fontSize:2.6 bold #1a2f5e centered ] ← number 2
+[ TEXT_BOX x:68,y:28,w:28,h:12 fontSize:2.6 bold white centered ] ← number 3
+[ TEXT_BOX x:4,y:41,w:28,h:8 fontSize:0.85 normal #a0c4e8 centered ] ← label 1
+[ TEXT_BOX x:36,y:41,w:28,h:8 fontSize:0.85 normal #1a2f5e centered ] ← label 2
+[ TEXT_BOX x:68,y:41,w:28,h:8 fontSize:0.85 normal #a0c4e8 centered ] ← label 3
+[ TEXT_BOX x:4,y:66,w:92,h:27 fontSize:1.0 normal #374151 ] ← explanatory text
+
+PATTERN F — CONTACT / THANK YOU (LAST SLIDE):
+backgroundColor: "#1a2f5e"
+[ SHAPE_BOX x:0,y:0,w:100,h:2 bg:#c9a84c ] ← gold top bar
+[ TEXT_BOX x:10,y:15,w:80,h:16 fontSize:2.9 bold white centered ] ← "Thank You" / outro
+[ TEXT_BOX x:15,y:38,w:70,h:9 fontSize:1.3 normal #a0c4e8 centered ] ← tagline
+[ SHAPE_BOX x:20,y:52,w:60,h:0.6 bg:#c9a84c ] ← gold divider
+[ TEXT_BOX x:10,y:57,w:80,h:28 fontSize:1.0 normal #a0c4e8 centered ] ← REAL contact details
+[ SHAPE_BOX x:0,y:97,w:100,h:3 bg:#c9a84c ] ← gold bottom bar
+
+## STRICT RULES
+1. Output ONLY a valid JSON array. ZERO markdown. ZERO explanation text.
+2. x+width <= 100 and y+height <= 100 for EVERY element without exception.
+3. TEXT on dark background: color MUST be "#ffffff" or "#a0c4e8". NEVER put dark text on navy.
+4. SHAPE_BOX: content field MUST be "".
+5. Slide 0 = PATTERN A (dark cover). Use title from topic.
+6. Last slide = PATTERN F with REAL contact info from Background Info.
+   - NEVER invent phone numbers. NEVER invent emails. Only use what's in Background Info.
+   - If no contact info found, write "Contact us to discuss partnership opportunities."
+7. Use PATTERN B for section breaks (approx every 3-4 slides).
+8. Alternate between PATTERN C, D, E for content slides.
+9. Bullet text format: "• Point one\n• Point two\n• Point three" (use actual newline in JSON string)
+10. Each element needs a UNIQUE id: "sN-shape1", "sN-title", "sN-body", "sN-card1" etc.
+
+## PRESENTATION SPEC
+- Topic: "${topic}"
+- Slide Count: ${slideCount || 10}
+- Style: ${preferences || 'Professional business English'}
+- Density: ${density || 'standard'}
+
+## BACKGROUND / KB CONTEXT (extract real facts and contact info from this):
+${finalBackground || 'None provided.'}`;
 
           const response = await client.chat.completions.create(
             buildCompletionParams(config, [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: `请为主题 "${topic}" 生成幻灯片 JSON 数组。仅输出 JSON，不要其他文字。` }
-            ], { requireJson: true })
+              { role: 'user', content: `Generate a ${slideCount || 10}-slide premium presentation for "${topic}". Use the BEP brand design system. Extract real contact info from Background Info for the last slide. Use PATTERN A for slide 0, PATTERN F for last slide, and a mix of PATTERN B-E for the rest. Output ONLY the JSON array.` }
+            ], { requireJson: true, maxTokens: 8192 })
           );
 
           const rawContent = response.choices[0].message.content || '';
@@ -124,6 +213,15 @@ export async function POST(req: Request) {
             coverTitle: topic,
             coverSubtitle: 'Generated by BEP Auto Office',
           });
+
+          // Save to GeneratedAsset for history
+          await prisma.generatedAsset.create({
+            data: {
+              type: 'PPT',
+              title: `${topic} — Presentation`,
+              payload: JSON.stringify({ slides, fileUrl, rawSlides: slides }),
+            }
+          }).catch(() => {});
 
           send('log', { step: '[4/4]', message: `✅ PPTX 已渲染完成！共 ${slides.length} 张幻灯片。` });
           send('result', { slides, fileUrl, fileName, slideCount: slides.length });
@@ -161,37 +259,32 @@ export async function PUT(req: Request) {
 
     const { client, config } = await getModelClient();
 
-    // Use Edda's persona for copilot too
     let personaPrefix = '';
     try {
       personaPrefix = await buildAgentPrompt(
         'edda',
         instruction,
         '',
-        'You are Edda, the Presentation Specialist at Bristh Enrollment Partners.'
+        'You are Edda, the Presentation Specialist at British Enrolment Partners.'
       );
     } catch {
-      personaPrefix = 'You are a presentation editor assistant.';
+      personaPrefix = 'You are Edda, a presentation editor. You maintain BEP brand colors (navy #1a2f5e, gold #c9a84c).';
     }
 
     const systemPrompt = `${personaPrefix}
 
-The user will give you existing presentation slides (JSON) and an editing instruction.
+The user wants to edit an existing BEP presentation.
 
-Your job:
-1. Understand the instruction
-2. Modify the slides JSON accordingly
-3. Reply with a brief explanation followed by "---" then the COMPLETE updated slides JSON array
-
-Current slides:
+Current slides JSON:
 ${JSON.stringify(slides)}
 
-RULES:
-- Output format: "Your reply text\n---\n[updated slides JSON]"
-- The JSON after "---" must be a complete valid Slide[] array (no markdown fences)
-- Preserve element ids when possible
-- x, y, width, height are percentages 0-100
-- Keep x+width <= 100 and y+height <= 100`;
+RULES when editing:
+- Maintain BEP brand colors (navy #1a2f5e, gold #c9a84c, white #ffffff).
+- Keep SHAPE_BOX decorative elements intact unless explicitly asked to remove them.
+- TEXT on dark backgrounds must be white (#ffffff or #a0c4e8).
+- x+width <= 100 and y+height <= 100 for every element.
+- Reply format: "Your brief reply\n---\n[complete updated slides JSON array]"
+- The JSON after "---" must be the COMPLETE slides array, not just changed slides.`;
 
     const response = await client.chat.completions.create(
       buildCompletionParams(config, [
@@ -201,7 +294,6 @@ RULES:
     );
 
     const text = response.choices[0].message.content || '';
-    
     let reply = text;
     let updatedSlides = null;
 

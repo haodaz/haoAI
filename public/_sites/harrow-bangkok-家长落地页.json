@@ -1,21 +1,21 @@
 {
   "slug": "harrow-bangkok-家长落地页",
   "siteName": "Harrow Bangkok 家长落地页",
-  "themeColor": "#001F5F",
+  "themeColor": "#1a2342",
   "pages": [
     {
       "id": "home",
       "title": "首页",
-      "html": "<section class=\"bg-gradient-to-r from-blue-900 to-gold py-10 text-white text-center\"><div class=\"container mx-auto\"><h1 class=\"text-4xl font-bold mb-4\">欢迎来到 Harrow Bangkok</h1><p class=\"text-lg mb-6\">卓越教育，开启孩子的辉煌未来</p><div class=\"bg-gray-200 h-64\" data-image-placeholder=\"Harrow Bangkok 校园\"></div></div></section><section class=\"py-10 text-center\"><div class=\"container mx-auto\"><h2 class=\"text-3xl font-bold text-blue-900 mb-4\">为什么选择我们</h2><p class=\"text-lg text-gray-700 mb-6\">作为英国精英私立学校品牌的典范，Harrow Bangkok 提供全方位卓越教育，与亚太地区数个杰出教育机构联手合作。</p><p class=\"text-lg text-gray-700 mb-6\">该校不仅在学术方面表现不凡，还培养学生全面发展的能力，包括领导才能和社交技能。</p><div class=\"bg-gray-200 h-64\" data-image-placeholder=\"学生活动\"></div></div></section><section class=\"bg-blue-900 py-10 text-white text-center\"><div class=\"container mx-auto\"><h3 class=\"text-3xl font-bold mb-4\">关于 BEP</h3><p class=\"text-lg mb-6\">Bristh Enrollment Partners 是 Harrow Bangkok 的官方招生合作伙伴。我们在中国大陆、香港及越南拥有广泛网络，致力于为您提供最优质的服务。</p><div class=\"bg-gray-200 h-64\" data-image-placeholder=\"BEP 合作伙伴\"></div></div></section><section class=\"py-10 text-center\"><div class=\"container mx-auto\"><h3 class=\"text-3xl font-bold text-blue-900 mb-4\">联系我们</h3><p class=\"text-lg text-gray-700 mb-6\">如需进一步了解，请通过以下方式联系我们：</p><p class=\"text-lg text-gray-700 mb-6\">电子邮件：<a href=\"mailto:info@bep-education.com\" class=\"text-gold\">info@bep-education.com</a></p><p class=\"text-lg text-gray-700\">电话：<a href=\"tel:+861234567890\" class=\"text-gold\">+86 123-4567-890</a></p></div></section>",
+      "html": "<section class=\\\"bg-gradient-to-r from-blue-800 to-gold-600 text-white py-20\\\"><div class=\\\"container mx-auto px-4\\\"><h1 class=\\\"text-4xl font-bold mb-4\\\">欢迎了解Harrow Bangkok</h1><p class=\\\"text-lg mb-10\\\">Harrow Bangkok以卓越的教育品质及国际认可的课程吸引全球家长。立即探索为您的孩子提供的无限机会。</p><a href=\\\"#about\\\" class=\\\"bg-white text-blue-800 font-semibold px-6 py-2 rounded-full\\\">了解更多</a></div></section><section class=\\\"py-16\\\" id=\\\"about\\\"><div class=\\\"container mx-auto px-4\\\"><div class=\\\"bg-gray-200 h-64 rounded-lg\\\" data-image-placeholder=\\\"校园美景\\\"></div><h2 class=\\\"text-3xl text-blue-800 font-bold mt-8\\\">关于Harrow Bangkok</h2><p class=\\\"text-lg mt-4\\\">Harrow Bangkok 以其悠久的历史和教育卓越而闻名，现已迅速成为亚洲顶尖的国际学校之一。我们致力于培养具有全球视野和领导力的学生。</p></div></section>",
       "inNav": true
     },
     {
       "id": "contact",
       "title": "联系我们",
-      "html": "<section class=\"py-10 text-center\"><div class=\"container mx-auto\"><h2 class=\"text-3xl font-bold text-blue-900 mb-4\">获得更多信息</h2><p class=\"text-lg text-gray-700 mb-6\">我们随时为您提供更多信息，并为您孩子的未来教育规划提供支持。</p><form class=\"mx-auto\"><input type=\"text\" placeholder=\"您的姓名\" class=\"border-b border-blue-900 w-60 mb-4 p-2 text-lg text-gray-700\"><input type=\"email\" placeholder=\"您的邮箱\" class=\"border-b border-blue-900 w-60 mb-4 p-2 text-lg text-gray-700\"><textarea placeholder=\"您的留言\" class=\"border-b border-blue-900 w-60 h-32 mb-4 p-2 text-lg text-gray-700\"></textarea><button type=\"submit\" class=\"bg-gold text-white py-2 px-6 mt-4\">提交</button></form></div></section>",
+      "html": "<section class=\\\"bg-blue-900 text-white py-16\\\"><div class=\\\"container mx-auto px-4\\\"><h2 class=\\\"text-3xl font-bold\\\">联系我们</h2><p class=\\\"text-lg mt-4\\\">如有任何关于Harrow Bangkok的问题或需要了解更多信息，请通过以下方式联系我们的招生团队。</p><div class=\\\"mt-8\\\"><p>Email: <a href=\\\"mailto:info@bep.com\\\" class=\\\"underline\\\">info@bep.com</a></p><p>Phone: <a href=\\\"tel:+123456789\\\" class=\\\"underline\\\">+123 456 789</a></p></div></div></section>",
       "inNav": true
     }
   ],
-  "createdAt": "2026-08-24T19:26:56.004Z",
-  "updatedAt": "2026-08-24T19:26:56.004Z"
+  "createdAt": "2026-08-24T19:49:26.471Z",
+  "updatedAt": "2026-08-24T19:49:26.471Z"
 }
