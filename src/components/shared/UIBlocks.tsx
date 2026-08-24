@@ -26,7 +26,7 @@ export function renderPreviewStandalone(payload: string | null) {
             <p className="text-xs font-bold text-gray-500 mb-3">{json.summary}</p>
             {json.assetId && (
               <div className="mb-4">
-                <a href={`/toolbox?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
+                <a href={`/toolbox/ppt?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
                   前往工作台查看/编辑完整生成结果 →
                 </a>
               </div>
@@ -40,7 +40,7 @@ export function renderPreviewStandalone(payload: string | null) {
           <p className="font-bold mb-2">{json.summary}</p>
           {json.assetId && (
             <div className="mt-4 mb-4">
-              <a href={`/toolbox?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
+              <a href={`/toolbox/ppt?assetId=${json.assetId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-700 transition-colors">
                 前往工作台查看/编辑完整生成结果 →
               </a>
             </div>

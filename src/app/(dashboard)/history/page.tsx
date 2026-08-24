@@ -97,7 +97,7 @@ function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopi
       }
       // Even if assetId is missing, do not fall through to DocumentEditorView. 
       // Go to toolbox directly or alert.
-      router.push('/toolbox');
+      router.push('/toolbox/ppt');
       return;
     }
 

@@ -578,7 +578,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       }
       
       // Do not fall through if assetId is missing
-      router.push('/toolbox');
+      router.push('/toolbox/ppt');
       return;
     }
 
