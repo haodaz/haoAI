@@ -6,7 +6,7 @@ import { Modal, Tooltip, Spin } from 'antd';
 import { marked } from 'marked';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { ThinkBlock, ToolCallsBlock, renderPreviewStandalone, COLOR_BORDER_MAP } from '@/components/shared/UIBlocks';
-import { Building2, Cpu, Activity, History, BookOpen, Settings, Send, CheckCircle2, ChevronRight, ChevronLeft, Users, Layout, Plus, FileText, Calendar, Presentation, AlertTriangle, Scale, Mail, StopCircle, Edit, Edit3, Link2, UploadCloud, Terminal, Info, Download, MessageSquare, Wrench, PenTool, CheckCircle, XCircle, Hourglass, ChevronDown, ChevronUp, Database, Menu, X, Copy, RefreshCw, GitMerge, LogOut, UserCircle, Phone, AtSign, Camera, Save, ArrowLeft, ArrowRight, SaveAll, Loader2 } from 'lucide-react';
+import { Building2, Cpu, Activity, History, BookOpen, Settings, Send, CheckCircle2, ChevronRight, ChevronLeft, Users, Layout, Plus, FileText, Calendar, Presentation, AlertTriangle, Scale, Mail, StopCircle, Edit, Edit3, Link2, UploadCloud, Terminal, Info, Download, MessageSquare, Wrench, PenTool, CheckCircle, XCircle, Hourglass, ChevronDown, ChevronUp, Database, Menu, X, Copy, RefreshCw, GitMerge, LogOut, UserCircle, Phone, AtSign, Camera, Save, ArrowLeft, ArrowRight, SaveAll, Loader2, Paperclip } from 'lucide-react';
 
 function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopilot?: (data: { slides: any[]; fileUrl: string; topic: string }) => void; onOpenDocCopilot?: (data: { taskId: string; agent: string }) => void }) {
   const { t, i18n } = useTranslation();
@@ -230,6 +230,45 @@ function TaskHistoryView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCopi
                   <p className="text-[10px] font-bold text-gray-400 mb-1">{t('bristh.history.rawInput')}</p>
                   <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed max-h-32 overflow-y-auto">{selectedCtx.rawContent}</p>
                 </div>
+                {/* Attachments display */}
+                {selectedCtx.attachments && (() => {
+                  try {
+                    const atts = JSON.parse(selectedCtx.attachments);
+                    if (!Array.isArray(atts) || atts.length === 0) return null;
+                    const typeIcon: Record<string, string> = {
+                      'application/pdf': '📕',
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📘',
+                      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📗',
+                      'text/plain': '📄',
+                      'text/markdown': '📝',
+                      'text/csv': '📊',
+                    };
+                    return (
+                      <div className="bg-blue-50/60 rounded-lg p-3 mt-2">
+                        <p className="text-[10px] font-bold text-blue-500 mb-2 flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> 关联附件 ({atts.length})
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {atts.map((a: any) => {
+                            const chip = (
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded-md text-[10px] font-medium shadow-sm ${a.storagePath ? 'text-blue-800 hover:bg-blue-50 hover:border-blue-400 cursor-pointer transition-colors' : 'text-gray-500'}`}>
+                                <span>{typeIcon[a.mimeType] || '📎'}</span>
+                                <span className="max-w-[140px] truncate">{a.originalName}</span>
+                                <span className="text-blue-400">({(a.size / 1024).toFixed(0)}KB)</span>
+                                {a.storagePath && <Download className="w-3 h-3 text-blue-400" />}
+                              </span>
+                            );
+                            return a.storagePath ? (
+                              <a key={a.id} href={a.storagePath} download={a.originalName} target="_blank" rel="noopener noreferrer">{chip}</a>
+                            ) : (
+                              <span key={a.id}>{chip}</span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  } catch { return null; }
+                })()}
               </div>
             </div>
 

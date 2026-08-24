@@ -104,10 +104,16 @@ export async function buildAgentPrompt(
 
   // Inject attachment content
   if (attachments?.length) {
-    const MAX_TEXT_PER_FILE = 3000;
+    const MAX_TEXT_PER_FILE = 8000;  // ~2-3k tokens per file
+    const MAX_TOTAL_ATTACHMENT_TEXT = 20000; // Total cap across all attachments
+    let totalUsed = 0;
     const attachmentSections = attachments.map(a => {
-      const text = a.extractedText?.substring(0, MAX_TEXT_PER_FILE) || '[无法解析文件内容]';
-      const truncated = a.extractedText?.length > MAX_TEXT_PER_FILE ? '\n...(内容已截断)' : '';
+      const remaining = MAX_TOTAL_ATTACHMENT_TEXT - totalUsed;
+      if (remaining <= 0) return `### 📎 附件: ${a.originalName} (${a.mimeType})\n[已达总量上限，内容省略]`;
+      const limit = Math.min(MAX_TEXT_PER_FILE, remaining);
+      const text = a.extractedText?.substring(0, limit) || '[无法解析文件内容]';
+      totalUsed += text.length;
+      const truncated = a.extractedText?.length > limit ? '\n...(内容已截断)' : '';
       return `### 📎 附件: ${a.originalName} (${a.mimeType})\n${text}${truncated}`;
     }).join('\n\n');
     prompt += `\n\n【任务关联附件 — 以下是 Chief 指定给你参考或处理的文件内容】:\n${attachmentSections}`;

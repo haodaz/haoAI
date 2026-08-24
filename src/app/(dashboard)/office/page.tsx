@@ -156,21 +156,24 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .catch(() => {});
   }, []);
 
+  const dispatchingRef = useRef(false);
   useEffect(() => {
-    if (pendingDispatchTask) {
-      const { input, inputMode, contextId, tasks } = pendingDispatchTask;
+    if (pendingDispatchTask && !dispatchingRef.current) {
+      dispatchingRef.current = true;
+      const { input, inputMode, contextId, tasks, attachments } = pendingDispatchTask;
+      console.log('[Office] Received pendingDispatchTask, attachments:', attachments?.length || 0);
       setPendingDispatchTask(null);
       if (contextId && tasks) {
         // Two-step flow: tasks already created in confirm step, go straight to execution
         handleDispatchWithTasks(input, tasks);
       } else {
         // Legacy flow: single-step dispatch (from old UI or email-daemon)
-        handleDispatch(input, inputMode);
+        handleDispatch(input, inputMode, attachments);
       }
     }
   }, [pendingDispatchTask]);
 
-  const handleDispatch = async (dispatchInput: string, dispatchMode: string) => {
+  const handleDispatch = async (dispatchInput: string, dispatchMode: string, dispatchAttachments?: any[]) => {
     if (dispatchMode === 'text' && !dispatchInput.trim()) return;
     
     setCurrentTaskDisplay(dispatchMode === 'text' ? dispatchInput.substring(0, 50) + '...' : `已关联${dispatchMode === 'file' ? '上传文件' : 'CRM邮件'}`);
@@ -179,13 +182,17 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     setLogs([]);
     
     addLog('System', 'Task initiated. Routing to Chief Master AI.');
+    if (dispatchAttachments?.length) {
+      addLog('System', `📎 ${dispatchAttachments.length} 个附件已关联到任务上下文。`);
+    }
     addLog('Chief', 'Reading context and analyzing intent...');
 
     try {
+      console.log('[Office] Calling orchestrate with', dispatchAttachments?.length || 0, 'attachments');
       const res = await fetch('/api/bristh/orchestrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'TEXT', rawContent: dispatchInput, locale: i18n.language })
+        body: JSON.stringify({ source: 'TEXT', rawContent: dispatchInput, locale: i18n.language, attachments: dispatchAttachments })
       });
       
       const data = await res.json();
@@ -197,17 +204,14 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       // Use Chief's phase assignments (dynamic pipeline)
       const PHASE_LABELS: Record<number, string> = { 1: '信息准备', 2: '核心工作', 3: '整合分发' };
 
-      const initialActiveNodes = assignedTasks.map((t:any) => {
-        const taskRecord = data.tasks.find((dbTask: any) => dbTask.agent === t.agent);
-        return {
-          agent: t.agent,
-          instruction: t.instruction,
-          status: 'working',
-          taskId: taskRecord?.id,
-          depth: taskRecord?.phase || t.phase || 1,
-          hasAttachments: !!taskRecord?.attachmentIds || !!t.attachmentIds?.length,
-        };
-      });
+      const initialActiveNodes = assignedTasks.map((t:any) => ({
+        agent: t.agent,
+        instruction: t.instruction,
+        status: 'working',
+        taskId: t.id,
+        depth: t.phase || 1,
+        hasAttachments: !!t.attachmentIds,
+      }));
       setActiveNodes(initialActiveNodes);
 
       // Collect results per phase for inter-phase data flow
@@ -215,6 +219,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
       const executeAgent = async (taskRecord: any, priorResults?: { agent: string; summary: string; content: string }[]) => {
         const agentName = taskRecord.agent;
+        const tId = taskRecord.id;
         addLog(agentName, `Executing sub-task: ${taskRecord.instruction.substring(0, 40)}...`);
         try {
            const agentEndpoint = `/api/bristh/agents/${agentName.toLowerCase()}`;
@@ -222,13 +227,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
            const agentRes = await fetch(agentEndpoint, {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ taskId: taskRecord.id, locale: i18n.language, priorPhaseResults: priorResults || [] })
+             body: JSON.stringify({ taskId: tId, locale: i18n.language, priorPhaseResults: priorResults || [] })
            });
 
            if (!agentRes.ok) {
              if (agentRes.status === 404) {
                 addLog(agentName, `(Mock) Completed task successfully.`);
-                setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: 'done'} : n));
+                setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'done'} : n));
                 return null;
              }
              throw new Error(`Failed with status ${agentRes.status}`);
@@ -255,11 +260,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                content = parsed.content || '';
              }
            } catch { summary = ''; }
-           setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: 'done', summary} : n));
+           setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'done', summary} : n));
            return { agent: agentName, summary, content };
         } catch (err: any) {
            addLog(agentName, `❌ Error: ${err.message}`);
-           setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: 'failed'} : n));
+           setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'failed'} : n));
            return null;
         }
       };
@@ -294,6 +299,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       addLog('System', `Error: ${err.message}`);
       setStatus('failed');
     }
+    dispatchingRef.current = false;
   };
 
   // Two-step flow: tasks already created, go straight to execution
@@ -336,7 +342,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         if (!agentRes.ok) {
           if (agentRes.status === 404) {
             addLog(agentName, `(Mock) Completed task successfully.`);
-            setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: 'done'} : n));
+            setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: 'done'} : n));
             return null;
           }
           const errData = await agentRes.json().catch(() => ({}));
@@ -359,11 +365,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         if (taskRecord.requiresApproval) {
           addLog(agentName, `🟡 ${i18n.language === 'en' ? 'Requires manual approval to continue.' : '需要人工审批确认才能继续。'}`);
         }
-        setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: finalStatus, summary} : n));
+        setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: finalStatus, summary} : n));
         return { agent: agentName, summary, content };
       } catch (err: any) {
         addLog(agentName, `❌ Error: ${err.message}`);
-        setActiveNodes(prev => prev.map(n => n.agent === agentName ? {...n, status: 'failed'} : n));
+        setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: 'failed'} : n));
         return null;
       }
     };
@@ -951,7 +957,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
                         return (
                           <div
-                            key={node.agent}
+                            key={node.taskId || node.agent}
                             onClick={() => {
                               if ((isDone || isAwaitingApproval) && node.taskId && !isChief) {
                                 openCopilot(ai?.name || node.agent, node.taskId);

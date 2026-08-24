@@ -186,6 +186,26 @@ ${attachmentContext}${langInstruction}`;
       tasksAnalysis = (parsedJson as any).tasks || [];
     }
 
+    // 保底: 自动拆分 Kelly 多文件任务
+    if (attachments?.length) {
+      const expandedTasks: any[] = [];
+      for (const t of tasksAnalysis) {
+        if (t.agent === 'Kelly' && t.attachmentIds?.length > 1 && t.fileRole !== 'cross-reference') {
+          console.log(`[Analyze] Auto-splitting Kelly task with ${t.attachmentIds.length} files`);
+          for (const attId of t.attachmentIds) {
+            const att = attachments.find((a: any) => a.id === attId);
+            expandedTasks.push({
+              ...t,
+              attachmentIds: [attId],
+              instruction: `${t.instruction}\n\n【处理文件】${att?.originalName || attId}`,
+            });
+          }
+        } else {
+          expandedTasks.push(t);
+        }
+      }
+      tasksAnalysis = expandedTasks;
+    }
     // Save analysis to context (but don't create Task records yet)
     await prisma.taskContext.update({
       where: { id: context.id },

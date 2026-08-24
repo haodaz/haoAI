@@ -40,6 +40,7 @@ async function getSessionUserId(): Promise<string | null> {
 export async function POST(req: Request) {
   try {
     const { source, rawContent, locale, approvalConfig, attachments } = await req.json();
+    console.log('[Orchestrate] Received request. attachments:', attachments?.length || 0, attachments?.map((a: any) => a.originalName));
 
     if (!rawContent) {
       return NextResponse.json({ error: 'Missing rawContent' }, { status: 400 });
@@ -165,6 +166,27 @@ ${attachmentContext}${langInstruction}`;
       tasksToCreate = (parsedJson as any).tasks || [];
     }
 
+    // 保底: 自动拆分 Kelly 多文件任务
+    // 如果 Chief 把多个附件塞给了一个 Kelly，后端自动拆成并行任务
+    if (attachments?.length) {
+      const expandedTasks: any[] = [];
+      for (const t of tasksToCreate) {
+        if (t.agent === 'Kelly' && t.attachmentIds?.length > 1 && t.fileRole !== 'cross-reference') {
+          console.log(`[Orchestrate] Auto-splitting Kelly task with ${t.attachmentIds.length} files`);
+          for (const attId of t.attachmentIds) {
+            const att = attachments.find((a: any) => a.id === attId);
+            expandedTasks.push({
+              ...t,
+              attachmentIds: [attId],
+              instruction: `${t.instruction}\n\n【处理文件】${att?.originalName || attId}`,
+            });
+          }
+        } else {
+          expandedTasks.push(t);
+        }
+      }
+      tasksToCreate = expandedTasks;
+    }
     // 3. Save parsed tasks to database linked to the context
     // Support approvalConfig if provided (e.g. from email-daemon with pre-configured approval)
     const approvalSet = new Set((approvalConfig || []).map((a: string) => a.toLowerCase()));

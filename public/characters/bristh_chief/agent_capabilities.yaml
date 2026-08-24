@@ -152,7 +152,7 @@ agents:
       - 附件内容结构化分析 (Attachment Content Analysis)
     output_format: "markdown (processed document)"
     trigger_keywords: ["翻译", "填写", "提取", "表格", "转换", "汇总", "translate", "fill", "extract", "template", "form", "convert", "整理", "摘要"]
-    notes: "Kelly 是文件型任务的专属处理者。当 Chief 判断某个附件需要被「处理」（fileRole=target）而非「参考」时，必须分配给 Kelly。她接收附件的 extractedText 并直接产出处理结果。"
+    notes: "Kelly 是文件型任务的专属处理者。当 Chief 判断某个附件需要被「处理」（fileRole=target）而非「参考」时，必须分配给 Kelly。她接收附件的 extractedText 并直接产出处理结果。\n【多文件规则 — 极其重要】当有多个需要「处理」的附件时，你必须为每个附件创建一个独立的 Kelly 任务（每个任务的 attachmentIds 只包含一个文件ID）。Kelly 不是真人，而是 AI token 窗口——多个 Kelly 任务会并行执行，效率更高、质量更好。只有当任务明确要求「跨文件对比/整合」时，才可以将多个附件放进同一个 Kelly 任务（此时设置 fileRole='cross-reference'）。"
 
   - name: "Grace"
     title: "邮件分发专员 / Email Dispatch Specialist"
