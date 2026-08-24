@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
+import { generateProposal } from '@/lib/toolbox-generators';
+
+export const maxDuration = 300; // Allow long tool generation
 
 export async function POST(req: Request) {
   let taskIdForError = '';
@@ -18,18 +21,19 @@ export async function POST(req: Request) {
 
     await prisma.task.update({ where: { id: taskId }, data: { status: 'RUNNING' } });
 
-    // ── Step 1: Lightweight param extraction via small LLM call ──
+    // ── Step 1: Lightweight param extraction ──
     const { client, config } = await getModelClient();
-    const extractionPrompt = `Extract key parameters from this proposal request. Return ONLY valid JSON, no other text.
+    const extractionPrompt = `Extract key parameters from this proposal request. Return ONLY valid JSON.
 
 User instruction: "${task.instruction}"
 
 Output format:
 {
   "targetSchool": "school name (string, or 'Unknown' if not specified)",
+  "schoolProfile": "any school profile details mentioned",
   "businessModel": "Fixed Retainer | Performance Partnership | Hybrid (混合模式)",
   "focusAreas": ["array", "of", "focus", "areas"],
-  "additionalNotes": "any other relevant details from the instruction"
+  "additionalNotes": "any other relevant details"
 }`;
 
     const extractRes = await client.chat.completions.create(
@@ -40,7 +44,6 @@ Output format:
     try {
       params = JSON.parse(extractRes.choices[0].message.content || '{}');
     } catch {
-      // Fallback: best-effort from instruction
       params = {
         targetSchool: task.instruction.match(/([A-Z][a-z]+(?:'s)?\s+(?:College|School|University|Academy))/)?.[1] || 'Unknown',
         businessModel: 'Fixed Retainer',
@@ -49,26 +52,39 @@ Output format:
       };
     }
 
-    // ── Step 2: Create ToolboxJob with Kelly's parsed context as background ──
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h TTL
-    const job = await prisma.toolboxJob.create({
-      data: {
-        tool: 'proposal',
-        params: JSON.stringify(params),
-        background: task.context.rawContent || '',
-        expiresAt,
-      }
-    });
+    // ── Step 2: Call the proposal generator and wait for full result ──
+    // Progress callback writes to task.resultPayload so the frontend ticker can show live status
+    const writeProgress = async (msg: string) => {
+      try {
+        await prisma.task.update({
+          where: { id: taskId },
+          data: { resultPayload: JSON.stringify({ progress: msg }) }
+        });
+      } catch { /* non-blocking */ }
+    };
 
-    const toolboxUrl = `/toolbox/proposal?jobId=${job.id}`;
-    const summary = `📋 ${params.targetSchool} — Proposal 已准备就绪，等待在工具中生成`;
+    await writeProgress('[1/4] 正在检索 BEP 核心知识库...');
 
-    // ── Step 3: Save result and complete task ──
+    const result = await generateProposal(
+      {
+        targetSchool: params.targetSchool,
+        schoolProfile: params.schoolProfile,
+        businessModel: params.businessModel || 'Fixed Retainer',
+        focusAreas: params.focusAreas || [],
+        background: task.context?.rawContent || '',
+      },
+      writeProgress // live progress ticker
+    );
+
+    // ── Step 3: Bring result back to task — content is now in the pipeline ──
+    const toolboxUrl = `/toolbox/proposal?assetId=${result.assetId}`;
+    const summary = `📋 ${result.title} 已生成完毕`;
+
     const resultPayload = JSON.stringify({
       summary,
-      toolboxUrl,
-      jobId: job.id,
-      extractedParams: params,
+      content: result.content,       // downstream agents (Grace, etc.) can read this
+      assetId: result.assetId,
+      toolboxUrl,                    // Copilot 精修入口
     });
 
     const updatedTask = await prisma.task.update({
@@ -79,7 +95,7 @@ Output format:
       }
     });
 
-    recordTaskCompletion('alice', taskId, task.instruction, `ToolboxJob created: ${job.id}`).catch(() => {});
+    recordTaskCompletion('alice', taskId, task.instruction, summary).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {
@@ -90,4 +106,3 @@ Output format:
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
+import { generateLegal } from '@/lib/toolbox-generators';
+
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let taskIdForError = '';
@@ -45,9 +48,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Step 2: Lightweight param extraction via LLM ──
+    // ── Step 2: Lightweight param extraction ──
     const { client, config } = await getModelClient();
-    const extractionPrompt = `Extract legal document parameters from this request. Return ONLY valid JSON, no other text.
+    const extractionPrompt = `Extract legal document parameters from this request. Return ONLY valid JSON.
 
 User instruction: "${task.instruction}"
 
@@ -68,36 +71,42 @@ Output format:
     try {
       params = JSON.parse(extractRes.choices[0].message.content || '{}');
     } catch {
-      params = {
-        docType: 'NDA',
-        partyA: '',
-        partyB: '',
-        keyTerms: task.instruction,
-        templateStyle: '标准英式',
-      };
+      params = { docType: 'NDA', partyA: '', partyB: '', keyTerms: task.instruction, templateStyle: '标准英式' };
     }
 
-    // ── Step 3: Create ToolboxJob with enriched background ──
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const job = await prisma.toolboxJob.create({
-      data: {
-        tool: 'legal',
-        params: JSON.stringify(params),
-        background: finalBackground || '',
-        expiresAt,
-      }
-    });
+    // ── Step 3: Call the legal generator and wait for full result ──
+    const writeProgress = async (msg: string) => {
+      try {
+        await prisma.task.update({
+          where: { id: taskId },
+          data: { resultPayload: JSON.stringify({ progress: msg }) }
+        });
+      } catch { /* non-blocking */ }
+    };
 
-    const toolboxUrl = `/toolbox/legal?jobId=${job.id}`;
-    const docLabel = params.docType || '法律文书';
-    const partyLabel = params.partyA ? ` — ${params.partyA}` : '';
-    const summary = `⚖️ ${docLabel}${partyLabel} 已准备就绪，等待在工具中生成`;
+    await writeProgress('[1/4] 初始化参数，加载文书类型配置...');
+
+    const result = await generateLegal(
+      {
+        docType: params.docType || 'NDA',
+        partyA: params.partyA || 'British Enrolment Partners Ltd',
+        partyB: params.partyB,
+        keyTerms: params.keyTerms,
+        background: finalBackground || '',
+        templateStyle: params.templateStyle || '标准英式',
+      },
+      writeProgress
+    );
+
+    // ── Step 4: Bring result back to task pipeline ──
+    const toolboxUrl = `/toolbox/legal?assetId=${result.assetId}`;
+    const summary = `⚖️ ${result.title} 已生成完毕`;
 
     const resultPayload = JSON.stringify({
       summary,
-      toolboxUrl,
-      jobId: job.id,
-      extractedParams: params,
+      content: result.content,   // downstream agents can read this
+      assetId: result.assetId,
+      toolboxUrl,                // Copilot 精修入口
     });
 
     const updatedTask = await prisma.task.update({
@@ -108,7 +117,7 @@ Output format:
       }
     });
 
-    recordTaskCompletion('eric', taskId, task.instruction, `ToolboxJob created: ${job.id}`).catch(() => {});
+    recordTaskCompletion('eric', taskId, task.instruction, summary).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

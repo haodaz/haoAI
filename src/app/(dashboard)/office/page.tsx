@@ -99,6 +99,83 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [copilotLoading, setCopilotLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Live progress ticker: maps taskId -> current status message
+  const [nodeProgress, setNodeProgress] = useState<Record<string, string>>({});
+
+  // Known steps per agent for simulated ticker
+  const AGENT_STEPS: Record<string, string[]> = {
+    Alice: ['[1/4] 检索 BEP 知识库...', '[2/4] 生成 Initial Conversation...', '[3/4] 拼接商业条款...', '[4/4] 定制 What School Gains...'],
+    Eric:  ['[1/4] 加载文书类型配置...', '[2/4] AI 生成主体条款...', '[3/4] 拼接标准保护性条款...', '[4/4] 文书文书完成...'],
+    Edda:  ['[1/4] 解析演示需求...', '[2/4] 生成幻灯片内容...', '[3/4] 渲染 .pptx 文件...', '[4/4] 上传文件...'],
+    Iris:  ['[1/4] 解析页面需求...', '[2/4] 生成 HTML 模板...', '[3/4] 青昌设计元素...', '[4/4] 发布落地页...'],
+  };
+  const tickerTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const tickerCounters = useRef<Record<string, number>>({});
+
+  // Start fake ticker for a working node
+  const startTicker = (taskId: string, agentName: string) => {
+    if (tickerTimers.current[taskId]) return; // already running
+    const agentKey = Object.keys(AGENT_STEPS).find(k => agentName.includes(k));
+    const steps = agentKey ? AGENT_STEPS[agentKey] : ['[?/4] 工具执行中...'];
+    tickerCounters.current[taskId] = 0;
+    setNodeProgress(prev => ({ ...prev, [taskId]: steps[0] }));
+    tickerTimers.current[taskId] = setInterval(() => {
+      tickerCounters.current[taskId] = Math.min(tickerCounters.current[taskId] + 1, steps.length - 1);
+      setNodeProgress(prev => ({ ...prev, [taskId]: steps[tickerCounters.current[taskId]] }));
+    }, 20000); // advance every 20s
+  };
+
+  const stopTicker = (taskId: string) => {
+    if (tickerTimers.current[taskId]) {
+      clearInterval(tickerTimers.current[taskId]);
+      delete tickerTimers.current[taskId];
+    }
+  };
+
+  // Poll working nodes every 2s for real DB progress + completion
+  useEffect(() => {
+    const workingNodes = activeNodes.filter(n => n.status === 'working' && n.taskId);
+    if (workingNodes.length === 0) return;
+
+    workingNodes.forEach(node => startTicker(node.taskId, node.agent));
+
+    const interval = setInterval(async () => {
+      for (const node of workingNodes) {
+        if (!node.taskId) continue;
+        try {
+          const res = await fetch(`/api/bristh/tasks/${node.taskId}`);
+          const data = await res.json();
+          // Sync real progress from DB if available
+          if (data.resultPayload) {
+            try {
+              const payload = JSON.parse(data.resultPayload);
+              if (payload.progress) {
+                setNodeProgress(prev => ({ ...prev, [node.taskId]: payload.progress }));
+              }
+            } catch { /* ignore */ }
+          }
+          // Detect completion
+          if (data.status === 'COMPLETED' || data.status === 'FAILED' || data.status === 'AWAITING_APPROVAL') {
+            stopTicker(node.taskId);
+            const statusMap: Record<string, string> = { COMPLETED: 'done', FAILED: 'failed', AWAITING_APPROVAL: 'awaiting_approval' };
+            const summary = (() => { try { return JSON.parse(data.resultPayload || '{}').summary || ''; } catch { return ''; } })();
+            setActiveNodes(prev => prev.map(n =>
+              n.taskId === node.taskId
+                ? { ...n, status: statusMap[data.status] || 'done', summary }
+                : n
+            ));
+          }
+        } catch { /* ignore */ }
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      workingNodes.forEach(n => stopTicker(n.taskId));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeNodes.map(n => n.taskId + n.status).join(',')]);
+
   const activeAgentIds = activeNodes.map(n => n.agent);
   const idleAIs = subAIs.filter(ai => !activeAgentIds.includes(ai.id));
   const activeAIs = subAIs.filter(ai => activeAgentIds.includes(ai.id));
@@ -1081,7 +1158,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                     >重试</button>
                                   </div>
                                 ) : isWorking ? (
-                                  <p>🔄 执行中...</p>
+                                  <div className="overflow-hidden">
+                                    <p className="text-[10px] text-emerald-600 font-mono animate-pulse truncate flex items-center gap-1">
+                                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                                      {nodeProgress[node.taskId] || '\ud83d\udd04 \u5de5\u5177\u6267\u884c\u4e2d...'}
+                                    </p>
+                                  </div>
                                 ) : (
                                   <p>⏳ 等待执行</p>
                                 )}

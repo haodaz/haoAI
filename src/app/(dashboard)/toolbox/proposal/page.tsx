@@ -12,6 +12,7 @@ const FOCUS_AREAS = ['学术提升 (Academics)', '市场拓展 (Marketing)', '�
 export default function ProposalPage() {
   const searchParams = useSearchParams();
   const jobId = searchParams?.get('jobId');
+  const assetId = searchParams?.get('assetId');
   const autoStartedRef = useRef(false);
 
   const [proposalForm, setProposalForm] = useState({
@@ -31,9 +32,27 @@ export default function ProposalPage() {
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
 
-  // Auto-start from ToolboxJob (created by Alice agent)
+  // Mode A: assetId — load existing generated content, skip re-generation
   useEffect(() => {
-    if (!jobId || autoStartedRef.current) return;
+    if (!assetId || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    fetch(`/api/toolbox/assets?id=${assetId}`)
+      .then(r => r.json())
+      .then((asset) => {
+        if (asset.error || !asset.payload) return;
+        const payload = JSON.parse(asset.payload);
+        if (payload.content) {
+          setProposalResult(payload.content);
+          if (payload.targetSchool) setProposalForm(prev => ({ ...prev, targetSchool: payload.targetSchool, businessModel: payload.businessModel || 'Fixed Retainer' }));
+          setCopilotHistory([{ role: 'bot', content: `✅ 已加载 Draft 1！可以在左侧 Copilot 输入修改指令进行精修。` }]);
+        }
+      })
+      .catch(console.error);
+  }, [assetId]);
+
+  // Mode B: jobId — legacy flow (pre-fill form and auto-generate)
+  useEffect(() => {
+    if (!jobId || assetId || autoStartedRef.current) return;
     autoStartedRef.current = true;
     fetch(`/api/toolbox/jobs?id=${jobId}`)
       .then(r => r.json())

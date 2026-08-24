@@ -20,6 +20,7 @@ const DOC_TYPE_DESCRIPTIONS: Record<string, string> = {
 export default function LegalPage() {
   const searchParams = useSearchParams();
   const jobId = searchParams?.get('jobId');
+  const assetId = searchParams?.get('assetId');
   const autoStartedRef = useRef(false);
 
   const [form, setForm] = useState({
@@ -35,9 +36,27 @@ export default function LegalPage() {
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
 
-  // Auto-start from ToolboxJob (created by Eric agent)
+  // Mode A: assetId — load existing generated content into Copilot
   useEffect(() => {
-    if (!jobId || autoStartedRef.current) return;
+    if (!assetId || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    fetch(`/api/toolbox/assets?id=${assetId}`)
+      .then(r => r.json())
+      .then((asset) => {
+        if (asset.error || !asset.payload) return;
+        const payload = JSON.parse(asset.payload);
+        if (payload.content) {
+          setResult(payload.content);
+          if (payload.docType) setForm(prev => ({ ...prev, docType: payload.docType, partyA: payload.partyA || '', partyB: payload.partyB || '', templateStyle: payload.templateStyle || '标准英式' }));
+          setCopilotHistory([{ role: 'bot', content: `✅ 已加载 ${payload.docType || '法律文书'} Draft 1！可以在左侧 Copilot 输入修改指令进行精修。` }]);
+        }
+      })
+      .catch(console.error);
+  }, [assetId]);
+
+  // Mode B: jobId — legacy flow
+  useEffect(() => {
+    if (!jobId || assetId || autoStartedRef.current) return;
     autoStartedRef.current = true;
     fetch(`/api/toolbox/jobs?id=${jobId}`)
       .then(r => r.json())
