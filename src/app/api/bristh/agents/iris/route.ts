@@ -156,7 +156,8 @@ Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`
       content: raw,
       site,
       publishedUrl,
-      assetId: generatedAsset.id
+      assetId: generatedAsset.id,
+      toolboxUrl: `/toolbox/webpage?assetId=${generatedAsset.id}`,
     });
 
     const updatedTask = await prisma.task.update({

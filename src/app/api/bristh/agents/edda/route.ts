@@ -219,7 +219,8 @@ Rules:
         summary: `成功生成 PPTX 文件，共包含 ${slides.length} 页幻灯片。`,
         fileUrl: fileUrl,
         rawSlides: slides,
-        assetId: generatedAsset.id
+        assetId: generatedAsset.id,
+        toolboxUrl: `/toolbox/ppt?assetId=${generatedAsset.id}`,
     });
 
     const updatedTask = await prisma.task.update({

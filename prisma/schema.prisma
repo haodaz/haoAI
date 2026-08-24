@@ -196,3 +196,13 @@ model GeneratedAsset {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model ToolboxJob {
+  id         String   @id @default(cuid())
+  tool       String   // 'proposal' | 'legal' | 'ppt' | 'webpage'
+  params     String   // JSON: { targetSchool, businessModel, docType, partyA, ... }
+  background String   // Kelly-parsed rawContent, passed as background knowledge to tool
+  status     String   @default("PENDING") // PENDING | OPENED
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime // 24h TTL
+}

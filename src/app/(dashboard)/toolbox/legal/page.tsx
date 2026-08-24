@@ -1,5 +1,6 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Spin } from 'antd';
 import { marked } from 'marked';
 import { FileText, Database, X, CheckCircle, Clock, Scale, Send, MessageSquare } from 'lucide-react';
@@ -17,6 +18,10 @@ const DOC_TYPE_DESCRIPTIONS: Record<string, string> = {
 };
 
 export default function LegalPage() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams?.get('jobId');
+  const autoStartedRef = useRef(false);
+
   const [form, setForm] = useState({
     docType: 'NDA', partyA: '', partyB: '',
     keyTerms: '', background: '', templateStyle: '标准英式',
@@ -29,6 +34,57 @@ export default function LegalPage() {
   const [copilotHistory, setCopilotHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  // Auto-start from ToolboxJob (created by Eric agent)
+  useEffect(() => {
+    if (!jobId || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    fetch(`/api/toolbox/jobs?id=${jobId}`)
+      .then(r => r.json())
+      .then(async (job) => {
+        if (job.error) return;
+        const p = job.params || {};
+        const filled = {
+          docType: p.docType || 'NDA',
+          partyA: p.partyA || '',
+          partyB: p.partyB || '',
+          keyTerms: p.keyTerms || '',
+          background: '',
+          templateStyle: p.templateStyle || '标准英式',
+          kbFiles: [] as KbFile[],
+        };
+        setForm(filled);
+        setLoading(true);
+        setLogs([]);
+        const res = await fetch('/api/toolbox/legal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...filled, background: job.background }),
+        });
+        if (!res.body) { setLoading(false); return; }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false; let text = '';
+        while (!done) {
+          const { value, done: dr } = await reader.read();
+          done = dr;
+          if (value) {
+            const lines = decoder.decode(value, { stream: true }).split('\n\n');
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const data = JSON.parse(line.substring(6));
+                if (data.type === 'log') setLogs(prev => [...prev, data.data]);
+                else if (data.type === 'ai_chunk') { text += data.data; setResult(text); }
+              } catch { /* ignore */ }
+            }
+          }
+        }
+        setLoading(false);
+        setCopilotHistory([{ role: 'bot', content: `✅ 文书草案 (Draft 1) 已生成！现在可以在左侧 Copilot 输入修改指令。` }]);
+      })
+      .catch(console.error);
+  }, [jobId]);
 
   const handleGenerate = async () => {
     setLoading(true);

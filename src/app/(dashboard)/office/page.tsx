@@ -563,31 +563,25 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
   // --- Copilot Methods ---
   const openCopilot = async (agent: string, taskId: string) => {
-    // For Edda and Iris, redirect to the Toolbox for the full editor experience
-    if (agent.startsWith('Edda') || agent.startsWith('Iris')) {
-      try {
-        const res = await fetch(`/api/bristh/tasks/${taskId}`);
-        const data = await res.json();
-        const payload = JSON.parse(data.resultPayload || '{}');
-        if (payload.assetId) {
-          router.push(`/toolbox?assetId=${payload.assetId}`);
-          return;
-        }
-      } catch (e) {
-        console.error('Failed to get assetId:', e);
+    // Universal: if payload has toolboxUrl, navigate directly to the tool
+    try {
+      const res = await fetch(`/api/bristh/tasks/${taskId}`);
+      const data = await res.json();
+      const payload = data.resultPayload ? JSON.parse(data.resultPayload) : {};
+      if (payload.toolboxUrl) {
+        router.push(payload.toolboxUrl);
+        return;
       }
-      
-      // Do not fall through if assetId is missing
-      router.push('/toolbox/ppt');
-      return;
+    } catch (e) {
+      console.error('Failed to check toolboxUrl:', e);
     }
 
-    // For all other agents, open DocumentEditorView
+    // Fallback for non-toolbox agents: open DocumentEditorView
     if (onOpenDocCopilot) {
       onOpenDocCopilot({ taskId, agent });
       return;
     }
-    // Fallback: modal copilot
+    // Last fallback: modal copilot
     setCopilotNode({ agent, taskId });
     setCopilotOpen(true);
     setCopilotData(null);
@@ -599,6 +593,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       console.error(e);
     }
   };
+
 
   const sendCopilotMessage = async () => {
     if (!copilotMessage.trim() || !copilotNode) return;

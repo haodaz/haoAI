@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
-import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
-
 
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {
-    const { taskId, locale } = await req.json();
+    const { taskId } = await req.json();
     taskIdForError = taskId;
 
     const task = await prisma.task.findUnique({
@@ -16,59 +14,80 @@ export async function POST(req: Request) {
       include: { context: true }
     });
 
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-    }
+    if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
 
-    // 1. Update status to RUNNING
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { status: 'RUNNING' }
-    });
+    await prisma.task.update({ where: { id: taskId }, data: { status: 'RUNNING' } });
 
-    // 2. Build prompt from config (persona from config.json + private context files)
-    const fallbackPersona = 'You are Alice, the Proposal Architect at Bristh Enrollment Partners. Generate professional business proposals in Markdown format with clear headings: Background, Proposed Solution, Timeline, and Investment.';
-    
-    const systemPrompt = await buildAgentPrompt('alice', task.instruction, task.context.rawContent, fallbackPersona, locale)
-      + '\n\nBased on this context, generate a highly professional, persuasive business proposal or solution architecture document (in Markdown format). Just output the raw Markdown content.';
-
+    // ── Step 1: Lightweight param extraction via small LLM call ──
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
-      buildCompletionParams(config, [{ role: 'system', content: systemPrompt }])
+    const extractionPrompt = `Extract key parameters from this proposal request. Return ONLY valid JSON, no other text.
+
+User instruction: "${task.instruction}"
+
+Output format:
+{
+  "targetSchool": "school name (string, or 'Unknown' if not specified)",
+  "businessModel": "Fixed Retainer | Performance Partnership | Hybrid (混合模式)",
+  "focusAreas": ["array", "of", "focus", "areas"],
+  "additionalNotes": "any other relevant details from the instruction"
+}`;
+
+    const extractRes = await client.chat.completions.create(
+      buildCompletionParams(config, [{ role: 'user', content: extractionPrompt }], { requireJson: true })
     );
 
-    const resultMarkdown = response.choices[0].message.content || 'Failed to generate proposal.';
+    let params: Record<string, any> = {};
+    try {
+      params = JSON.parse(extractRes.choices[0].message.content || '{}');
+    } catch {
+      // Fallback: best-effort from instruction
+      params = {
+        targetSchool: task.instruction.match(/([A-Z][a-z]+(?:'s)?\s+(?:College|School|University|Academy))/)?.[1] || 'Unknown',
+        businessModel: 'Fixed Retainer',
+        focusAreas: [],
+        additionalNotes: task.instruction,
+      };
+    }
 
-    // Extract first heading or first 30 chars as summary
-    const summaryMatch = resultMarkdown.match(/^#+ (.+)/m);
-    const summary = summaryMatch ? summaryMatch[1].slice(0, 80) : resultMarkdown.slice(0, 80).replace(/[#*]/g, '').trim();
-
-    const resultPayload = JSON.stringify({
-      summary: `📋 ${summary}`,
-      content: resultMarkdown
-    });
-
-    // 3. Save output payload and mark as COMPLETED
-    const updatedTask = await prisma.task.update({
-      where: { id: taskId },
-      data: { 
-        status: task.requiresApproval ? 'AWAITING_APPROVAL' : 'COMPLETED',
-        resultPayload
+    // ── Step 2: Create ToolboxJob with Kelly's parsed context as background ──
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h TTL
+    const job = await prisma.toolboxJob.create({
+      data: {
+        tool: 'proposal',
+        params: JSON.stringify(params),
+        background: task.context.rawContent || '',
+        expiresAt,
       }
     });
 
-    // Memory hook: record task completion (fire-and-forget)
-    recordTaskCompletion('alice', taskId, task.instruction, resultMarkdown.slice(0, 200)).catch(() => {});
+    const toolboxUrl = `/toolbox/proposal?jobId=${job.id}`;
+    const summary = `📋 ${params.targetSchool} — Proposal 已准备就绪，等待在工具中生成`;
+
+    // ── Step 3: Save result and complete task ──
+    const resultPayload = JSON.stringify({
+      summary,
+      toolboxUrl,
+      jobId: job.id,
+      extractedParams: params,
+    });
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        status: task.requiresApproval ? 'AWAITING_APPROVAL' : 'COMPLETED',
+        resultPayload,
+      }
+    });
+
+    recordTaskCompletion('alice', taskId, task.instruction, `ToolboxJob created: ${job.id}`).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {
     console.error('Alice agent error:', error);
     if (taskIdForError) {
-      await prisma.task.update({
-        where: { id: taskIdForError },
-        data: { status: 'FAILED' }
-      }).catch(console.error);
+      await prisma.task.update({ where: { id: taskIdForError }, data: { status: 'FAILED' } }).catch(console.error);
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

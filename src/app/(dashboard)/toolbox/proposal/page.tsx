@@ -1,5 +1,6 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Spin } from 'antd';
 import { marked } from 'marked';
 import { Briefcase, Database, X, FileText, CheckCircle, Clock, Send, MessageSquare } from 'lucide-react';
@@ -9,6 +10,10 @@ const BUSINESS_MODELS = ['Fixed Retainer', 'Performance Partnership', 'Hybrid (�
 const FOCUS_AREAS = ['学术提升 (Academics)', '市场拓展 (Marketing)', '寄宿体验 (Pastoral Care)', '全面接管 (Full Management)'];
 
 export default function ProposalPage() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams?.get('jobId');
+  const autoStartedRef = useRef(false);
+
   const [proposalForm, setProposalForm] = useState({
     targetSchool: '',
     schoolProfile: '',
@@ -25,6 +30,59 @@ export default function ProposalPage() {
   const [copilotHistory, setCopilotHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  // Auto-start from ToolboxJob (created by Alice agent)
+  useEffect(() => {
+    if (!jobId || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    fetch(`/api/toolbox/jobs?id=${jobId}`)
+      .then(r => r.json())
+      .then(async (job) => {
+        if (job.error) return;
+        const p = job.params || {};
+        const filled = {
+          targetSchool: p.targetSchool || '',
+          schoolProfile: p.additionalNotes || '',
+          businessModel: p.businessModel || 'Fixed Retainer',
+          focusAreas: Array.isArray(p.focusAreas) ? p.focusAreas : [],
+          additionalNotes: p.additionalNotes || '',
+          kbFiles: [] as KbFile[],
+        };
+        setProposalForm(filled);
+        // Kick off generation with Kelly's background injected
+        setLoading(true);
+        setLogs([]);
+        const res = await fetch('/api/toolbox/proposal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...filled, background: job.background }),
+        });
+        if (!res.body) { setLoading(false); return; }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false; let text = '';
+        while (!done) {
+          const { value, done: dr } = await reader.read();
+          done = dr;
+          if (value) {
+            const lines = decoder.decode(value, { stream: true }).split('\n\n');
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const data = JSON.parse(line.substring(6));
+                if (data.type === 'log') setLogs(prev => [...prev, data.data]);
+                else if (data.type === 'ai_chunk') { text += data.data; setProposalResult(text); }
+                else if (data.type === 'done') {
+                  setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 已生成！现在可以在左侧 Copilot 输入修改指令。` }]);
+                }
+              } catch { /* ignore */ }
+            }
+          }
+        }
+        setLoading(false);
+      })
+      .catch(console.error);
+  }, [jobId]);
 
   const toggleFocusArea = (area: string) => {
     setProposalForm(prev => {
