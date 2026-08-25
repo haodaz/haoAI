@@ -104,6 +104,7 @@ model TaskContext {
   approvalConfig  String?          // JSON: ["Alice", "Eric"] — agents that require approval
   approvalEmailId String?          // Message-ID for tracking approval email replies
   pipelineStatus  String   @default("ACTIVE") // ACTIVE | AWAITING_APPROVAL | ALL_APPROVED | COMPLETED
+  executionLog    String?          // JSON: LogEntry[] — persisted pipeline execution logs
   createdAt       DateTime @default(now())
   tasks           Task[]
   user            User?    @relation(fields: [userId], references: [id])

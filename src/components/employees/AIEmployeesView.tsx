@@ -46,7 +46,8 @@ export default function AIEmployeesView() {
     fetch('/api/bristh/agents/config')
       .then(r => r.json())
       .then((data: AgentConfig[]) => {
-        const filtered = data.filter(a => a.role !== 'orchestrator' && a.enabled);
+        const HIDDEN_AGENTS = ['atlas', 'jarvis', 'nexus', 'nova'];
+        const filtered = data.filter(a => a.role !== 'orchestrator' && a.enabled && !HIDDEN_AGENTS.includes(a.id?.toLowerCase()));
         setAgents(filtered);
         setLoading(false);
         // Auto-open agent chat if coming from group chat with pending task

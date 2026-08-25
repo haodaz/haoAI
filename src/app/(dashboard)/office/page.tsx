@@ -25,23 +25,33 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [currentTaskDisplay, setCurrentTaskDisplay] = useState(t('bristh.office.noTask'));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const [currentContextId, setCurrentContextId] = useState<string | null>(null);
+  const logsRef = useRef<LogEntry[]>([]);
 
   // Restore pipeline state from session on mount (Bug 2 fix)
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem('office_pipeline');
       if (saved) {
-        const { nodes, pipelineStatus, taskDisplay } = JSON.parse(saved);
+        const { nodes, pipelineStatus, taskDisplay, savedLogs, savedContextId } = JSON.parse(saved);
         if (nodes?.length > 0) {
           setActiveNodes(nodes);
           setStatus(pipelineStatus || 'completed');
           setCurrentTaskDisplay(taskDisplay || '');
+          if (savedLogs?.length > 0) {
+            setLogs(savedLogs);
+            logsRef.current = savedLogs;
+          }
+          if (savedContextId) setCurrentContextId(savedContextId);
         }
       }
     } catch { /* ignore */ }
   }, []);
 
-  // Persist pipeline state on every change
+  // Keep logsRef in sync
+  useEffect(() => { logsRef.current = logs; }, [logs]);
+
+  // Persist pipeline state + logs to sessionStorage on every change
   useEffect(() => {
     if (activeNodes.length > 0) {
       try {
@@ -49,10 +59,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           nodes: activeNodes,
           pipelineStatus: status,
           taskDisplay: currentTaskDisplay,
+          savedLogs: logs,
+          savedContextId: currentContextId,
         }));
       } catch { /* ignore */ }
     }
-  }, [activeNodes, status]);
+  }, [activeNodes, status, logs, currentContextId]);
   
   // Dynamic agent config from API
   const [subAIs, setSubAIs] = useState<{id: string, name: string, desc: string, image: string, color: string, shadow: string, category: string}[]>([]);
@@ -189,6 +201,21 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     }]);
   };
 
+  // Flush logs to database for persistence
+  const flushLogs = async (ctxId?: string | null) => {
+    const targetCtxId = ctxId || currentContextId;
+    if (!targetCtxId) return;
+    try {
+      await fetch('/api/bristh/tasks/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contextId: targetCtxId, logs: logsRef.current }),
+      });
+    } catch (e) {
+      console.error('[Office] Failed to flush logs to DB:', e);
+    }
+  };
+
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
@@ -226,7 +253,19 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       }));
       setActiveNodes(mappedNodes);
       setStatus('completed');
-      setCurrentTaskDisplay(`[Restored] Context: ${tasks[0].contextId?.substring(0, 12)}...`);
+      const restoredCtxId = tasks[0].contextId;
+      setCurrentContextId(restoredCtxId);
+      setCurrentTaskDisplay(`[Restored] Context: ${restoredCtxId?.substring(0, 12)}...`);
+
+      // Try to restore logs from DB
+      try {
+        const logRes = await fetch(`/api/bristh/tasks/log?contextId=${restoredCtxId}`);
+        const logData = await logRes.json();
+        if (logData.logs?.length > 0) {
+          setLogs(logData.logs);
+          return;
+        }
+      } catch { /* fallback below */ }
       
       const hasAwaiting = mappedNodes.some((n: any) => n.status === 'awaiting_approval');
       setLogs([
@@ -402,16 +441,27 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
       addLog('Chief', 'All sub-tasks reported back. Pipeline finished.');
       setStatus('completed');
+      // Flush logs to DB on completion
+      const ctxId = data.tasks?.[0]?.contextId;
+      if (ctxId) {
+        setCurrentContextId(ctxId);
+        // Use setTimeout to ensure the final addLog is included
+        setTimeout(() => flushLogs(ctxId), 500);
+      }
       
     } catch (err: any) {
       addLog('System', `Error: ${err.message}`);
       setStatus('failed');
+      const ctxId = (activeNodes[0] as any)?.contextId;
+      if (ctxId) setTimeout(() => flushLogs(ctxId), 500);
     }
     dispatchingRef.current = false;
   };
 
   // Two-step flow: tasks already created, go straight to execution
   const handleDispatchWithTasks = async (dispatchInput: string, preCreatedTasks: any[]) => {
+    const ctxId = preCreatedTasks[0]?.contextId;
+    if (ctxId) setCurrentContextId(ctxId);
     setCurrentTaskDisplay(dispatchInput.substring(0, 50) + '...');
     setStatus('dispatching');
     setActiveNodes([]);
@@ -511,6 +561,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     if (!hasAwaitingApproval) {
       addLog('Chief', 'All sub-tasks reported back. Pipeline finished.');
       setStatus('completed');
+      if (ctxId) setTimeout(() => flushLogs(ctxId), 500);
     } else {
       // Send approval notification email
       const ctxId = preCreatedTasks[0]?.contextId;
@@ -534,6 +585,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       }
       addLog('Chief', 'Pipeline paused. Waiting for human approval on flagged tasks.');
       setStatus('completed');
+      if (ctxId) setTimeout(() => flushLogs(ctxId), 500);
     }
   };
 
@@ -663,10 +715,14 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   };
 
   const terminateTask = () => {
+    // Flush logs to DB before clearing
+    if (currentContextId) flushLogs();
     setStatus('idle');
     setActiveNodes([]);
     setCurrentTaskDisplay('暂无活动任务。点击新增接入任务。');
     setLogs([]);
+    setCurrentContextId(null);
+    try { sessionStorage.removeItem('office_pipeline'); } catch { /* ignore */ }
   };
 
   // --- Copilot Methods ---
@@ -918,6 +974,9 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
              )}
           </div>
+          {status !== 'idle' && (
+            <p className="text-sm font-bold text-gray-700 mb-2">任务进行中</p>
+          )}
           <p className="font-mono text-[12px] text-gray-800 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px] line-clamp-3">
              {currentTaskDisplay}
           </p>
@@ -935,7 +994,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             ) : (
               <>
                 <button onClick={terminateTask} className="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100">
-                  <StopCircle className="w-3 h-3 mr-1" /> 终止复位
+                  <StopCircle className="w-3 h-3 mr-1" /> 结束任务
                 </button>
                 {status === 'failed' && (
                   <button onClick={() => handleDispatch(input, 'text')} className="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 shadow-sm border border-orange-200">
@@ -943,8 +1002,8 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                   </button>
                 )}
                 {status === 'completed' && (
-                  <button onClick={terminateTask} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
-                    归档复位
+                  <button onClick={() => { terminateTask(); router.push('/new-task'); }} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
+                    <RefreshCw className="w-3 h-3 mr-1" /> 重新运行
                   </button>
                 )}
               </>

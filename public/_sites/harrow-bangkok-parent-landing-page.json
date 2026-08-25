@@ -1,0 +1,21 @@
+{
+  "slug": "harrow-bangkok-parent-landing-page",
+  "siteName": "Harrow Bangkok Parent Landing Page",
+  "themeColor": "#001F54",
+  "pages": [
+    {
+      "id": "home",
+      "title": "首页",
+      "html": "<section class=\"bg-white text-center py-12 px-4\"><div class=\"container mx-auto\"><div class=\"bg-gray-200 h-64 w-full mb-8\" data-image-placeholder=\"Harrow Bangkok Campus\"></div><h1 class=\"text-4xl font-bold text-blue-900 mb-4\">Welcome to Harrow Bangkok</h1><p class=\"text-xl text-gray-700\">Experience world-class education in Bangkok. Harrow Bangkok is recognized among the top international schools with outstanding educational environments and a commitment to excellence. Partnered proudly with British Enrollment Partners to expand our reach in Mainland China and Hong Kong.</p><a href=\"#contact\" class=\"inline-block mt-6 py-3 px-6 bg-gold-500 text-white font-semibold rounded-lg shadow-md hover:bg-gold-600\">Contact Us</a></div></section><section class=\"bg-blue-900 text-white py-12 px-4\"><div class=\"container mx-auto\"><h2 class=\"text-4xl font-bold mb-4\">About British Enrollment Partners</h2><p class=\"text-lg\">British Enrollment Partners (BEP) is an official enrollment partner for Harrow Bangkok, specializing in education marketing and student recruitment. Our expertise in the Asia-Pacific region ensures a seamless transition for students from Mainland China and Hong Kong.</p></div></section>",
+      "inNav": true
+    },
+    {
+      "id": "contact",
+      "title": "联系我们",
+      "html": "<section class=\"bg-white text-center py-12 px-4\"><div class=\"container mx-auto\"><h2 class=\"text-4xl font-bold text-blue-900 mb-4\">Get in Touch</h2><p class=\"text-lg text-gray-700 mb-8\">For inquiries regarding enrollment and admissions, contact our dedicated team. We are here to assist you with any questions you may have.</p><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><h3 class=\"text-xl font-bold text-blue-900\">Mainland China</h3><p>Email: <a href=\"mailto:china@harrowbangkok.com\" class=\"text-gold-500\">china@harrowbangkok.com</a></p><p>Phone: +86 10 1234 5678</p></div><div><h3 class=\"text-xl font-bold text-blue-900\">Hong Kong</h3><p>Email: <a href=\"mailto:hk@harrowbangkok.com\" class=\"text-gold-500\">hk@harrowbangkok.com</a></p><p>Phone: +852 9876 5432</p></div></div></div></section>",
+      "inNav": true
+    }
+  ],
+  "createdAt": "2026-08-24T21:10:49.353Z",
+  "updatedAt": "2026-08-24T21:10:49.353Z"
+}

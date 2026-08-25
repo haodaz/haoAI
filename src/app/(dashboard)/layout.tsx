@@ -227,7 +227,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2">{t('bristh.model.switch')}</p>
                 </div>
                 <div className="p-1.5">
-                  {availableModels.map(m => (
+                  {availableModels.filter(m => m.id !== 'deepseek-v3').map(m => (
                     <button
                       key={m.id}
                       disabled={!m.hasKey || modelSwitching}
@@ -282,7 +282,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 <p className="text-xs font-bold text-gray-700 truncate">{user?.displayName || user?.username || 'User'}</p>
                 <p className="text-[10px] font-semibold text-gray-400">
                   {user?.role === 'admin' ? 'Admin' : 'User'}
-                  <span className="ml-1.5 text-emerald-500">● Online</span>
                 </p>
               </div>
             </button>

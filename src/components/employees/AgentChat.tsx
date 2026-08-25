@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap } from 'lucide-react';
+import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap, PlusCircle, Clock } from 'lucide-react';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
@@ -15,6 +15,7 @@ interface AgentConfig {
   description: string;
   description_en?: string;
   avatar: string;
+  realistic_avatar?: string;
   color: string;
   skills_preview: string[];
   skills_preview_en?: string[];
@@ -61,6 +62,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { pendingAgentTask, setPendingAgentTask } = useWorkspace();
   const pendingTaskHandled = useRef(false);
+  const [chatHistory, setChatHistory] = useState<{ id: string; title: string; date: string; preview: string }[]>([]);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -74,6 +76,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
   const quickPrompts = isEn ? (agent.quick_prompts_en || agent.quick_prompts) : agent.quick_prompts;
   const agentDesc = isEn ? (agent.description_en || agent.description) : agent.description;
   const agentSkills = isEn ? (agent.skills_preview_en || agent.skills_preview) : agent.skills_preview;
+  const sidebarAvatar = agent.realistic_avatar || agent.avatar;
 
   // Initialize with greeting
   useEffect(() => {
@@ -265,10 +268,16 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
             <h2 className="text-sm font-black text-gray-900 truncate">{agent.name}</h2>
             <p className="text-[10px] text-gray-400 font-medium truncate">{agent.title}</p>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-bold text-emerald-600">在线</span>
-          </div>
+          <button
+            onClick={() => {
+              setMessages(greeting ? [{ id: 'greeting', role: 'assistant', content: greeting }] : []);
+              setInput('');
+            }}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-bold">{isEn ? 'New Chat' : '新对话'}</span>
+          </button>
         </div>
 
         {/* Scrollable content area — messages + input share max-w-3xl */}
@@ -419,10 +428,10 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
       </div>
 
       {/* Right Sidebar — Agent Info (desktop only) */}
-      <div className="hidden lg:flex w-72 border-l border-gray-100 bg-white flex-col shrink-0">
+      <div className="hidden lg:flex w-72 border-l border-gray-100 bg-white flex-col shrink-0 overflow-y-auto">
         <div className="p-5 text-center border-b border-gray-50">
-          <div className={`w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center shadow-lg mb-3 overflow-hidden`}>
-            <img src={agent.avatar} alt={agent.name} className="w-16 h-16 object-contain" />
+          <div className="w-20 h-20 mx-auto rounded-2xl shadow-lg mb-3 overflow-hidden">
+            <img src={sidebarAvatar} alt={agent.name} className="w-full h-full object-cover" />
           </div>
           <h3 className="text-sm font-black text-gray-900">{agent.name}</h3>
           <p className="text-[11px] text-gray-400 font-medium mt-0.5">{agent.title}</p>
@@ -443,7 +452,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
           </div>
         </div>
 
-        <div className="p-4 flex-1">
+        <div className="p-4 border-b border-gray-50">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{isEn ? 'Tools' : '可用工具'}</p>
           <div className="space-y-2">
             {getToolsForDisplay(agent.id).map(tool => (
@@ -453,6 +462,27 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Conversation History */}
+        <div className="p-4 flex-1">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{isEn ? 'Chat History' : '对话历史'}</p>
+          {chatHistory.length === 0 ? (
+            <p className="text-[11px] text-gray-300 italic">{isEn ? 'No previous chats' : '暂无历史对话'}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {chatHistory.map(h => (
+                <button key={h.id} className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-gray-50 transition-colors group">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Clock className="w-3 h-3 text-gray-300 shrink-0" />
+                    <span className="text-[11px] font-bold text-gray-600 truncate">{h.title}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 truncate pl-[18px]">{h.preview}</p>
+                  <p className="text-[9px] text-gray-300 pl-[18px] mt-0.5">{h.date}</p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
