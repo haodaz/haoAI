@@ -71,7 +71,112 @@
       "download": "下载",
       "copy": "复制",
       "downloadPptx": "下载 .pptx",
-      "downloadIcs": "下载 .ics"
+      "downloadIcs": "下载 .ics",
+      "idleAiTitle": "闲置 AI",
+      "generalCapabilities": "通用能力",
+      "currentTaskCard": "当前任务卡片",
+      "standby": "待命",
+      "completedStatus": "已完成",
+      "failedStatus": "遇到异常",
+      "executing": "执行中",
+      "taskInProgress": "任务进行中",
+      "execLog": "任务执行 Log",
+      "noAgentFallback": "暂无参与的智能体，等待 Chief 分派...",
+      "noAgentHintFallback": "在上方输入框中提交任务，Chief 将自动调度 AI 团队",
+      "chiefTitle": "Chief, 总裁特助",
+      "chiefSub": "任务总管 / Orchestrator",
+      "pageNum": "第 {{num}} 页",
+      "calendarGenerated": "日历邀请已生成",
+      "copyBtn": "复制",
+      "downloadIcsBtn": "下载 .ics",
+      "downloadMdBtn": "下载 .md",
+      "sourceFiles": "源文件:",
+      "newTaskBtn": "新增 / 管理接入",
+      "loadLatestBtn": "加载最新后台执行",
+      "endTaskBtn": "结束任务",
+      "retryTaskBtn": "重试任务",
+      "rerunBtn": "重新运行",
+      "hasAttachmentHint": "此任务关联附件",
+      "waitApprovalHint": "🟡 等待人工审批确认",
+      "viewEditBtn": "👁 查看 / 编辑",
+      "approveBtn": "✅ 批准通过",
+      "toolGeneratedHint": "→ 点击前往工具生成 Draft 1",
+      "completedMark": "✅ 已完成",
+      "failedMark": "❌ 执行失败",
+      "retrySmallBtn": "重试",
+      "toolExecuting": "工具执行中...",
+      "waitExecution": "⏳ 等待执行",
+      "enterCopilot": "进入 Copilot",
+      "copilotSpace": " Copilot 共创空间",
+      "loadingTaskData": "加载任务数据中...",
+      "idleFallbackText": "暂无活动任务。点击新增接入任务。",
+      "livePreview": "产物预览 (Live Preview)",
+      "feedbackChat": "反馈与微调 (Agent Chat)",
+      "aiGreeting": "你好，我是 {{name}}。我已经完成了初步的任务。在左侧您可以预览最终的产物，如果有任何需要修改的地方，请直接告诉我！",
+      "tellAiPrompt": "告诉 AI 哪里需要修改...",
+      "initializingStatus": "初始化中...",
+      "noLogs": "等待任务接入...",
+      "orchestrationStage": "编排",
+      "orchestrationInstruction": "分析意图 → 分派 {{count}} 个任务",
+      "participatingAgents": "参与: {{agents}}",
+      "phase1": "Phase 1 · 信息准备",
+      "phase2": "Phase 2 · 核心工作",
+      "phase3": "Phase 3 · 整合分发",
+      "hasAttachment": "此任务关联附件",
+      "waitManualApproval": "等待人工审批确认",
+      "clickToToolDraft": "点击前往工具生成 Draft 1",
+      "waitingExecution": "等待执行",
+      "agentChat": "反馈与微调 (Agent Chat)",
+      "slideNum": "第 {{num}} 页"
+    },
+    "newTask": {
+      "title": "发布新任务",
+      "step1Desc": "第一步：填写任务内容，Chief AI 将分析并拆解",
+      "step2Desc": "第二步：确认任务分解方案，选择审批节点",
+      "taskReq": "任务要求",
+      "addContext": "补充任务上下文 (可选)",
+      "localFile": "本地附件",
+      "fromCrm": "CRM 收件箱",
+      "selectEmailTitle": "从 CRM 选择邮件",
+      "textInput": "文本录入",
+      "linkEmail": "关联邮件",
+      "placeholder": "[例] 客户已经同意报价，请根据最新的会议记录生成一份保密协议和项目排期日历...",
+      "charCount": "{{count}} 字符",
+      "uploading": "上传解析中...",
+      "dragDropHint": "点击或拖放本地附件",
+      "kbImport": "从知识库引用",
+      "uploadedCount": "已上传 {{count}} 个附件",
+      "kbFile": "📚 知识库文件",
+      "cloudFile": "☁️ 已上云",
+      "pagesCount": "{{count}} 页",
+      "sheetsCount": "{{count}} 个工作表",
+      "crmInbox": "CRM 收件箱",
+      "refreshInbox": "刷新收件箱",
+      "emptyInbox": "CRM 收件箱为空",
+      "noSubject": "无主题",
+      "autoExec": "全自动执行",
+      "manualReview": "人工审核模式",
+      "modeHint": "全自动：Chief 直接分派并执行 · 人工审核：先看 AI 分析，再选择需要人工确认的环节",
+      "analysisResults": "Chief AI 分析结果",
+      "subTasksCount": "共分解为 {{count}} 个子任务，AI 已标注复杂度",
+      "highComplexity": "高复杂度",
+      "mediumComplexity": "中复杂度",
+      "lowComplexity": "低复杂度",
+      "highRec": "🔴 高 = 建议审批",
+      "med": "🟡 中",
+      "low": "🟢 低",
+      "needsApproval": "✋ 需人工审批",
+      "emailBound": "审批通知邮箱已绑定",
+      "bindEmail": "请绑定联系邮箱",
+      "emailNotice": "审批通知将发送至 {{email}}",
+      "emailNoticeEmpty": "您选择了需要审批的环节，审批结果将通过邮件通知您。",
+      "bindBtn": "绑定",
+      "dispatching": "正在派发任务...",
+      "confirmDispatch": "确认派发",
+      "errDispatch": "派发失败，请重试",
+      "errAnalysis": "分析失败，请重试",
+      "errBindEmail": "请先绑定联系邮箱，审批通知需要发送到您的邮箱。",
+      "errConfirm": "确认失败，请重试"
     },
     "history": {
       "title": "任务历史",
@@ -195,6 +300,68 @@
       "agentsCount": "名员工参与",
       "placeholder": "输入消息... 使用 @ 提及特定 AI。",
       "isTyping": "正在输入..."
+    },
+    "agents": {
+      "Nova": {
+        "title": "政策AI助手 / Policy Intelligence Specialist",
+        "desc": "从平方产业政策库、高校政策库和互联网全网检索中获取和分析政策信息，结合个人背景进行政策适配评估。"
+      },
+      "Nexus": {
+        "title": "产研转化助理 / Industry-Research Transfer Specialist",
+        "desc": "连接科研与产业的桥梁——分析研究方向的产业落地价值，为企业推荐匹配的科研团队，生成产研转化分析报告。"
+      },
+      "Bob": {
+        "title": "日程安排专员 / Scheduling Assistant",
+        "desc": "自动提取上下文中的会议时间意图，生成标准的 .ics 日历邀请文件。支持智能时间推测和多时区处理。"
+      },
+      "Iris": {
+        "title": "网页设计师 / Web Designer",
+        "desc": "专注市场宣传页面设计，能够根据品牌定位生成精美的多页营销网站，包括招生画册、产品着陆页和品牌官网，支持图片替换和AI迭代修改。"
+      },
+      "Atlas": {
+        "title": "物资AI助手 / Research Resource Specialist",
+        "desc": "从平方科研物资库中检索仪器、耗材、试剂，交叉供应商信息，并生成结构化物资选型报告。"
+      },
+      "Eric": {
+        "title": "法务写作专员 / Legal & Compliance Officer",
+        "desc": "调取标准合同模板，根据最新谈判条件自动填补变量，生成服务协议、NDA、MOU 等法律文书草案。"
+      },
+      "David": {
+        "title": "内控纪检专员 / Internal Audit Specialist",
+        "desc": "专门审视历史沟通记录，找出业务漏洞、未兑现的承诺和流程缺陷，生成内部整改工单。"
+      },
+      "Hugo": {
+        "title": "财务分析师 / Financial Analyst",
+        "desc": "专注财务数据分析，包括财务报表解读、预算编制、ROI计算、成本优化和盈亏平衡分析，输出结构化的财务分析报告。"
+      },
+      "Jarvis": {
+        "title": "人才AI助手 / Talent Intelligence Specialist",
+        "desc": "利用ORCID、Google Scholar、平方数据平台、Wikipedia等多源数据对学者进行深度检索、交叉验证和学术画像分析。"
+      },
+      "Alice": {
+        "title": "方案架构师 / Proposal Architect",
+        "desc": "根据客户需求和项目背景，快速生成结构化的商业方案、项目企划书和解决方案架构文档。"
+      },
+      "Kelly": {
+        "title": "文档处理专员 / Document Processing Specialist",
+        "desc": "处理用户上传的附件文件：翻译文档、填写表格、提取关键数据、格式转换、信息汇总等文件型操作任务。"
+      },
+      "Edda": {
+        "title": "PPT制作专员 / Presentation Specialist",
+        "desc": "根据文本内容自动抽取大纲结构并生成物理 .pptx 幻灯片文件。支持主题色定制、母版样式和信息密度控制。"
+      },
+      "Fiona": {
+        "title": "组织宣发专员 / Communications Specialist",
+        "desc": "为不在场人员推送核心决策和行动待办记录，撰写内部通报 Memo，确保信息不断层。"
+      },
+      "Grace": {
+        "title": "邮件分发专员 / Email Dispatch Specialist",
+        "desc": "最后出列的收尾专员。等待其他 AI 产物就绪后，撰写正式邮件并连同所有附件统一发出。"
+      },
+      "Chief": {
+        "title": "任务总管 / Orchestrator",
+        "desc": "全局总指挥。解析原始输入（会议纪要、邮件、文档），进行语义意图剥离，动态生成任务管线，并将子任务派发给对应职能 AI。"
+      }
     }
   },
   "internal": {

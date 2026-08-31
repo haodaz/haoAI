@@ -78,10 +78,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           .filter((a: any) => a.role === 'agent' && a.enabled)
           .map((a: any) => {
             const cm = COLOR_BORDER_MAP[a.color] || { color: 'border-gray-400', shadow: 'shadow-gray-400/20' };
+            const translatedTitle = t(`bristh.agents.${a.name}.title`, { defaultValue: a.title?.split('/')[0]?.trim() || '' });
+            const translatedDesc = t(`bristh.agents.${a.name}.desc`, { defaultValue: a.description || '' });
             return {
               id: a.name,  // Agent routes use Name (Alice, Bob...) as the identifier
-              name: `${a.name}, ${a.title?.split('/')[0]?.trim() || ''}`,
-              desc: a.description || '',
+              name: `${a.name}, ${translatedTitle}`,
+              desc: translatedDesc,
               image: a.avatar || '/pixel_worker.png',
               color: cm.color,
               shadow: cm.shadow,
@@ -93,13 +95,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .catch(() => {
         // Fallback: if API fails, use hardcoded defaults
         setSubAIs([
-          { id: 'Alice', name: 'Alice, 方案架构师', desc: '撰写商业方案', image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Bob', name: 'Bob, 日程安排专员', desc: '生成日历邀请', image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Edda', name: 'Edda, PPT制作专员', desc: '生成幻灯片', image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
-          { id: 'David', name: 'David, 内控纪检专员', desc: '内部整改', image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
-          { id: 'Fiona', name: 'Fiona, 组织宣发专员', desc: '内部通报', image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20' },
-          { id: 'Eric', name: 'Eric, 法务写作专员', desc: '法律文书', image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20' },
-          { id: 'Grace', name: 'Grace, 邮件分发专员', desc: '邮件发送', image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20' },
+          { id: 'Alice', name: `Alice, ${t('bristh.agents.Alice.title', {defaultValue: '方案架构师'})}`, desc: t('bristh.agents.Alice.desc', {defaultValue: '撰写商业方案'}), image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
+          { id: 'Bob', name: `Bob, ${t('bristh.agents.Bob.title', {defaultValue: '日程安排专员'})}`, desc: t('bristh.agents.Bob.desc', {defaultValue: '生成日历邀请'}), image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
+          { id: 'Edda', name: `Edda, ${t('bristh.agents.Edda.title', {defaultValue: 'PPT制作专员'})}`, desc: t('bristh.agents.Edda.desc', {defaultValue: '生成幻灯片'}), image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
+          { id: 'David', name: `David, ${t('bristh.agents.David.title', {defaultValue: '内控纪检专员'})}`, desc: t('bristh.agents.David.desc', {defaultValue: '内部整改'}), image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
+          { id: 'Fiona', name: `Fiona, ${t('bristh.agents.Fiona.title', {defaultValue: '组织宣发专员'})}`, desc: t('bristh.agents.Fiona.desc', {defaultValue: '内部通报'}), image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20' },
+          { id: 'Eric', name: `Eric, ${t('bristh.agents.Eric.title', {defaultValue: '法务写作专员'})}`, desc: t('bristh.agents.Eric.desc', {defaultValue: '法律文书'}), image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20' },
+          { id: 'Grace', name: `Grace, ${t('bristh.agents.Grace.title', {defaultValue: '邮件分发专员'})}`, desc: t('bristh.agents.Grace.desc', {defaultValue: '邮件发送'}), image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20' },
         ]);
       });
   }, []);
@@ -719,7 +721,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     if (currentContextId) flushLogs();
     setStatus('idle');
     setActiveNodes([]);
-    setCurrentTaskDisplay('暂无活动任务。点击新增接入任务。');
+    setCurrentTaskDisplay(t('bristh.office.idleFallbackText'));
     setLogs([]);
     setCurrentContextId(null);
     try { sessionStorage.removeItem('office_pipeline'); } catch { /* ignore */ }
@@ -806,7 +808,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                   <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 shrink-0">
                     <span className="text-xs font-bold text-gray-500">{json.summary}</span>
                     <a href={json.fileUrl} download className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm">
-                      <Download className="w-3 h-3" /> 下载 .pptx
+                      <Download className="w-3 h-3" /> {t('bristh.office.downloadPptx')}
                     </a>
                   </div>
                   <div className="flex gap-2 px-4 py-2 border-b border-gray-100 overflow-x-auto shrink-0 bg-gray-50/50">
@@ -816,10 +818,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                         <button key={i} onClick={() => setViewSlide(i)}
                           className={`shrink-0 w-24 rounded-lg border-2 overflow-hidden transition-all ${viewSlide === i ? 'border-emerald-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
                           <div className="aspect-[16/9] bg-white relative p-1">
-                            <div className="text-[5px] font-bold text-gray-800 truncate">{titleEl?.content || `Slide ${i+1}`}</div>
+                            <div className="text-[5px] font-bold text-gray-800 truncate">{titleEl?.content || t('bristh.office.slideNum', {num: i+1})}</div>
                           </div>
                           <div className="px-1 py-0.5 bg-gray-50 border-t border-gray-100">
-                            <span className={`text-[8px] font-bold ${viewSlide === i ? 'text-emerald-600' : 'text-gray-400'}`}>第 {i+1} 页</span>
+                            <span className={`text-[8px] font-bold ${viewSlide === i ? 'text-emerald-600' : 'text-gray-400'}`}>{t('bristh.office.pageNum', {num: i+1})}</span>
                           </div>
                         </button>
                       );
@@ -869,15 +871,15 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             return (
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 shrink-0">
-                  <span className="text-xs font-bold text-gray-500">{json.summary || '日历邀请已生成'}</span>
+                  <span className="text-xs font-bold text-gray-500">{json.summary || t('bristh.office.calendarGenerated')}</span>
                   <div className="flex gap-2">
                     <button onClick={() => navigator.clipboard.writeText(json.icsContent)}
                       className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-200">
-                      <Copy className="w-3 h-3" /> 复制
+                      <Copy className="w-3 h-3" /> {t('bristh.office.copyBtn')}
                     </button>
                     <button onClick={() => { const blob = new Blob([json.icsContent], { type: 'text/calendar' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'meeting.ics'; a.click(); URL.revokeObjectURL(url); }}
                       className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-100">
-                      <Download className="w-3 h-3" /> 下载 .ics
+                      <Download className="w-3 h-3" /> {t('bristh.office.downloadIcsBtn')}
                     </button>
                   </div>
                 </div>
@@ -895,17 +897,17 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                    <div className="flex gap-2">
                      <button onClick={() => navigator.clipboard.writeText(json.content)}
                        className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-200">
-                       <Copy className="w-3 h-3" /> 复制
+                       <Copy className="w-3 h-3" /> {t('bristh.office.copyBtn')}
                      </button>
                      <button onClick={() => { const blob = new Blob([json.content], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kelly_output.md'; a.click(); URL.revokeObjectURL(url); }}
                        className="px-3 py-1.5 bg-teal-50 text-teal-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-teal-100">
-                       <Download className="w-3 h-3" /> 下载 .md
+                       <Download className="w-3 h-3" /> {t('bristh.office.downloadMdBtn')}
                      </button>
                    </div>
                  </div>
                  {/* Processed files badge bar */}
                  <div className="px-4 py-2 bg-teal-50/50 border-b border-teal-100 flex items-center gap-2 flex-wrap shrink-0">
-                   <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider">📎 源文件:</span>
+                   <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider">📎 {t('bristh.office.sourceFiles')}</span>
                    {json.processedFiles.map((f: any, i: number) => (
                      <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-teal-200 rounded text-[10px] text-teal-800 font-medium">
                        <FileText className="w-3 h-3 text-teal-500" />
@@ -928,11 +930,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                   <div className="flex gap-2">
                     <button onClick={() => navigator.clipboard.writeText(json.content)}
                       className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-200">
-                      <Copy className="w-3 h-3" /> 复制
+                      <Copy className="w-3 h-3" /> {t('bristh.office.copyBtn')}
                     </button>
                     <button onClick={() => { const blob = new Blob([json.content], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'document.md'; a.click(); URL.revokeObjectURL(url); }}
                       className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-100">
-                      <Download className="w-3 h-3" /> 下载 .md
+                      <Download className="w-3 h-3" /> {t('bristh.office.downloadMdBtn')}
                     </button>
                   </div>
                 </div>
@@ -968,14 +970,14 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         <div className="p-5 border-b border-gray-200 bg-white">
           <div className="flex justify-between items-center mb-3">
              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center">
-               当前任务卡片 <ChevronRight className="w-3 h-3 mx-1"/> {status === 'idle' ? '待命' : status === 'completed' ? '已完成' : status === 'failed' ? '遇到异常' : '执行中'}
+               {t('bristh.office.currentTaskCard')} <ChevronRight className="w-3 h-3 mx-1"/> {status === 'idle' ? t('bristh.office.standby') : status === 'completed' ? t('bristh.office.completedStatus') : status === 'failed' ? t('bristh.office.failedStatus') : t('bristh.office.executing')}
              </h2>
              {(status !== 'idle' && status !== 'failed' && status !== 'completed') && (
                <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
              )}
           </div>
           {status !== 'idle' && (
-            <p className="text-sm font-bold text-gray-700 mb-2">任务进行中</p>
+            <p className="text-sm font-bold text-gray-700 mb-2">{t('bristh.office.taskInProgress')}</p>
           )}
           <p className="font-mono text-[12px] text-gray-800 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px] line-clamp-3">
              {currentTaskDisplay}
@@ -985,25 +987,25 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             {status === 'idle' ? (
               <>
                 <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-xs font-bold hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-emerald-500/20">
-                  <Plus className="w-3 h-3 mr-1" /> 新增 / 管理接入
+                  <Plus className="w-3 h-3 mr-1" /> {t('bristh.office.newTaskBtn')}
                 </button>
                 <button onClick={() => loadHistory('latest')} className="flex-1 flex items-center justify-center py-2 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100 shadow-sm border border-purple-200">
-                  <History className="w-3 h-3 mr-1" /> 加载最新后台执行
+                  <History className="w-3 h-3 mr-1" /> {t('bristh.office.loadLatestBtn')}
                 </button>
               </>
             ) : (
               <>
                 <button onClick={terminateTask} className="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100">
-                  <StopCircle className="w-3 h-3 mr-1" /> 结束任务
+                  <StopCircle className="w-3 h-3 mr-1" /> {t('bristh.office.endTaskBtn')}
                 </button>
                 {status === 'failed' && (
                   <button onClick={() => handleDispatch(input, 'text')} className="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 shadow-sm border border-orange-200">
-                    <Activity className="w-3 h-3 mr-1" /> 重试任务
+                    <Activity className="w-3 h-3 mr-1" /> {t('bristh.office.retryTaskBtn')}
                   </button>
                 )}
                 {status === 'completed' && (
                   <button onClick={() => { terminateTask(); router.push('/new-task'); }} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
-                    <RefreshCw className="w-3 h-3 mr-1" /> 重新运行
+                    <RefreshCw className="w-3 h-3 mr-1" /> {t('bristh.office.rerunBtn')}
                   </button>
                 )}
               </>
@@ -1021,8 +1023,8 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
               <img src="/pixel_worker_analysis.png" alt="Chief AI" className="h-[90%] object-contain filter drop-shadow-md scale-125" style={{ imageRendering: 'pixelated' }} />
             </div>
             <div className="flex-1">
-              <h3 className="font-extrabold text-base text-gray-900 leading-tight">Chief, 总裁特助</h3>
-              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wide">任务总管 / Orchestrator</p>
+              <h3 className="font-extrabold text-base text-gray-900 leading-tight">{t('bristh.office.chiefTitle')}</h3>
+              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wide">{t('bristh.office.chiefSub')}</p>
               <div className="mt-2 flex items-center space-x-1">
                  <div className={`w-2 h-2 rounded-full ${status !== 'idle' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                  <span className="text-[10px] font-bold text-gray-500">{status !== 'idle' ? 'ONLINE' : 'IDLE'}</span>
@@ -1033,7 +1035,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
               <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-end pr-8 backdrop-blur-[1px]">
                  <div className="flex items-center text-emerald-600 font-bold text-sm tracking-widest animate-pulse">
                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-                   INITIALIZING...
+                   {t('bristh.office.initializingStatus')}
                  </div>
               </div>
             )}
@@ -1042,11 +1044,11 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
         <div className="flex-1 flex flex-col p-5 overflow-hidden">
            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
-             <Terminal className="w-3 h-3 mr-1" /> 任务执行 Log
+             <Terminal className="w-3 h-3 mr-1" /> {t('bristh.office.execLog')}
            </h3>
            <div className="flex-1 bg-white rounded-xl p-4 overflow-y-auto font-mono text-[11px] text-slate-700 space-y-2 shadow-inner border border-slate-200 scrollbar-thin scrollbar-thumb-slate-200">
              {logs.length === 0 ? (
-               <div className="text-slate-400 italic">Waiting for incoming tasks...</div>
+               <div className="text-slate-400 italic">{t('bristh.office.noLogs')}</div>
              ) : (
                logs.map(log => (
                  <div key={log.id} className="leading-relaxed">
@@ -1070,8 +1072,8 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center flex flex-col items-center max-w-md">
               <img src="/pixel-office.png" alt="BEP Virtual Office" className="w-96 h-96 object-contain mb-4" />
-              <p className="text-gray-400 font-medium text-sm">暂无参与的智能体，等待 Chief 分派...</p>
-              <p className="text-gray-300 text-xs mt-1">在上方输入框中提交任务，Chief 将自动调度 AI 团队</p>
+              <p className="text-gray-400 font-medium text-sm">{t('bristh.office.noAgentFallback')}</p>
+              <p className="text-gray-300 text-xs mt-1">{t('bristh.office.noAgentHintFallback')}</p>
             </div>
           </div>
         ) : (() => {
@@ -1084,10 +1086,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           });
           const maxDepth = Math.max(...Array.from(depthMap.keys()));
           const columns: { depth: number; label: string; nodes: typeof activeNodes }[] = [
-            { depth: 0, label: '编排', nodes: [{ agent: 'Chief', instruction: `分析意图 → 分派 ${activeNodes.length} 个任务`, status: status === 'completed' || status === 'dispatching' ? 'done' : 'working', taskId: '', depth: 0, summary: `参与: ${activeNodes.map(n => n.agent).join(', ')}` }] },
+            { depth: 0, label: t('bristh.office.orchestrationStage'), nodes: [{ agent: 'Chief', instruction: t('bristh.office.orchestrationInstruction', {count: activeNodes.length}), status: status === 'completed' || status === 'dispatching' ? 'done' : 'working', taskId: '', depth: 0, summary: t('bristh.office.participatingAgents', {agents: activeNodes.map(n => n.agent).join(', ')}) }] },
           ];
           for (let d = 1; d <= maxDepth; d++) {
-            const PHASE_LABEL_MAP: Record<number, string> = { 1: 'Phase 1 · 信息准备', 2: 'Phase 2 · 核心工作', 3: 'Phase 3 · 整合分发' };
+            const PHASE_LABEL_MAP: Record<number, string> = { 1: t('bristh.office.phase1'), 2: t('bristh.office.phase2'), 3: t('bristh.office.phase3') };
             columns.push({ depth: d, label: PHASE_LABEL_MAP[d] || `Phase ${d}`, nodes: depthMap.get(d) || [] });
           }
 
@@ -1152,7 +1154,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-bold text-gray-800 truncate">
                                   {node.agent}
-                                  {node.hasAttachments && <span className="ml-1 text-[9px] text-blue-400" title="此任务关联附件">📎</span>}
+                                  {node.hasAttachments && <span className="ml-1 text-[9px] text-blue-400" title={t('bristh.office.hasAttachment')}>📎</span>}
                                 </p>
                               </div>
                               {isDone && <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[9px] shrink-0">✓</div>}
@@ -1169,7 +1171,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                             {/* Card Footer: summary or status */}
                             {isAwaitingApproval ? (
                               <div className="px-3 py-2 border-t border-amber-100 bg-amber-50/50">
-                                <p className="text-[10px] text-amber-700 font-bold mb-2">🟡 等待人工审批确认</p>
+                                <p className="text-[10px] text-amber-700 font-bold mb-2">🟡 {t('bristh.office.waitManualApproval')}</p>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={(e) => {
@@ -1178,7 +1180,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                     }}
                                     className="flex-1 px-2 py-1.5 bg-white border border-amber-200 rounded-lg text-[10px] font-bold text-amber-700 hover:bg-amber-50 transition-colors"
                                   >
-                                    👁 查看 / 编辑
+                                    👁 {t('bristh.office.viewEditBtn')}
                                   </button>
                                   <button
                                     onClick={(e) => {
@@ -1187,7 +1189,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                     }}
                                     className="flex-1 px-2 py-1.5 bg-emerald-500 border border-emerald-600 rounded-lg text-[10px] font-bold text-white hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20"
                                   >
-                                    ✅ 批准通过
+                                    ✅ {t('bristh.office.approveBtn')}
                                   </button>
                                 </div>
                               </div>
@@ -1201,30 +1203,30 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                                 {isDone && node.summary ? (
                                   <div>
                                     <p className="truncate">{node.summary}</p>
-                                    {node.summary.includes('工具中生成') && <p className="text-[9px] text-blue-500 mt-0.5 font-bold">→ 点击前往工具生成 Draft 1</p>}
+                                    {node.summary.includes('工具中生成') && <p className="text-[9px] text-blue-500 mt-0.5 font-bold">→ {t('bristh.office.clickToToolDraft')}</p>}
                                   </div>
                                 ) : isDone ? (
-                                  <p>✅ 已完成</p>
+                                  <p>✅ {t('bristh.office.completedStatus')}</p>
                                 ) : isFailed ? (
                                   <div className="flex items-center justify-between">
-                                    <p>❌ 执行失败</p>
+                                    <p>❌ {t('bristh.office.failedStatus')}</p>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (node.taskId) handleRetryTask(node.taskId, node.agent);
                                       }}
                                       className="px-2 py-0.5 bg-red-100 text-red-600 rounded shadow-sm text-[9px] font-bold hover:bg-red-200 transition-colors"
-                                    >重试</button>
+                                    >{t('bristh.office.retrySmallBtn')}</button>
                                   </div>
                                 ) : isWorking ? (
                                   <div className="overflow-hidden">
                                     <p className="text-[10px] text-emerald-600 font-mono animate-pulse truncate flex items-center gap-1">
                                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                                      {nodeProgress[node.taskId] || '\ud83d\udd04 \u5de5\u5177\u6267\u884c\u4e2d...'}
+                                      {nodeProgress[node.taskId] || t('bristh.office.toolExecuting')}
                                     </p>
                                   </div>
                                 ) : (
-                                  <p>⏳ 等待执行</p>
+                                  <p>⏳ {t('bristh.office.waitingExecution')}</p>
                                 )}
                               </div>
                             )}
@@ -1233,7 +1235,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                             {isDone && !isChief && (
                               <div className="absolute inset-0 bg-indigo-900/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-10 rounded-xl">
                                 <MessageSquare className="w-5 h-5 mb-1 text-violet-300" />
-                                <span className="text-[10px] font-bold">进入 Copilot</span>
+                                <span className="text-[10px] font-bold">{t('bristh.office.enterCopilot')}</span>
                               </div>
                             )}
                           </div>
@@ -1276,7 +1278,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
       {/* 右侧闲置区 (Idle Agents) */}
       <div className="hidden md:flex w-[520px] bg-white/80 backdrop-blur-xl border-l border-gray-200/80 flex-col p-6 z-20 shadow-sm shrink-0">
-        <h2 className="text-base font-black text-gray-600 text-center mb-4">闲置 AI</h2>
+        <h2 className="text-base font-black text-gray-600 text-center mb-4">{t('bristh.office.idleAiTitle')}</h2>
         
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
           {/* 通用能力 AI */}
@@ -1284,7 +1286,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             <>
               <div className="flex items-center gap-2 mb-3 px-2">
                 <div className="h-px flex-1 bg-gray-200"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">通用能力</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{t('bristh.office.generalCapabilities')}</span>
                 <div className="h-px flex-1 bg-gray-200"></div>
               </div>
               <div className="flex flex-wrap justify-center gap-4 mb-5">
@@ -1323,7 +1325,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         title={
           <div className="flex items-center text-lg font-black text-gray-800">
             <MessageSquare className="w-5 h-5 mr-2 text-emerald-600" /> 
-            {copilotNode?.agent} Copilot 共创空间
+            {copilotNode?.agent.split(',')[0]} {t('bristh.office.copilotSpace')}
           </div>
         }
         open={copilotOpen}
@@ -1339,7 +1341,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             {/* 左侧：产物预览区 */}
             <div className="w-[60%] bg-[#fcfcfc] border-r border-gray-200 flex flex-col">
                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">产物预览 (Live Preview)</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('bristh.office.livePreview')}</span>
                   <span className="text-[10px] bg-blue-100 text-emerald-600 px-2 py-0.5 rounded font-bold">Auto-Sync</span>
                </div>
                <div className="flex-1 overflow-y-auto p-6 relative">
@@ -1356,7 +1358,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
             {/* 右侧：对话调教区 */}
             <div className="w-[40%] bg-white flex flex-col">
                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">反馈与微调 (Agent Chat)</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('bristh.office.agentChat')}</span>
                </div>
                
                {/* 聊天记录 */}
@@ -1371,7 +1373,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                       {copilotData.toolCallsLog && <ToolCallsBlock calls={JSON.parse(copilotData.toolCallsLog)} />}
                       
                       <div className="bg-gray-100 rounded-2xl rounded-tl-sm p-3 text-sm text-gray-800">
-                        你好，我是 {copilotNode?.agent.split(',')[0]}。我已经完成了初步的任务。在左侧您可以预览最终的产物，如果有任何需要修改的地方，请直接告诉我！
+                        {t('bristh.office.aiGreeting', {name: copilotNode?.agent.split(',')[0]})}
                       </div>
                     </div>
                  </div>

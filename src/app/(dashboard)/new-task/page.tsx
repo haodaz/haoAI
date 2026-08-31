@@ -43,10 +43,10 @@ export default function NewTaskPage() {
   // Attachment states
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
   
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
+  const [emailSelectorOpen, setEmailSelectorOpen] = useState(false);
 
   const handleKbFileConfirm = (files: KbFile[]) => {
     const newAttachments = files.map(f => ({
@@ -138,10 +138,10 @@ export default function NewTaskPage() {
   };
 
   useEffect(() => {
-    if (inputMode === 'email') {
+    if (emailSelectorOpen) {
       fetchEmails();
     }
-  }, [inputMode]);
+  }, [emailSelectorOpen]);
 
   const handleEmailSelect = (emailItem: any) => {
     let content = '';
@@ -151,8 +151,28 @@ export default function NewTaskPage() {
     } catch (e) {
       content = emailItem.messages;
     }
-    setInput(`[Subject: ${emailItem.summary || 'Email'}]\n\n${content}`);
-    setInputMode('text');
+    
+    const newAttachment = {
+      id: `email-${emailItem.id}`,
+      originalName: emailItem.summary || t('bristh.newTask.noSubject'),
+      storagePath: '',
+      storageType: 'crm',
+      mimeType: 'email',
+      size: content.length,
+      extractedText: content,
+      summary: `[CRM Email] From: ${emailItem.customer?.email || 'Unknown'}`,
+      isEmail: true,
+      emailId: emailItem.id
+    };
+
+    setAttachments(prev => {
+      if (!prev.find(a => a.id === newAttachment.id)) {
+        return [...prev, newAttachment];
+      }
+      return prev;
+    });
+
+    setEmailSelectorOpen(false);
   };
 
   // Legacy file upload removed — now using attachment system
@@ -166,7 +186,7 @@ export default function NewTaskPage() {
       setPendingDispatchTask({ input, inputMode: 'text', attachments });
       router.push('/office');
     } catch (err: any) {
-      alert(err.message || '派发失败，请重试');
+      alert(err.message || t('bristh.newTask.errDispatch'));
     }
     setAutoDispatching(false);
   };
@@ -197,7 +217,7 @@ export default function NewTaskPage() {
 
       setStep(2);
     } catch (err: any) {
-      alert(err.message || '分析失败，请重试');
+      alert(err.message || t('bristh.newTask.errAnalysis'));
     }
     setAnalyzing(false);
   };
@@ -225,7 +245,7 @@ export default function NewTaskPage() {
 
     // If approval is selected but no email, block
     if (hasApprovalSelected && !userEmail) {
-      alert('请先绑定联系邮箱，审批通知需要发送到您的邮箱。');
+      alert(t('bristh.newTask.errBindEmail'));
       return;
     }
 
@@ -247,7 +267,7 @@ export default function NewTaskPage() {
       setPendingDispatchTask({ input, inputMode: 'text', contextId, tasks: data.tasks, attachments });
       router.push('/office');
     } catch (err: any) {
-      alert(err.message || '确认失败，请重试');
+      alert(err.message || t('bristh.newTask.errConfirm'));
     }
     setConfirming(false);
   };
@@ -257,9 +277,9 @@ export default function NewTaskPage() {
   };
 
   const complexityConfig = {
-    high: { label: '高复杂度', icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-700' },
-    medium: { label: '中复杂度', icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-700' },
-    low: { label: '低复杂度', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
+    high: { label: t('bristh.newTask.highComplexity'), icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-700' },
+    medium: { label: t('bristh.newTask.mediumComplexity'), icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-700' },
+    low: { label: t('bristh.newTask.lowComplexity'), icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
   };
 
   return (
@@ -273,9 +293,9 @@ export default function NewTaskPage() {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-gray-800">发布新任务</h1>
+          <h1 className="text-lg font-black text-gray-800">{t('bristh.newTask.title')}</h1>
           <p className="text-xs text-gray-400 font-medium mt-0.5">
-            {step === 1 ? '第一步：填写任务内容，Chief AI 将分析并拆解' : '第二步：确认任务分解方案，选择审批节点'}
+            {step === 1 ? t('bristh.newTask.step1Desc') : t('bristh.newTask.step2Desc')}
           </p>
         </div>
         {/* Step Indicator */}
@@ -293,165 +313,103 @@ export default function NewTaskPage() {
           {/* ========== STEP 1: Input ========== */}
           {step === 1 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fade-in-up">
-              {/* Mode Selector */}
-              {/* Mode Selector — text and email only, attachments always visible */}
-              <div className="flex border-b border-gray-200 mb-8 space-x-8">
-                <button 
-                  onClick={() => setInputMode('text')} 
-                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'text' ? 'border-b-2 border-blue-600 text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  <Type className="w-4 h-4 mr-2" /> 文本录入
-                </button>
-                <button 
-                  onClick={() => setInputMode('email')} 
-                  className={`pb-4 font-bold text-sm transition-colors flex items-center ${inputMode === 'email' ? 'border-b-2 border-blue-600 text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  <Link2 className="w-4 h-4 mr-2" /> 关联邮件
-                </button>
-              </div>
-
               {/* Form Content */}
-              <div className="min-h-[300px]">
-                {inputMode === 'text' && (
-                  <div className="space-y-4 animate-fade-in-up">
-                    {/* Text Area */}
-                    <div className="relative">
-                      <textarea
-                        className="w-full h-52 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-emerald-500 focus:outline-none resize-none shadow-inner"
-                        placeholder="[例] 客户已经同意报价，请根据最新的会议记录生成一份保密协议和项目排期日历..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
+              <div className="min-h-[300px] flex flex-col space-y-8">
+                {/* Text Area */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">{t('bristh.newTask.taskReq')}</h3>
+                  <div className="relative">
+                    <textarea
+                      className="w-full h-52 p-5 pb-14 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 font-mono focus:ring-2 focus:ring-blue-500 focus:border-emerald-500 focus:outline-none resize-none shadow-inner"
+                      placeholder={t('bristh.newTask.placeholder')}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                    />
+                    <div className="absolute bottom-4 left-4">
+                      <VoiceInputButton
+                        onTranscript={(text) => setInput(prev => prev + text)}
+                        lang={i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'}
                       />
-                      <div className="absolute bottom-4 left-4">
-                        <VoiceInputButton
-                          onTranscript={(text) => setInput(prev => prev + text)}
-                          lang={i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'}
-                        />
-                      </div>
-                      <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
-                        {input.length} 字符
-                      </div>
                     </div>
-
-                    {/* Attachment Upload Zone */}
-                    <div className="flex gap-3">
-                      <div
-                        className={`flex-1 border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer ${
-                          dragOver ? 'border-emerald-500 bg-blue-50/50' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                        onClick={() => attachInputRef.current?.click()}
-                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setDragOver(false);
-                          handleAttachmentUpload(e.dataTransfer.files);
-                        }}
-                      >
-                        <input
-                          type="file"
-                          ref={attachInputRef}
-                          onChange={(e) => e.target.files && handleAttachmentUpload(e.target.files)}
-                          className="hidden"
-                          multiple
-                          accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.json,.csv,.yaml,.yml"
-                        />
-                        <div className="flex items-center justify-center gap-2 text-gray-400">
-                          {uploading ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm font-medium">上传解析中...</span></>
-                          ) : (
-                            <><Paperclip className="w-4 h-4" /> <span className="text-sm font-medium">点击或拖放本地附件</span>
-                              <span className="text-xs text-gray-300">PDF/Word/Excel</span></>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => setKbSelectorOpen(true)}
-                        className="px-6 py-4 border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 rounded-xl transition-all flex flex-col items-center justify-center gap-1 group"
-                      >
-                        <Database className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
-                        <span className="text-xs font-bold text-indigo-600">从知识库引用</span>
-                      </button>
+                    <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
+                      {t('bristh.newTask.charCount', { count: input.length })}
                     </div>
-
-                    {/* Uploaded Attachments List */}
-                    {attachments.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                          <Paperclip className="w-3 h-3" /> 已上传 {attachments.length} 个附件
-                        </p>
-                        {attachments.map(att => (
-                          <div key={att.id} className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-lg group hover:border-blue-200 transition-colors">
-                            <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">{att.originalName}</p>
-                              <p className="text-[10px] text-gray-400">
-                                {formatFileSize(att.size)}
-                                {att.isKbFile && ' · 📚 知识库文件'}
-                                {!att.isKbFile && att.storageType === 'cloud' && ' · ☁️ 已上云'}
-                                {att.pageCount && ` · ${att.pageCount} 页`}
-                                {att.sheetNames?.length && ` · ${att.sheetNames.length} 个工作表`}
-                              </p>
-                            </div>
-                            <Tooltip title={att.summary}>
-                              <Info className="w-3.5 h-3.5 text-gray-300 hover:text-blue-500 cursor-help shrink-0" />
-                            </Tooltip>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
-                              className="p-1 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                )}
+                </div>
 
-                {inputMode === 'email' && (
-                  <div className="animate-fade-in-up w-full h-64 border border-gray-200 rounded-xl flex flex-col bg-gray-50 overflow-hidden shadow-inner">
-                     <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
-                       <span className="text-sm font-bold text-gray-600 flex items-center">
-                         <Mail className="w-4 h-4 mr-2 text-blue-400"/> CRM 收件箱
-                       </span>
-                       <button onClick={fetchEmails} className="text-xs font-bold text-emerald-600 hover:text-blue-800 hover:underline px-3 py-1 bg-blue-50 rounded-lg transition-colors">
-                         刷新收件箱
-                       </button>
-                     </div>
-                     <div className="flex-1 overflow-y-auto">
-                       {loadingEmails ? (
-                          <div className="flex items-center justify-center h-full space-x-2">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                          </div>
-                       ) : emails.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                            <Mail className="w-8 h-8 mb-2 opacity-20" />
-                            <span className="text-sm">CRM 收件箱为空</span>
-                          </div>
-                       ) : (
-                          <div className="divide-y divide-gray-100">
-                            {emails.map((email: any) => (
-                              <div 
-                                key={email.id} 
-                                onClick={() => handleEmailSelect(email)}
-                                className="p-4 bg-white hover:bg-blue-50 cursor-pointer transition-colors group"
-                              >
-                                <div className="font-bold text-sm text-gray-800 line-clamp-1 group-hover:text-emerald-600 mb-1">
-                                  {email.summary || '无主题'}
-                                </div>
-                                <div className="text-xs text-gray-500 flex justify-between items-center">
-                                  <span className="truncate pr-4 flex-1">From: {email.customer?.email || 'Unknown'}</span>
-                                  <span className="shrink-0">{new Date(email.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                       )}
-                     </div>
+                {/* Unified Add Context Toolbar */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">{t('bristh.newTask.addContext')}</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => attachInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 px-5 py-3 border-2 border-gray-200 bg-gray-50/50 hover:bg-gray-50 hover:border-gray-300 rounded-xl transition-all"
+                    >
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" /> : <Paperclip className="w-4 h-4 text-gray-400" />}
+                      <span className="text-sm font-medium text-gray-600">{t('bristh.newTask.localFile')}</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={attachInputRef}
+                      onChange={(e) => e.target.files && handleAttachmentUpload(e.target.files)}
+                      className="hidden"
+                      multiple
+                      accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.json,.csv,.yaml,.yml"
+                    />
+
+                    <button
+                      onClick={() => setKbSelectorOpen(true)}
+                      className="flex items-center justify-center gap-2 px-5 py-3 border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 rounded-xl transition-all"
+                    >
+                      <Database className="w-4 h-4 text-indigo-400" />
+                      <span className="text-sm font-medium text-indigo-600">{t('bristh.newTask.kbImport')}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setEmailSelectorOpen(true)}
+                      className="flex items-center justify-center gap-2 px-5 py-3 border-2 border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 rounded-xl transition-all"
+                    >
+                      <Mail className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-medium text-blue-600">{t('bristh.newTask.fromCrm')}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Uploaded Attachments List */}
+                {attachments.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <Paperclip className="w-3 h-3" /> {t('bristh.newTask.uploadedCount', { count: attachments.length })}
+                    </p>
+                    {attachments.map(att => (
+                      <div key={att.id} className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-lg group hover:border-blue-200 transition-colors">
+                        {att.isEmail ? (
+                          <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{att.originalName}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {formatFileSize(att.size)}
+                            {att.isKbFile && ` · ${t('bristh.newTask.kbFile')}`}
+                            {att.isEmail && ` · ${t('bristh.newTask.fromCrm')}`}
+                            {!att.isKbFile && !att.isEmail && att.storageType === 'cloud' && ` · ${t('bristh.newTask.cloudFile')}`}
+                            {att.pageCount && ` · ${t('bristh.newTask.pagesCount', { count: att.pageCount })}`}
+                            {att.sheetNames?.length && ` · ${t('bristh.newTask.sheetsCount', { count: att.sheetNames.length })}`}
+                          </p>
+                        </div>
+                        <Tooltip title={att.summary}>
+                          <Info className="w-3.5 h-3.5 text-gray-300 hover:text-blue-500 cursor-help shrink-0" />
+                        </Tooltip>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                          className="p-1 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -460,7 +418,7 @@ export default function NewTaskPage() {
               <div className="mt-8 flex gap-3">
                 <button
                   onClick={handleAutoDispatch}
-                  disabled={(inputMode === 'text' && !input.trim()) || analyzing || autoDispatching}
+                  disabled={(!input.trim()) || analyzing || autoDispatching}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
                 >
                   {autoDispatching ? (
@@ -468,11 +426,11 @@ export default function NewTaskPage() {
                   ) : (
                     <Zap className="w-4 h-4 mr-2" />
                   )}
-                  全自动执行
+                  {t('bristh.newTask.autoExec')}
                 </button>
                 <button
                   onClick={handleAnalyze}
-                  disabled={(inputMode === 'text' && !input.trim()) || analyzing || autoDispatching}
+                  disabled={(!input.trim()) || analyzing || autoDispatching}
                   className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
                 >
                   {analyzing ? (
@@ -480,11 +438,11 @@ export default function NewTaskPage() {
                   ) : (
                     <UserCheck className="w-4 h-4 mr-2" />
                   )}
-                  人工审核模式 <ChevronRight className="w-4 h-4 ml-1" />
+                  {t('bristh.newTask.manualReview')} <ChevronRight className="w-4 h-4 ml-1" />
                 </button>
               </div>
               <p className="text-center text-[11px] text-gray-400 mt-2">
-                全自动：Chief 直接分派并执行 · 人工审核：先看 AI 分析，再选择需要人工确认的环节
+                {t('bristh.newTask.modeHint')}
               </p>
             </div>
           )}
@@ -496,13 +454,13 @@ export default function NewTaskPage() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h2 className="text-base font-black text-gray-800">Chief AI 分析结果</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">共分解为 {analyzedTasks.length} 个子任务，AI 已标注复杂度</p>
+                    <h2 className="text-base font-black text-gray-800">{t('bristh.newTask.analysisResults')}</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">{t('bristh.newTask.subTasksCount', { count: analyzedTasks.length })}</p>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-bold">
-                    <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">🔴 高 = 建议审批</span>
-                    <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">🟡 中</span>
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">🟢 低</span>
+                    <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">{t('bristh.newTask.highRec')}</span>
+                    <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">{t('bristh.newTask.med')}</span>
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">{t('bristh.newTask.low')}</span>
                   </div>
                 </div>
 
@@ -544,7 +502,7 @@ export default function NewTaskPage() {
                               </span>
                               {isSelected && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
-                                  ✋ 需人工审批
+                                  {t('bristh.newTask.needsApproval')}
                                 </span>
                               )}
                             </div>
@@ -580,12 +538,12 @@ export default function NewTaskPage() {
                     </div>
                     <div className="flex-1">
                       <h3 className={`text-sm font-bold ${userEmail ? 'text-emerald-800' : 'text-amber-800'}`}>
-                        {userEmail ? '审批通知邮箱已绑定' : '请绑定联系邮箱'}
+                        {userEmail ? t('bristh.newTask.emailBound') : t('bristh.newTask.bindEmail')}
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {userEmail
-                          ? `审批通知将发送至 ${userEmail}`
-                          : '您选择了需要审批的环节，审批结果将通过邮件通知您。'}
+                          ? t('bristh.newTask.emailNotice', { email: userEmail })
+                          : t('bristh.newTask.emailNoticeEmpty')}
                       </p>
                       {!userEmail && emailCheckDone && (
                         <div className="flex items-center gap-2 mt-3">
@@ -604,7 +562,7 @@ export default function NewTaskPage() {
                             disabled={savingEmail || !emailInput.includes('@')}
                             className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shrink-0"
                           >
-                            {savingEmail ? '...' : '绑定'}
+                            {savingEmail ? '...' : t('bristh.newTask.bindBtn')}
                           </button>
                         </div>
                       )}
@@ -622,11 +580,11 @@ export default function NewTaskPage() {
                 {confirming ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    正在派发任务...
+                    {t('bristh.newTask.dispatching')}
                   </>
                 ) : (
                   <>
-                    确认派发 <Send className="w-5 h-5 ml-2" />
+                    {t('bristh.newTask.confirmDispatch')} <Send className="w-5 h-5 ml-2" />
                   </>
                 )}
               </button>
@@ -651,7 +609,64 @@ export default function NewTaskPage() {
           isOpen={true}
           onClose={() => setKbSelectorOpen(false)}
           onConfirm={handleKbFileConfirm}
+          initialSelected={attachments.filter(a => a.isKbFile).map(a => ({
+            id: a.id,
+            title: a.originalName,
+            type: 'FILE',
+            fileType: a.mimeType,
+            fileSize: a.size
+          }))}
         />
+      )}
+
+      {/* Email Selector Modal */}
+      {emailSelectorOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800">{t('bristh.newTask.selectEmailTitle')}</h2>
+              <button onClick={() => setEmailSelectorOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2 bg-gray-50/30">
+               {loadingEmails ? (
+                  <div className="flex items-center justify-center h-40 space-x-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                  </div>
+               ) : emails.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+                    <Mail className="w-8 h-8 mb-2 opacity-20" />
+                    <span className="text-sm">{t('bristh.newTask.emptyInbox')}</span>
+                  </div>
+               ) : (
+                  <div className="space-y-1 p-2">
+                    {emails.map((email: any) => (
+                      <div 
+                        key={email.id} 
+                        onClick={() => handleEmailSelect(email)}
+                        className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm cursor-pointer transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                          <Mail className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm text-gray-800 line-clamp-1 group-hover:text-blue-600 mb-1">
+                            {email.summary || t('bristh.newTask.noSubject')}
+                          </div>
+                          <div className="text-xs text-gray-500 flex justify-between items-center">
+                            <span className="truncate pr-4 flex-1">From: {email.customer?.email || 'Unknown'}</span>
+                            <span className="shrink-0">{new Date(email.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

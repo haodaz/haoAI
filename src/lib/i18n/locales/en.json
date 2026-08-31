@@ -71,7 +71,112 @@
       "download": "Download",
       "copy": "Copy",
       "downloadPptx": "Download .pptx",
-      "downloadIcs": "Download .ics"
+      "downloadIcs": "Download .ics",
+      "idleAiTitle": "Idle AI",
+      "generalCapabilities": "General Capabilities",
+      "currentTaskCard": "Current Task Card",
+      "standby": "Standby",
+      "completedStatus": "Completed",
+      "failedStatus": "Error",
+      "executing": "Executing",
+      "taskInProgress": "Task in progress",
+      "execLog": "Execution Log",
+      "noAgentFallback": "No participating agents, waiting for Chief to dispatch...",
+      "noAgentHintFallback": "Submit a task in the upper input box, Chief will automatically dispatch the AI team",
+      "chiefTitle": "Chief, Assistant to the President",
+      "chiefSub": "Orchestrator",
+      "pageNum": "Page {{num}}",
+      "calendarGenerated": "Calendar invitation generated",
+      "copyBtn": "Copy",
+      "downloadIcsBtn": "Download .ics",
+      "downloadMdBtn": "Download .md",
+      "sourceFiles": "Source Files:",
+      "newTaskBtn": "New / Manage Input",
+      "loadLatestBtn": "Load Latest Execution",
+      "endTaskBtn": "End Task",
+      "retryTaskBtn": "Retry Task",
+      "rerunBtn": "Re-run",
+      "hasAttachmentHint": "This task is associated with attachments",
+      "waitApprovalHint": "🟡 Awaiting manual approval",
+      "viewEditBtn": "👁 View / Edit",
+      "approveBtn": "✅ Approve",
+      "toolGeneratedHint": "→ Click to go to tool to generate Draft 1",
+      "completedMark": "✅ Completed",
+      "failedMark": "❌ Execution Failed",
+      "retrySmallBtn": "Retry",
+      "toolExecuting": "Tool executing...",
+      "waitExecution": "⏳ Waiting to execute",
+      "enterCopilot": "Enter Copilot",
+      "copilotSpace": " Copilot Space",
+      "loadingTaskData": "Loading task data...",
+      "idleFallbackText": "No active tasks. Click New to connect a task.",
+      "livePreview": "Live Preview",
+      "feedbackChat": "Feedback & Refine (Agent Chat)",
+      "aiGreeting": "Hello, I am {{name}}. I have completed the preliminary task. You can preview the final output on the left. If you need any changes, please let me know directly!",
+      "tellAiPrompt": "Tell the AI what needs to be changed...",
+      "initializingStatus": "INITIALIZING...",
+      "noLogs": "Waiting for incoming tasks...",
+      "orchestrationStage": "Orchestration",
+      "orchestrationInstruction": "Analyze intent → Dispatch {{count}} tasks",
+      "participatingAgents": "Participating: {{agents}}",
+      "phase1": "Phase 1 · Information Prep",
+      "phase2": "Phase 2 · Core Execution",
+      "phase3": "Phase 3 · Consolidation",
+      "hasAttachment": "This task has attachments",
+      "waitManualApproval": "Awaiting manual approval",
+      "clickToToolDraft": "Click to go to tool to generate Draft 1",
+      "waitingExecution": "Waiting to execute",
+      "agentChat": "Agent Chat",
+      "slideNum": "Slide {{num}}"
+    },
+    "newTask": {
+      "title": "Publish New Task",
+      "step1Desc": "Step 1: Input task details, Chief AI will analyze and decompose",
+      "step2Desc": "Step 2: Confirm task breakdown and select approval nodes",
+      "taskReq": "Task Requirements",
+      "addContext": "Add Context (Optional)",
+      "localFile": "Local File",
+      "fromCrm": "From CRM",
+      "selectEmailTitle": "Select Email from CRM",
+      "textInput": "Text Input",
+      "linkEmail": "Link Email",
+      "placeholder": "[Example] The client has agreed to the quote, please generate an NDA and project schedule based on the latest meeting minutes...",
+      "charCount": "{{count}} chars",
+      "uploading": "Uploading & parsing...",
+      "dragDropHint": "Click or drag local attachment",
+      "kbImport": "From Knowledge Base",
+      "uploadedCount": "Uploaded {{count}} attachments",
+      "kbFile": "📚 KB File",
+      "cloudFile": "☁️ Uploaded to Cloud",
+      "pagesCount": "{{count}} pages",
+      "sheetsCount": "{{count}} sheets",
+      "crmInbox": "CRM Inbox",
+      "refreshInbox": "Refresh Inbox",
+      "emptyInbox": "CRM Inbox is empty",
+      "noSubject": "No subject",
+      "autoExec": "Fully Auto Execution",
+      "manualReview": "Manual Approval Mode",
+      "modeHint": "Fully Auto: Chief executes directly · Manual: Review AI analysis first, then select nodes for manual confirmation",
+      "analysisResults": "Chief AI Analysis Results",
+      "subTasksCount": "Decomposed into {{count}} sub-tasks, AI has marked complexity",
+      "highComplexity": "High Complexity",
+      "mediumComplexity": "Medium Complexity",
+      "lowComplexity": "Low Complexity",
+      "highRec": "🔴 High = Approval Recommended",
+      "med": "🟡 Medium",
+      "low": "🟢 Low",
+      "needsApproval": "✋ Needs Manual Approval",
+      "emailBound": "Approval notification email is bound",
+      "bindEmail": "Please bind contact email",
+      "emailNotice": "Approval notifications will be sent to {{email}}",
+      "emailNoticeEmpty": "You have selected nodes that require approval. Notifications will be sent via email.",
+      "bindBtn": "Bind",
+      "dispatching": "Dispatching task...",
+      "confirmDispatch": "Confirm Dispatch",
+      "errDispatch": "Dispatch failed, please try again",
+      "errAnalysis": "Analysis failed, please try again",
+      "errBindEmail": "Please bind a contact email first. Approval notifications need to be sent to your email.",
+      "errConfirm": "Confirmation failed, please try again"
     },
     "history": {
       "title": "Task History",
@@ -195,6 +300,68 @@
       "agentsCount": "Agents participating",
       "placeholder": "Type a message... Use @ to mention specific AI.",
       "isTyping": "is typing..."
+    },
+    "agents": {
+      "Nova": {
+        "title": "Policy Intelligence Specialist",
+        "desc": "Acquires and analyzes policy information from industrial, university and internet policy databases, adapting them to individual backgrounds."
+      },
+      "Nexus": {
+        "title": "Industry-Research Transfer Specialist",
+        "desc": "A bridge between research and industry. Analyzes industrial value, recommends matching research teams, and generates transfer reports."
+      },
+      "Bob": {
+        "title": "Scheduling Assistant",
+        "desc": "Automatically extracts meeting intents from context and generates standard .ics calendar invites. Supports smart time inference and multiple timezones."
+      },
+      "Iris": {
+        "title": "Web Designer",
+        "desc": "Focuses on marketing page design. Generates exquisite multi-page marketing websites based on brand positioning."
+      },
+      "Atlas": {
+        "title": "Research Resource Specialist",
+        "desc": "Retrieves instruments, consumables, and reagents from research databases, cross-references suppliers, and generates selection reports."
+      },
+      "Eric": {
+        "title": "Legal & Compliance Officer",
+        "desc": "Pulls standard contract templates and automatically fills variables based on latest terms to generate service agreements, NDAs, MOUs, etc."
+      },
+      "David": {
+        "title": "Internal Audit Specialist",
+        "desc": "Reviews historical communications to identify business loopholes, unfulfilled promises, and process defects, generating internal rectification tickets."
+      },
+      "Hugo": {
+        "title": "Financial Analyst",
+        "desc": "Focuses on financial data analysis, including financial statements, budgeting, ROI, cost optimization, and breakeven analysis."
+      },
+      "Jarvis": {
+        "title": "Talent Intelligence Specialist",
+        "desc": "Uses ORCID, Google Scholar, Wikipedia, and more to perform deep retrieval, cross-validation, and academic profiling of scholars."
+      },
+      "Alice": {
+        "title": "Proposal Architect",
+        "desc": "Quickly generates structured business proposals, project plans, and solution architecture documents based on customer needs."
+      },
+      "Kelly": {
+        "title": "Document Processing Specialist",
+        "desc": "Processes uploaded files: translates documents, fills forms, extracts key data, converts formats, and summarizes information."
+      },
+      "Edda": {
+        "title": "Presentation Specialist",
+        "desc": "Automatically extracts outline structures from text and generates physical .pptx presentations. Supports theme customization."
+      },
+      "Fiona": {
+        "title": "Communications Specialist",
+        "desc": "Pushes core decisions and action items to absentees, writes internal memos, and ensures information continuity."
+      },
+      "Grace": {
+        "title": "Email Dispatch Specialist",
+        "desc": "Final step specialist. Waits for other AI outputs, drafts formal emails, and sends them out with all attachments."
+      },
+      "Chief": {
+        "title": "Orchestrator",
+        "desc": "Global commander. Parses raw input, extracts semantic intent, dynamically generates task pipelines, and dispatches subtasks."
+      }
     }
   },
   "internal": {
