@@ -1,21 +1,48 @@
-# Eric 专属法律知识
+# Eric — BEP Legal Document Standards
 
-## 常用合同类型
-1. **NDA (保密协议)** - 用于初始合作阶段
-2. **MOU (谅解备忘录)** - 用于合作意向确认
-3. **Service Agreement (服务协议)** - 正式合作阶段
-4. **Partnership Contract (合作合同)** - 深度合作
+## Document Types & Applicable Templates
 
-## 标准条款模板变量
-- `[PARTY_A]`: 甲方全称
-- `[PARTY_B]`: 乙方全称
-- `[EFFECTIVE_DATE]`: 生效日期
-- `[FEE_AMOUNT]`: 服务费用
-- `[REVENUE_SPLIT]`: 收益分成比例
-- `[TERM_YEARS]`: 合作期限
-- `[JURISDICTION]`: 法律管辖地（默认: England and Wales）
+### 1. Service Agreement (服务协议)
+Based on the BEP Fixed Retainer Agreement and Performance Partnership Agreement.
+- **Structure**: Parties → Recitals → Definitions (15+ terms) → Scope → Obligations → Fees → Agent Management → Reporting → Marketing/IP → Termination → Liability → Confidentiality → Data Protection → Dispute Resolution → General
+- **Key Terms**: Monthly Service Charge £4,800 + VAT (Fixed Retainer) or 15% Operational Service Fee (Performance)
+- **Required Definitions**: Academic Term, Agent Commission, Applicable Law, BEP Recruitment Agent, Confidential Information, Effective Date, Initial Term, Recruited Student, Service Fees
+- **Entity**: IQ Schools Group Ltd (company no. 09631449), trading as British Enrolment Partners ("BEP")
 
-## 注意事项
-- 所有合同必须包含不可抗力条款
-- 国际合作合同需包含争议解决机制（仲裁 vs 诉讼）
-- 涉及学生数据的合同须包含 GDPR 合规条款
+### 2. NDA (保密协议)
+- Mutual confidentiality obligations
+- Permitted disclosures (legal, regulatory, professional advisers)
+- Injunctive relief remedies
+
+### 3. MOU (谅解备忘录)
+- Non-binding statement of intent
+- Framework for future formal agreement
+- 30-day termination notice
+
+### 4. Partnership Contract (合作合同)
+- Similar to Service Agreement with revenue/commission sharing
+- Non-circumvention clause mandatory
+- IP ownership split
+
+### 5. Employment Contract (劳动合同)
+- Restrictive covenants (non-compete, non-solicit)
+- GDPR compliance for employee data
+- Internal grievance procedure first
+
+## Standard Clauses (Mandatory — From Real BEP Agreements)
+Every document must include these approved standard clauses:
+- **Governing Law**: England and Wales (always)
+- **Jurisdiction**: Courts of England and Wales (exclusive)
+- **Dispute Resolution**: 3-tier — escalation (14 days) → CEDR mediation (30 days) → litigation
+- **Termination**: Initial Term 12 months, then 3 months' notice
+- **Liability Cap**: 125% of Service Fees or £50,000 (whichever greater); 200%/£100,000 for confidentiality/data/IP
+- **Data Protection**: UK GDPR + Data Protection Act 2018 + DPA Article 28
+- **Confidentiality**: Reciprocal, survives termination
+- **Severability**: Modify invalid provisions to minimum extent
+
+## Forbidden Content
+- Never promise outcomes or guarantee specific results
+- Never modify standard protective clauses without explicit legal review
+- Never disclose BEP's internal commercial targets or margins
+- Never draft without "IMPORTANT NOTICE: This Agreement is a legally binding contract"
+- Never use American legal terminology (use "clauses" not "sections", "whilst" not "while")
