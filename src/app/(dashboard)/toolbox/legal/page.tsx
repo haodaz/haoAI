@@ -5,6 +5,10 @@ import { Spin } from 'antd';
 import { marked } from 'marked';
 import { FileText, Database, X, CheckCircle, Clock, Scale, Send, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 const DOC_TYPES = ['NDA', 'MOU', 'Service Agreement', 'Partnership Contract', 'Employment Contract'];
 const STYLES = ['Standard British', 'Bilingual (EN/CN)', 'Plain Language'];
@@ -28,7 +32,9 @@ export default function LegalPage() {
     keyTerms: '', background: '', templateStyle: 'Standard British',
     kbFiles: [] as KbFile[]
   });
+  
   const [result, setResult] = useState('');
+  const [editorHtml, setEditorHtml] = useState('');
   const [loading, setLoading] = useState(false);
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
   const [logs, setLogs] = useState<{ step: string; message: string }[]>([]);
@@ -47,6 +53,7 @@ export default function LegalPage() {
         const payload = JSON.parse(asset.payload);
         if (payload.content) {
           setResult(payload.content);
+          setEditorHtml(marked(payload.content) as string);
           if (payload.docType) setForm(prev => ({ ...prev, docType: payload.docType, partyA: payload.partyA || '', partyB: payload.partyB || '', templateStyle: payload.templateStyle || 'Standard British' }));
           setCopilotHistory([{ role: 'bot', content: `✅ Loaded ${payload.docType || 'Legal Document'} Draft 1! You can enter edit instructions in the Copilot panel.` }]);
         }
@@ -83,24 +90,26 @@ export default function LegalPage() {
         if (!res.body) { setLoading(false); return; }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let done = false; let text = '';
+        let done = false; let textBuffer = '';
         while (!done) {
           const { value, done: dr } = await reader.read();
           done = dr;
           if (value) {
-            const lines = decoder.decode(value, { stream: true }).split('\n\n');
+            const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
             for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
               try {
                 const data = JSON.parse(line.substring(6));
                 if (data.type === 'log') setLogs(prev => [...prev, data.data]);
-                else if (data.type === 'ai_chunk') { text += data.data; setResult(text); }
+                else if (data.type === 'ai_chunk') { textBuffer += data.data; setResult(textBuffer); }
+                else if (data.type === 'done') {
+                  setEditorHtml(marked(textBuffer) as string);
+                  setCopilotHistory([{ role: 'bot', content: `✅ Legal document (Draft 1) generated! You can enter edit instructions in the Copilot panel.` }]);
+                }
               } catch { /* ignore */ }
             }
           }
         }
         setLoading(false);
-        setCopilotHistory([{ role: 'bot', content: `✅ Legal document (Draft 1) generated! You can enter edit instructions in the Copilot panel.` }]);
       })
       .catch(console.error);
   }, [jobId]);
@@ -108,7 +117,9 @@ export default function LegalPage() {
   const handleGenerate = async () => {
     setLoading(true);
     setResult('');
+    setEditorHtml('');
     setLogs([]);
+    let textBuffer = '';
     try {
       const res = await fetch('/api/toolbox/legal', {
         method: 'POST',
@@ -119,24 +130,30 @@ export default function LegalPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
-      let text = '';
       while (!done) {
-        const { value, done: dr } = await reader.read();
-        done = dr;
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
         if (value) {
-          const lines = decoder.decode(value, { stream: true }).split('\n\n');
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const data = JSON.parse(line.substring(6));
-              if (data.type === 'log') setLogs(p => [...p, data.data]);
-              else if (data.type === 'ai_chunk') { text += data.data; setResult(text); }
-              else if (data.type === 'error') alert(`Error: ${data.data.message}`);
-            } catch { /* ignore */ }
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.substring(6));
+                if (data.type === 'log') {
+                  setLogs(prev => [...prev, { step: data.data.step, message: data.data.message }]);
+                } else if (data.type === 'ai_chunk') {
+                  textBuffer += data.data;
+                  setResult(textBuffer);
+                } else if (data.type === 'error') { alert(`Error: ${data.data.message}`); }
+              } catch { /* ignore */ }
+            }
           }
         }
       }
     } catch { alert('Network error'); }
+    setResult(textBuffer);
+    setEditorHtml(marked(textBuffer) as string);
     setLoading(false);
     setCopilotHistory([{ role: 'bot', content: `✅ Legal document (Draft 1) complete!\n\nYou can enter edit instructions in the Copilot below, e.g.:\n- "Change Party A name to ABC Ltd"\n- "Set the term to 5 years"\n- "Add a data privacy clause"` }]);
   };
@@ -157,7 +174,6 @@ export default function LegalPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
-      let newDoc = '';
       let reply = '';
       while (!done) {
         const { value, done: dr } = await reader.read();
@@ -165,12 +181,16 @@ export default function LegalPage() {
         if (value) {
           const lines = decoder.decode(value, { stream: true }).split('\n\n');
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const data = JSON.parse(line.substring(6));
-              if (data.type === 'reply') reply = data.data;
-              else if (data.type === 'document') { newDoc = data.data; setResult(newDoc); }
-            } catch { /* ignore */ }
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.substring(6));
+                if (data.type === 'reply') reply = data.data;
+                else if (data.type === 'document') {
+                  setResult(data.data);
+                  setEditorHtml(marked(data.data) as string);
+                }
+              } catch { /* ignore */ }
+            }
           }
         }
       }
@@ -191,18 +211,18 @@ export default function LegalPage() {
             <p className="text-xs text-gray-400">Party A: {form.partyA} | Party B: {form.partyB || 'TBC'} | Style: {form.templateStyle}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { setResult(''); setLogs([]); }} disabled={loading}
+            <button onClick={() => { setResult(''); setEditorHtml(''); setLogs([]); }} disabled={loading}
               className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 disabled:opacity-50">
               Regenerate
             </button>
             <button onClick={() => { navigator.clipboard.writeText(result); alert('Copied to clipboard'); }}
               className="px-5 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-violet-700 shadow-md">
-              <FileText className="w-3.5 h-3.5" /> Copy Full Text
+              <FileText className="w-3.5 h-3.5" /> Copy Raw Markdown
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 flex gap-5">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 flex gap-5 items-start">
           {/* Left Panel: SSE Logs → Copilot Chat */}
           <div className="w-72 shrink-0">
             {!loading && result ? (
@@ -282,12 +302,24 @@ export default function LegalPage() {
             )}
           </div>
 
-          {/* Result */}
-          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center py-10 px-4">
+          {/* Markdown / Editor Result */}
+          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center items-start py-10 px-4">
             <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm">
-              {result ? (
+              {loading ? (
                 <div className="prose prose-slate max-w-none text-gray-800 prose-headings:font-black prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-li:my-1"
                   dangerouslySetInnerHTML={{ __html: marked(result) as string }} />
+              ) : editorHtml ? (
+                <div className="a4-editor-wrapper">
+                  <ReactQuill theme="snow" value={editorHtml} onChange={setEditorHtml} />
+                  <style>{`
+                    .a4-editor-wrapper .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid #f3f4f6; margin-bottom: 20px; padding-bottom: 10px; position: sticky; top: -40px; background: white; z-index: 10; }
+                    .a4-editor-wrapper .ql-container.ql-snow { border: none; font-size: 15px; font-family: inherit; }
+                    .a4-editor-wrapper .ql-editor { padding: 0; min-height: 500px; line-height: 1.8; color: #374151; }
+                    .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #111827; }
+                    .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                    .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                  `}</style>
+                </div>
               ) : (
                 <div className="text-sm text-gray-400 flex flex-col items-center justify-center h-full min-h-[500px]">
                   <div className="animate-pulse w-16 h-16 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-2xl">⚖️</div>

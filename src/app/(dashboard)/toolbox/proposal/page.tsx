@@ -5,6 +5,10 @@ import { Spin } from 'antd';
 import { marked } from 'marked';
 import { Briefcase, Database, X, FileText, CheckCircle, Clock, Send, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 const BUSINESS_MODELS = ['Fixed Retainer', 'Performance Partnership', 'Hybrid'];
 const FOCUS_AREAS = ['Academics', 'Marketing', 'Pastoral Care', 'Full Management'];
@@ -24,7 +28,8 @@ export default function ProposalPage() {
     kbFiles: [] as KbFile[]
   });
   
-  const [proposalResult, setProposalResult] = useState<string>('');
+  const [proposalResult, setProposalResult] = useState('');
+  const [editorHtml, setEditorHtml] = useState('');
   const [loading, setLoading] = useState(false);
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
   const [logs, setLogs] = useState<{ message: string; step: string }[]>([]);
@@ -43,6 +48,7 @@ export default function ProposalPage() {
         const payload = JSON.parse(asset.payload);
         if (payload.content) {
           setProposalResult(payload.content);
+          setEditorHtml(marked(payload.content) as string);
           if (payload.targetSchool) setProposalForm(prev => ({ ...prev, targetSchool: payload.targetSchool, businessModel: payload.businessModel || 'Fixed Retainer' }));
           setCopilotHistory([{ role: 'bot', content: `✅ Draft 1 loaded! You can now enter edit instructions in the Copilot panel.` }]);
         }
@@ -79,7 +85,7 @@ export default function ProposalPage() {
         if (!res.body) { setLoading(false); return; }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let done = false; let text = '';
+        let done = false; let textBuffer = '';
         while (!done) {
           const { value, done: dr } = await reader.read();
           done = dr;
@@ -90,8 +96,9 @@ export default function ProposalPage() {
               try {
                 const data = JSON.parse(line.substring(6));
                 if (data.type === 'log') setLogs(prev => [...prev, data.data]);
-                else if (data.type === 'ai_chunk') { text += data.data; setProposalResult(text); }
+                else if (data.type === 'ai_chunk') { textBuffer += data.data; setProposalResult(textBuffer); }
                 else if (data.type === 'done') {
+                  setEditorHtml(marked(textBuffer) as string);
                   setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 generated! You can now enter edit instructions in the Copilot panel.` }]);
                 }
               } catch { /* ignore */ }
@@ -117,7 +124,9 @@ export default function ProposalPage() {
   const handleGenerate = async () => {
     setLoading(true);
     setProposalResult('');
+    setEditorHtml('');
     setLogs([]);
+    let textBuffer = '';
     try {
       const res = await fetch('/api/toolbox/proposal', {
         method: 'POST',
@@ -132,7 +141,6 @@ export default function ProposalPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
-      let aiText = '';
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
@@ -147,8 +155,8 @@ export default function ProposalPage() {
                 if (data.type === 'log') {
                   setLogs(prev => [...prev, { step: data.data.step, message: data.data.message }]);
                 } else if (data.type === 'ai_chunk') {
-                  aiText += data.data;
-                  setProposalResult(aiText);
+                  textBuffer += data.data;
+                  setProposalResult(textBuffer);
                 } else if (data.type === 'error') {
                   alert(`Error: ${data.data.message}`);
                 }
@@ -160,6 +168,8 @@ export default function ProposalPage() {
     } catch {
       alert('Network error');
     }
+    setProposalResult(textBuffer);
+    setEditorHtml(marked(textBuffer) as string);
     setLoading(false);
     setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 complete!\n\nYou can enter edit instructions below, e.g.:\n- "Switch the model to Performance Partnership"\n- "Add a section about the Korean market"\n- "Include boarding enrolment data in Section 3"` }]);
   };
@@ -191,7 +201,10 @@ export default function ProposalPage() {
             try {
               const data = JSON.parse(line.substring(6));
               if (data.type === 'reply') reply = data.data;
-              else if (data.type === 'document') setProposalResult(data.data);
+              else if (data.type === 'document') {
+                setProposalResult(data.data);
+                setEditorHtml(marked(data.data) as string);
+              }
             } catch { /* ignore */ }
           }
         }
@@ -210,15 +223,15 @@ export default function ProposalPage() {
             <p className="text-xs text-gray-400">Model: {proposalForm.businessModel} | Focus: {proposalForm.focusAreas.join(', ') || 'General'}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { setProposalResult(''); setLogs([]); }} disabled={loading} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 disabled:opacity-50">
+            <button onClick={() => { setProposalResult(''); setEditorHtml(''); setLogs([]); }} disabled={loading} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 disabled:opacity-50">
               Regenerate
             </button>
             <button onClick={() => { navigator.clipboard.writeText(proposalResult); alert('Copied to clipboard'); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-700 shadow-md">
-              <FileText className="w-3.5 h-3.5" /> Copy Full Text
+              <FileText className="w-3.5 h-3.5" /> Copy Raw Markdown
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50 flex gap-6">
+        <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50 flex gap-6 items-start">
           
           {/* Left Panel: SSE Logs → Copilot Chat */}
           <div className="w-80 shrink-0">
@@ -285,11 +298,23 @@ export default function ProposalPage() {
           </div>
 
 
-          {/* Markdown Result */}
-          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center py-10 px-4">
+          {/* Markdown / Editor Result */}
+          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center items-start py-10 px-4">
             <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm">
-              {proposalResult ? (
+              {loading ? (
                 <div className="prose prose-slate max-w-none text-gray-800 prose-headings:font-black prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-li:my-1" dangerouslySetInnerHTML={{ __html: marked(proposalResult) as string }} />
+              ) : editorHtml ? (
+                <div className="a4-editor-wrapper">
+                  <ReactQuill theme="snow" value={editorHtml} onChange={setEditorHtml} />
+                  <style>{`
+                    .a4-editor-wrapper .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid #f3f4f6; margin-bottom: 20px; padding-bottom: 10px; position: sticky; top: -40px; background: white; z-index: 10; }
+                    .a4-editor-wrapper .ql-container.ql-snow { border: none; font-size: 15px; font-family: inherit; }
+                    .a4-editor-wrapper .ql-editor { padding: 0; min-height: 500px; line-height: 1.8; color: #374151; }
+                    .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #111827; }
+                    .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                    .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                  `}</style>
+                </div>
               ) : (
                 <div className="text-sm text-gray-400 flex flex-col items-center justify-center h-full min-h-[500px]">
                   <div className="animate-pulse w-16 h-16 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-2xl">📄</div>
