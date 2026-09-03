@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Spin } from 'antd';
 import { Presentation, FileText, Send, Download, ChevronLeft, ChevronRight, Plus, XCircle, MessageSquare, Database, X, Wand2, ArrowRight } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
-import { useToolbox } from '@/components/layout/ToolboxContext';
+import { useToolbox } from '../layout';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 
 const THEMES = [
