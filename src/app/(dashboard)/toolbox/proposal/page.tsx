@@ -7,6 +7,7 @@ import { Briefcase, Database, X, FileText, CheckCircle, Clock, Send, MessageSqua
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+import { useToolbox } from '../layout';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -18,6 +19,7 @@ export default function ProposalPage() {
   const jobId = searchParams?.get('jobId');
   const assetId = searchParams?.get('assetId');
   const autoStartedRef = useRef(false);
+  const { setSidebarCollapsed } = useToolbox();
 
   const [proposalForm, setProposalForm] = useState({
     targetSchool: '',
@@ -36,6 +38,10 @@ export default function ProposalPage() {
   const [copilotHistory, setCopilotHistory] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  useEffect(() => {
+    if (proposalResult || loading) setSidebarCollapsed(true);
+  }, [proposalResult, loading, setSidebarCollapsed]);
 
   // Mode A: assetId — load existing generated content, skip re-generation
   useEffect(() => {
@@ -234,46 +240,44 @@ export default function ProposalPage() {
         <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50 flex gap-6 items-start">
           
           {/* Left Panel: SSE Logs → Copilot Chat */}
-          <div className="w-80 shrink-0">
+          <div className="w-[360px] shrink-0">
             {!loading && proposalResult ? (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col h-[calc(100vh-130px)]">
                 <div className="flex items-center gap-2 p-4 border-b border-gray-50">
-                  <MessageSquare className="w-4 h-4 text-blue-500" />
-                  <h3 className="text-sm font-bold text-gray-800">Copilot Refinement</h3>
-                  <span className="ml-auto text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">Draft 1 ✓</span>
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
+                  <h3 className="text-base font-bold text-gray-800">Copilot Refinement</h3>
+                  <span className="ml-auto text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">Draft 1 ✓</span>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {copilotHistory.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-line ${
-                        msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-50 border border-gray-100 text-gray-700 rounded-bl-sm'
-                      }`}>{msg.content}</div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {copilotHistory.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[85%] text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 whitespace-pre-wrap'}`}>
+                        {msg.content}
+                      </div>
                     </div>
                   ))}
                   {copilotLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl rounded-bl-sm"><Spin size="small" /></div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 p-2">
+                      <Spin size="small" /> AI is revising...
                     </div>
                   )}
                 </div>
-                <div className="p-3 border-t border-gray-50">
-                  <div className="flex gap-2">
-                    <input value={copilotInput} onChange={e => setCopilotInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleCopilot()}
-                      placeholder="Edit instruction (e.g. add Korean market analysis)..."
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-400" />
-                    <button onClick={handleCopilot} disabled={copilotLoading || !copilotInput.trim()}
-                      className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 shrink-0">
-                      <Send className="w-3.5 h-3.5" />
+                <div className="p-3 border-t bg-white">
+                  <div className="relative">
+                    <textarea value={copilotInput} onChange={e => setCopilotInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilotSend()}
+                      placeholder="Enter edit instruction..." rows={3} className="w-full p-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20" />
+                    <button onClick={handleCopilotSend} className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      <Send className="w-4 h-4" />
                     </button>
                   </div>
+                  <p className="text-[11px] text-gray-400 mt-1 px-1">Cmd + Enter to send</p>
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  <h3 className="text-sm font-bold text-gray-800">Pipeline Execution Log (SSE)</h3>
+              <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+                  <h3 className="text-sm font-bold text-gray-800">SSE Pipeline — Generating</h3>
                 </div>
                 <div className="space-y-4">
                   {logs.map((log, idx) => (
@@ -282,13 +286,13 @@ export default function ProposalPage() {
                         {log.message.includes('✅') ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Clock className="w-4 h-4 text-blue-500 animate-pulse" />}
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold text-gray-400">{log.step}</div>
-                        <div className="text-xs text-gray-700 mt-0.5">{log.message}</div>
+                        <div className="text-xs font-bold text-gray-400">{log.step}</div>
+                        <div className="text-sm text-gray-700 mt-0.5">{log.message}</div>
                       </div>
                     </div>
                   ))}
                   {loading && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 font-medium pt-2">
                       <Spin size="small" /> Agent assembling...
                     </div>
                   )}
@@ -297,31 +301,31 @@ export default function ProposalPage() {
             )}
           </div>
 
-
           {/* Markdown / Editor Result */}
-          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center items-start py-10 px-4">
-            <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm">
-              {loading ? (
+          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex flex-col items-center">
+            {loading ? (
+              <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm my-10">
                 <div className="prose prose-slate max-w-none text-gray-800 prose-headings:font-black prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-li:my-1" dangerouslySetInnerHTML={{ __html: marked(proposalResult) as string }} />
-              ) : editorHtml ? (
-                <div className="a4-editor-wrapper">
-                  <ReactQuill theme="snow" value={editorHtml} onChange={setEditorHtml} />
-                  <style>{`
-                    .a4-editor-wrapper .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid #f3f4f6; margin-bottom: 20px; padding-bottom: 10px; position: sticky; top: -40px; background: white; z-index: 10; }
-                    .a4-editor-wrapper .ql-container.ql-snow { border: none; font-size: 15px; font-family: inherit; }
-                    .a4-editor-wrapper .ql-editor { padding: 0; min-height: 500px; line-height: 1.8; color: #374151; }
-                    .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #111827; }
-                    .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
-                    .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
-                  `}</style>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-400 flex flex-col items-center justify-center h-full min-h-[500px]">
-                  <div className="animate-pulse w-16 h-16 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-2xl">📄</div>
-                  Awaiting generation stream...
-                </div>
-              )}
-            </div>
+              </div>
+            ) : editorHtml ? (
+              <div className="a4-editor-wrapper w-full flex flex-col items-center relative pb-20">
+                <ReactQuill theme="snow" value={editorHtml} onChange={setEditorHtml} />
+                <style>{`
+                  .a4-editor-wrapper .quill { width: 100%; display: flex; flex-direction: column; align-items: center; }
+                  .a4-editor-wrapper .ql-toolbar.ql-snow { width: 100%; border: none; border-bottom: 1px solid #e5e7eb; padding: 12px; position: sticky; top: 0; z-index: 50; background: white; display: flex; justify-content: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+                  .a4-editor-wrapper .ql-container.ql-snow { border: none; background: white; width: 100%; max-width: 210mm; min-height: 297mm; padding: 60px; margin-top: 40px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-radius: 4px; font-size: 15px; font-family: inherit; }
+                  .a4-editor-wrapper .ql-editor { padding: 0; line-height: 1.8; color: #374151; }
+                  .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #111827; }
+                  .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                  .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                `}</style>
+              </div>
+            ) : (
+              <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm my-10 flex flex-col items-center justify-center">
+                <div className="animate-pulse w-16 h-16 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-2xl">📄</div>
+                <div className="text-sm text-gray-400">Awaiting generation stream...</div>
+              </div>
+            )}
           </div>
           
         </div>

@@ -1,6 +1,18 @@
 'use client';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, createContext, useContext } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+
+export const ToolboxContext = createContext<{
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (v: boolean) => void;
+}>({
+  sidebarCollapsed: false,
+  setSidebarCollapsed: () => {},
+});
+
+export function useToolbox() {
+  return useContext(ToolboxContext);
+}
 import { Spin } from 'antd';
 import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight } from 'lucide-react';
 
@@ -41,6 +53,7 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const [recentAssets, setRecentAssets] = useState<any[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const activeTool = TOOLS.find(t => pathname?.startsWith(t.path))?.id || null;
   const isHistory = pathname?.startsWith('/toolbox/history');
@@ -53,45 +66,46 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
   }, [pathname]); // Re-fetch when navigating (catches new generations)
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col md:flex-row overflow-hidden">
-      {/* Tool Sidebar */}
-      <div className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden">
-        <div className="p-4 space-y-1.5 flex-1 overflow-y-auto">
-          {/* Tools section */}
-          <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Tools</h2>
-          {TOOLS.map(tool => {
-            const isActive = activeTool === tool.id;
-            const colors = COLOR_MAP[tool.color];
-            const Icon = tool.icon;
-            return (
-              <button key={tool.id} onClick={() => router.push(tool.path)}
-                className={`w-full text-left p-2.5 rounded-xl transition-all ${
-                  isActive ? `${colors.bg} border ${colors.border}` : 'bg-white border border-gray-100 hover:bg-gray-50'
+    <ToolboxContext.Provider value={{ sidebarCollapsed, setSidebarCollapsed }}>
+      <div className="w-full h-full bg-[#f8f9fc] flex flex-col md:flex-row overflow-hidden">
+        {/* Tool Sidebar */}
+        <div className={`bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'w-full md:w-16' : 'w-full md:w-56'}`}>
+          <div className="p-4 space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden">
+            {/* Tools section */}
+            {!sidebarCollapsed && <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Tools</h2>}
+            {TOOLS.map(tool => {
+              const isActive = activeTool === tool.id;
+              const colors = COLOR_MAP[tool.color];
+              const Icon = tool.icon;
+              return (
+                <button key={tool.id} onClick={() => router.push(tool.path)} title={tool.label}
+                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center ${sidebarCollapsed ? 'justify-center' : ''} ${
+                    isActive ? `${colors.bg} border ${colors.border}` : 'bg-white border border-gray-100 hover:bg-gray-50'
+                  }`}>
+                  <h3 className={`text-xs font-bold flex items-center ${isActive ? colors.text : 'text-gray-700'}`}>
+                    <Icon className={`w-3.5 h-3.5 ${sidebarCollapsed ? '' : 'mr-2'} ${isActive ? colors.icon : 'text-gray-400'}`} />
+                    {!sidebarCollapsed && tool.label}
+                  </h3>
+                </button>
+              );
+            })}
+
+            {/* History entry */}
+            <div className={`pt-3 mt-1 border-t border-gray-100 ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
+              <button onClick={() => router.push('/toolbox/history')} title="History"
+                className={`text-left p-2.5 rounded-xl transition-all flex items-center justify-between ${sidebarCollapsed ? 'w-auto justify-center' : 'w-full'} ${
+                  isHistory ? 'bg-gray-900 text-white' : 'bg-white border border-gray-100 text-gray-700 hover:bg-gray-50'
                 }`}>
-                <h3 className={`text-xs font-bold flex items-center ${isActive ? colors.text : 'text-gray-700'}`}>
-                  <Icon className={`w-3.5 h-3.5 mr-2 ${isActive ? colors.icon : 'text-gray-400'}`} />
-                  {tool.label}
-                </h3>
+                <span className={`text-xs font-bold flex items-center ${sidebarCollapsed ? '' : 'gap-2'}`}>
+                  <History className="w-3.5 h-3.5" /> {!sidebarCollapsed && 'History'}
+                </span>
+                {!sidebarCollapsed && <ChevronRight className="w-3 h-3 opacity-50" />}
               </button>
-            );
-          })}
+            </div>
 
-          {/* History entry */}
-          <div className="pt-3 mt-1 border-t border-gray-100">
-            <button onClick={() => router.push('/toolbox/history')}
-              className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between ${
-                isHistory ? 'bg-gray-900 text-white' : 'bg-white border border-gray-100 text-gray-700 hover:bg-gray-50'
-              }`}>
-              <span className="text-xs font-bold flex items-center gap-2">
-                <History className="w-3.5 h-3.5" /> History
-              </span>
-              <ChevronRight className="w-3 h-3 opacity-50" />
-            </button>
-          </div>
-
-          {/* Recent generations */}
-          {recentAssets.length > 0 && (
-            <div className="pt-3 mt-1 border-t border-gray-100">
+            {/* Recent generations */}
+            {!sidebarCollapsed && recentAssets.length > 0 && (
+              <div className="pt-3 mt-1 border-t border-gray-100">
               <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Recent
               </h2>
@@ -118,11 +132,18 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50/50 relative">
+        <button 
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
+          className="absolute top-4 left-4 z-50 p-1.5 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 md:hidden"
+        >
+          <ChevronRight className={`w-4 h-4 transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
+        </button>
         <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Spin /></div>}>
           {children}
         </Suspense>
       </div>
     </div>
+    </ToolboxContext.Provider>
   );
 }
