@@ -6,19 +6,19 @@ import { FileText, Briefcase, Presentation, Globe, Clock, Search, Eye, X, Extern
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; toolPath: string; useModal: boolean }> = {
   PROPOSAL: { label: 'Proposal',  icon: Briefcase,    color: 'text-blue-600',   bg: 'bg-blue-50',   toolPath: '/toolbox/proposal', useModal: true },
-  LEGAL:    { label: '法律文书',   icon: FileText,     color: 'text-violet-600', bg: 'bg-violet-50', toolPath: '/toolbox/legal',    useModal: true },
+  LEGAL:    { label: 'Legal',     icon: FileText,     color: 'text-violet-600', bg: 'bg-violet-50', toolPath: '/toolbox/legal',    useModal: true },
   PPT:      { label: 'PPT',       icon: Presentation, color: 'text-indigo-600', bg: 'bg-indigo-50', toolPath: '/toolbox/ppt',      useModal: false },
-  WEB:      { label: '宣传页',    icon: Globe,        color: 'text-teal-600',   bg: 'bg-teal-50',   toolPath: '/toolbox/webpage',  useModal: false },
+  WEB:      { label: 'Web Page',  icon: Globe,        color: 'text-teal-600',   bg: 'bg-teal-50',   toolPath: '/toolbox/webpage',  useModal: false },
 };
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '刚刚';
-  if (m < 60) return `${m} 分钟前`;
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m} min ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} 小时前`;
-  return `${Math.floor(h / 24)} 天前`;
+  if (h < 24) return `${h} hr ago`;
+  return `${Math.floor(h / 24)} day(s) ago`;
 }
 
 export default function HistoryPage() {
@@ -56,32 +56,32 @@ export default function HistoryPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-gray-900">工具历史</h1>
-        <p className="text-sm text-gray-400 mt-1">所有通过工具生成的文档、提案和演示文稿</p>
+        <h1 className="text-2xl font-black text-gray-900">Tool History</h1>
+        <p className="text-sm text-gray-400 mt-1">All documents, proposals and presentations generated via tools</p>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜索标题..." className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 bg-white" />
+            placeholder="Search title..." className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 bg-white" />
         </div>
         <div className="flex gap-2 flex-wrap">
           {['ALL', 'PROPOSAL', 'LEGAL', 'PPT', 'WEB'].map(t => (
             <button key={t} onClick={() => setFilterType(t)}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterType === t ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              {t === 'ALL' ? '全部' : TYPE_CONFIG[t]?.label || t}
+              {t === 'ALL' ? 'All' : TYPE_CONFIG[t]?.label || t}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400">加载中...</div>
+        <div className="text-center py-20 text-gray-400">Loading...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <div className="text-4xl mb-3">📂</div>
-          <div className="text-gray-400 text-sm">{search ? '没有匹配的记录' : '还没有生成历史，去使用工具生成第一份文档吧！'}</div>
+          <div className="text-gray-400 text-sm">{search ? 'No matching records' : 'No history yet. Go use a tool to generate your first document!'}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -102,7 +102,7 @@ export default function HistoryPage() {
                 </div>
                 <h3 className="font-bold text-sm text-gray-900 mb-1 line-clamp-2">{asset.title}</h3>
                 {preview_text && <p className="text-[11px] text-gray-400 line-clamp-2 mb-3">{preview_text}…</p>}
-                {!preview_text && isNavigate && <p className="text-[11px] text-gray-400 line-clamp-2 mb-3">点击在编辑器中打开</p>}
+                {!preview_text && isNavigate && <p className="text-[11px] text-gray-400 line-clamp-2 mb-3">Click to open in editor</p>}
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-50">
                   <div className="flex items-center gap-1 text-[10px] text-gray-400">
                     <Clock className="w-3 h-3" />
@@ -111,7 +111,7 @@ export default function HistoryPage() {
                   <button onClick={() => handleView(asset)}
                     className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors">
                     {isNavigate ? <ExternalLink className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {isNavigate ? '打开编辑器' : '查看'}
+                    {isNavigate ? 'Open Editor' : 'View'}
                   </button>
                 </div>
               </div>
@@ -131,7 +131,7 @@ export default function HistoryPage() {
               <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
                 <div>
                   <h2 className="font-black text-gray-900">{preview.title}</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{cfg.label} · {new Date(preview.createdAt).toLocaleString('zh-CN')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{cfg.label} · {new Date(preview.createdAt).toLocaleString('en-GB')}</p>
                 </div>
                 <button onClick={() => setPreview(null)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
                   <X className="w-4 h-4 text-gray-600" />

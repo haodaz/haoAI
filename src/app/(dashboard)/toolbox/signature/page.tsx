@@ -54,9 +54,9 @@ export default function SignaturePage() {
         body: JSON.stringify({ html: emailHtml }),
       });
       if (res.ok) {
-        alert('全局邮件签名保存成功！');
+        alert('Global email signature saved successfully!');
       } else {
-        alert('保存失败');
+        alert('Save failed');
       }
     } catch (err) {
       alert('Network error');
@@ -68,12 +68,12 @@ export default function SignaturePage() {
     <div className="max-w-6xl mx-auto p-8 pb-20 flex flex-col md:flex-row gap-8 h-full">
       <div className="w-full md:w-[40%] space-y-5 flex-shrink-0">
         <div className="mb-4">
-          <h1 className="text-2xl font-black text-gray-900">邮件签名编辑器</h1>
-          <p className="text-sm text-gray-400 mt-1">定制全局发信 HTML 签名</p>
+          <h1 className="text-2xl font-black text-gray-900">Email Signature Editor</h1>
+          <p className="text-sm text-gray-400 mt-1">Customise global outbound HTML signature</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4 shadow-sm h-full overflow-y-auto max-h-[70vh]">
           <div>
-            <label className="text-xs font-bold text-gray-500 mb-1 block">Logo 图片</label>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Logo Image</label>
             <input value={sigForm.logoUrl} onChange={e => setSigForm({ ...sigForm, logoUrl: e.target.value })} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400 bg-gray-50 text-gray-500" readOnly />
           </div>
           <div>
@@ -81,22 +81,22 @@ export default function SignaturePage() {
             <input value={sigForm.slogan} onChange={e => setSigForm({ ...sigForm, slogan: e.target.value })} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 mb-1 block">邮箱</label>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Email</label>
             <input value={sigForm.email} onChange={e => setSigForm({ ...sigForm, email: e.target.value })} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 mb-1 block">联系电话</label>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Phone</label>
             <input value={sigForm.phone} onChange={e => setSigForm({ ...sigForm, phone: e.target.value })} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 mb-1 block">地址</label>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Address</label>
             <input value={sigForm.address} onChange={e => setSigForm({ ...sigForm, address: e.target.value })} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-orange-400" />
           </div>
 
           <div className="pt-4 border-t border-gray-100">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-xs font-bold text-gray-500">社交媒体链接</label>
-              <button onClick={() => setSigForm({ ...sigForm, socials: [...sigForm.socials, { type: 'linkedin', url: '' }] })} className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded hover:bg-orange-100">+ 添加一条</button>
+              <label className="text-xs font-bold text-gray-500">Social Media Links</label>
+              <button onClick={() => setSigForm({ ...sigForm, socials: [...sigForm.socials, { type: 'linkedin', url: '' }] })} className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded hover:bg-orange-100">+ Add Link</button>
             </div>
             {sigForm.socials.map((s, idx) => (
               <div key={idx} className="flex gap-2 mb-2 items-center">
@@ -106,25 +106,25 @@ export default function SignaturePage() {
                   <option value="x">X / Twitter</option>
                   <option value="facebook">Facebook</option>
                   <option value="youtube">YouTube</option>
-                  <option value="xiaohongshu">小红书</option>
+                  <option value="xiaohongshu">Xiaohongshu</option>
                 </select>
-                <input value={s.url} onChange={e => { const ns = [...sigForm.socials]; ns[idx].url = e.target.value; setSigForm({ ...sigForm, socials: ns }); }} placeholder="链接地址..." className="flex-1 border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-orange-400" />
+                <input value={s.url} onChange={e => { const ns = [...sigForm.socials]; ns[idx].url = e.target.value; setSigForm({ ...sigForm, socials: ns }); }} placeholder="Link URL..." className="flex-1 border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-orange-400" />
                 <button onClick={() => { const ns = [...sigForm.socials]; ns.splice(idx, 1); setSigForm({ ...sigForm, socials: ns }); }} className="text-gray-300 hover:text-red-500 shrink-0"><XCircle className="w-4 h-4" /></button>
               </div>
             ))}
-            {sigForm.socials.length === 0 && <p className="text-[10px] text-gray-400 text-center py-2">暂无社媒链接，点击右上角添加</p>}
+            {sigForm.socials.length === 0 && <p className="text-[10px] text-gray-400 text-center py-2">No social links yet. Click above to add one.</p>}
           </div>
 
           <button onClick={handleSaveSignature} disabled={sigSaving} className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-            {sigSaving ? <Spin size="small" /> : <Save className="w-4 h-4" />} 保存为全局系统签名
+            {sigSaving ? <Spin size="small" /> : <Save className="w-4 h-4" />} Save as Global Signature
           </button>
-          <p className="text-[10px] text-gray-400 text-center mt-2">保存后，Grace及CRM都会自动读取此签名发信</p>
+          <p className="text-[10px] text-gray-400 text-center mt-2">Once saved, Grace and CRM will automatically use this signature for outbound emails</p>
         </div>
       </div>
 
       <div className="w-full md:w-[60%] flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-black text-gray-800">HTML 效果预览</h2>
+          <h2 className="text-sm font-black text-gray-800">HTML Preview</h2>
         </div>
         <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-inner p-8 overflow-y-auto max-h-[75vh]">
           <div className="mb-8">

@@ -6,15 +6,15 @@ import { marked } from 'marked';
 import { FileText, Database, X, CheckCircle, Clock, Scale, Send, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 
-const DOC_TYPES = ['NDA', 'MOU', '服务协议', '合作合同', '劳动合同'];
-const STYLES = ['标准英式', '中英双语', '简约版'];
+const DOC_TYPES = ['NDA', 'MOU', 'Service Agreement', 'Partnership Contract', 'Employment Contract'];
+const STYLES = ['Standard British', 'Bilingual (EN/CN)', 'Plain Language'];
 
 const DOC_TYPE_DESCRIPTIONS: Record<string, string> = {
-  NDA: '保密协议 — 规范双方保密义务与违约责任',
-  MOU: '谅解备忘录 — 非约束性合作框架',
-  '服务协议': '服务协议 — 明确服务范围、费用与交付',
-  '合作合同': '合作合同 — 利润分配、退出与决策机制',
-  '劳动合同': '劳动合同 — 职责、薪酬与竞业限制',
+  NDA: 'Non-Disclosure Agreement — Governs mutual confidentiality obligations and breach remedies',
+  MOU: 'Memorandum of Understanding — Non-binding cooperation framework',
+  'Service Agreement': 'Service Agreement — Defines service scope, fees and delivery terms',
+  'Partnership Contract': 'Partnership Contract — Profit sharing, exit provisions and governance',
+  'Employment Contract': 'Employment Contract — Role, compensation and restrictive covenants',
 };
 
 export default function LegalPage() {
@@ -25,7 +25,7 @@ export default function LegalPage() {
 
   const [form, setForm] = useState({
     docType: 'NDA', partyA: '', partyB: '',
-    keyTerms: '', background: '', templateStyle: '标准英式',
+    keyTerms: '', background: '', templateStyle: 'Standard British',
     kbFiles: [] as KbFile[]
   });
   const [result, setResult] = useState('');
@@ -47,8 +47,8 @@ export default function LegalPage() {
         const payload = JSON.parse(asset.payload);
         if (payload.content) {
           setResult(payload.content);
-          if (payload.docType) setForm(prev => ({ ...prev, docType: payload.docType, partyA: payload.partyA || '', partyB: payload.partyB || '', templateStyle: payload.templateStyle || '标准英式' }));
-          setCopilotHistory([{ role: 'bot', content: `✅ 已加载 ${payload.docType || '法律文书'} Draft 1！可以在左侧 Copilot 输入修改指令进行精修。` }]);
+          if (payload.docType) setForm(prev => ({ ...prev, docType: payload.docType, partyA: payload.partyA || '', partyB: payload.partyB || '', templateStyle: payload.templateStyle || 'Standard British' }));
+          setCopilotHistory([{ role: 'bot', content: `✅ Loaded ${payload.docType || 'Legal Document'} Draft 1! You can enter edit instructions in the Copilot panel.` }]);
         }
       })
       .catch(console.error);
@@ -69,7 +69,7 @@ export default function LegalPage() {
           partyB: p.partyB || '',
           keyTerms: p.keyTerms || '',
           background: '',
-          templateStyle: p.templateStyle || '标准英式',
+          templateStyle: p.templateStyle || 'Standard British',
           kbFiles: [] as KbFile[],
         };
         setForm(filled);
@@ -100,7 +100,7 @@ export default function LegalPage() {
           }
         }
         setLoading(false);
-        setCopilotHistory([{ role: 'bot', content: `✅ 文书草案 (Draft 1) 已生成！现在可以在左侧 Copilot 输入修改指令。` }]);
+        setCopilotHistory([{ role: 'bot', content: `✅ Legal document (Draft 1) generated! You can enter edit instructions in the Copilot panel.` }]);
       })
       .catch(console.error);
   }, [jobId]);
@@ -131,14 +131,14 @@ export default function LegalPage() {
               const data = JSON.parse(line.substring(6));
               if (data.type === 'log') setLogs(p => [...p, data.data]);
               else if (data.type === 'ai_chunk') { text += data.data; setResult(text); }
-              else if (data.type === 'error') alert(`错误: ${data.data.message}`);
+              else if (data.type === 'error') alert(`Error: ${data.data.message}`);
             } catch { /* ignore */ }
           }
         }
       }
     } catch { alert('Network error'); }
     setLoading(false);
-    setCopilotHistory([{ role: 'bot', content: `✅ 文书草案 (Draft 1) 已生成完毕！\n\n你可以在下方 Copilot 输入修改指令，例如：\n- "将甲方名称改为 ABC 公司"\n- "把有效期改为5年"\n- "增加一条关于数据隐私的条款"` }]);
+    setCopilotHistory([{ role: 'bot', content: `✅ Legal document (Draft 1) complete!\n\nYou can enter edit instructions in the Copilot below, e.g.:\n- "Change Party A name to ABC Ltd"\n- "Set the term to 5 years"\n- "Add a data privacy clause"` }]);
   };
 
   const handleCopilot = async () => {
@@ -174,8 +174,8 @@ export default function LegalPage() {
           }
         }
       }
-      setCopilotHistory(p => [...p, { role: 'bot', content: reply || '\u2705 文书已根据指令更新。' }]);
-    } catch { setCopilotHistory(p => [...p, { role: 'bot', content: '❌ 网络错误，请重试。' }]); }
+      setCopilotHistory(p => [...p, { role: 'bot', content: reply || '✅ Document updated.' }]);
+    } catch { setCopilotHistory(p => [...p, { role: 'bot', content: '❌ Network error, please try again.' }]); }
     setCopilotLoading(false);
   };
 
@@ -186,18 +186,18 @@ export default function LegalPage() {
           <div>
             <h2 className="text-lg font-black text-gray-900">
               <Scale className="w-5 h-5 inline mr-2 text-violet-500 mb-0.5" />
-              {form.docType} — 生成中
+              {form.docType} — Generating
             </h2>
-            <p className="text-xs text-gray-400">甲方: {form.partyA} | 乙方: {form.partyB || '未指定'} | 风格: {form.templateStyle}</p>
+            <p className="text-xs text-gray-400">Party A: {form.partyA} | Party B: {form.partyB || 'TBC'} | Style: {form.templateStyle}</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => { setResult(''); setLogs([]); }} disabled={loading}
               className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 disabled:opacity-50">
-              重新生成
+              Regenerate
             </button>
-            <button onClick={() => { navigator.clipboard.writeText(result); alert('已复制到剪贴板'); }}
+            <button onClick={() => { navigator.clipboard.writeText(result); alert('Copied to clipboard'); }}
               className="px-5 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-violet-700 shadow-md">
-              <FileText className="w-3.5 h-3.5" /> 复制全文
+              <FileText className="w-3.5 h-3.5" /> Copy Full Text
             </button>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function LegalPage() {
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col h-[calc(100vh-130px)]">
                 <div className="flex items-center gap-2 p-4 border-b border-gray-50">
                   <MessageSquare className="w-4 h-4 text-violet-500" />
-                  <h3 className="text-sm font-bold text-gray-800">Copilot 精修</h3>
+                  <h3 className="text-sm font-bold text-gray-800">Copilot Refinement</h3>
                   <span className="ml-auto text-[9px] bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded font-bold">Draft 1 ✓</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -235,7 +235,7 @@ export default function LegalPage() {
                       value={copilotInput}
                       onChange={e => setCopilotInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleCopilot()}
-                      placeholder="修改指令..."
+                      placeholder="Edit instruction..."
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-violet-400"
                     />
                     <button onClick={handleCopilot} disabled={copilotLoading || !copilotInput.trim()}
@@ -250,7 +250,7 @@ export default function LegalPage() {
               <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-0">
                 <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
                   <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-                  <h3 className="text-sm font-bold text-gray-800">SSE 执行管线</h3>
+                  <h3 className="text-sm font-bold text-gray-800">SSE Pipeline</h3>
                 </div>
               <div className="space-y-4">
                 {logs.map((log, idx) => (
@@ -268,14 +268,14 @@ export default function LegalPage() {
                 ))}
                 {loading && (
                   <div className="flex items-center gap-2 text-xs text-violet-500 font-medium pt-2">
-                    <Spin size="small" /> 正在拼装文书...
+                    <Spin size="small" /> Assembling document...
                   </div>
                 )}
               </div>
               {/* Hardcoded badge */}
               <div className="mt-5 pt-4 border-t border-gray-50">
                 <div className="text-[10px] text-gray-400 leading-relaxed">
-                  🔒 管辖法律、保密义务、违约救济等标准条款已<strong>硬编码植入</strong>，不经过 AI 生成。
+                  🔒 Governing law, confidentiality, breach remedies and other standard clauses are <strong>hardcoded</strong> and not AI-generated.
                 </div>
               </div>
             </div>
@@ -289,7 +289,7 @@ export default function LegalPage() {
                 <div className="prose prose-sm max-w-none text-gray-800"
                   dangerouslySetInnerHTML={{ __html: marked(result) as string }} />
               ) : (
-                <div className="text-sm text-gray-400 text-center mt-20">等待文书数据流入...</div>
+                <div className="text-sm text-gray-400 text-center mt-20">Awaiting document stream...</div>
               )}
             </div>
           </div>
@@ -305,16 +305,16 @@ export default function LegalPage() {
           <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
             <Scale className="w-5 h-5 text-violet-600" />
           </div>
-          <h1 className="text-2xl font-black text-gray-900">法律文书生成器</h1>
+          <h1 className="text-2xl font-black text-gray-900">Legal Document Generator</h1>
         </div>
-        <p className="text-sm text-gray-400 ml-12">AI 生成主体条款 + 管辖法律等保护性条款由系统硬编码注入，确保合规准确</p>
+        <p className="text-sm text-gray-400 ml-12">AI generates core business clauses + Governing law and other protective clauses are hardcoded from approved templates</p>
       </div>
 
       <div className="space-y-5">
         {/* Doc Type */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">文书类型</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Document Type</h3>
           </div>
           <div className="p-5 space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -336,24 +336,24 @@ export default function LegalPage() {
         {/* Parties */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">各方信息</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Parties</h3>
           </div>
           <div className="p-5 space-y-3">
             <input value={form.partyA} onChange={e => setForm({ ...form, partyA: e.target.value })}
-              placeholder="甲方 (Party A) *" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-50" />
+              placeholder="Party A *" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-50" />
             <input value={form.partyB} onChange={e => setForm({ ...form, partyB: e.target.value })}
-              placeholder="乙方 (Party B)" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-50" />
+              placeholder="Party B" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-50" />
           </div>
         </div>
 
         {/* Key Terms */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">核心条款</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Key Terms</h3>
           </div>
           <div className="p-5">
             <textarea value={form.keyTerms} onChange={e => setForm({ ...form, keyTerms: e.target.value })}
-              placeholder="核心业务条款（如：分成比例6:4、有效期3年、违约金10万、服务费3000英镑/月）" rows={4}
+              placeholder="Key business terms (e.g. 60:40 revenue split, 3-year term, £3,000/month service fee)" rows={4}
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
           </div>
         </div>
@@ -361,7 +361,7 @@ export default function LegalPage() {
         {/* Style */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">模板风格</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Template Style</h3>
           </div>
           <div className="p-5">
             <div className="flex gap-2">
@@ -378,10 +378,10 @@ export default function LegalPage() {
         {/* Background */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">背景资料（可选）</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Background (Optional)</h3>
             <button onClick={() => setKbSelectorOpen(true)}
               className="text-[11px] font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded hover:bg-violet-100 flex items-center gap-1">
-              <Database className="w-3 h-3" /> 从知识库选择
+              <Database className="w-3 h-3" /> Select from KB
             </button>
           </div>
           <div className="p-5">
@@ -396,7 +396,7 @@ export default function LegalPage() {
               </div>
             )}
             <textarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })}
-              placeholder="补充商业背景、谈判要点、历史沟通记录等" rows={4}
+              placeholder="Supplementary business context, negotiation points, historical correspondence..." rows={4}
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
           </div>
         </div>
@@ -404,7 +404,7 @@ export default function LegalPage() {
         <div className="flex justify-center pt-4">
           <button onClick={handleGenerate} disabled={!form.partyA || loading}
             className="px-10 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold rounded-full shadow-lg shadow-violet-500/20 hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2">
-            {loading ? <><Spin size="small" /> 正在分步生成...</> : <><Scale className="w-4 h-4" /> 生成文书</>}
+            {loading ? <><Spin size="small" /> Generating step by step...</> : <><Scale className="w-4 h-4" /> Generate Document</>}
           </button>
         </div>
       </div>

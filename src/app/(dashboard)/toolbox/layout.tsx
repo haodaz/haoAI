@@ -5,11 +5,11 @@ import { Spin } from 'antd';
 import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight } from 'lucide-react';
 
 const TOOLS = [
-  { id: 'ppt', path: '/toolbox/ppt', label: 'PPT 生成器', desc: '物理渲染出可下载 .pptx 文件', icon: Presentation, color: 'indigo' },
-  { id: 'proposal', path: '/toolbox/proposal', label: 'Proposal 写作', desc: '定制化业务提案与合同草案', icon: Briefcase, color: 'blue' },
-  { id: 'legal', path: '/toolbox/legal', label: '法律文书生成器', desc: 'NDA / MOU / 合同草案', icon: FileText, color: 'violet' },
-  { id: 'webpage', path: '/toolbox/webpage', label: '宣传页生成器', desc: 'Tailwind 响应式落地页设计', icon: Globe, color: 'teal' },
-  { id: 'signature', path: '/toolbox/signature', label: '邮件签名编辑器', desc: '全局发信 HTML 签名可视化', icon: Mail, color: 'orange' },
+  { id: 'ppt', path: '/toolbox/ppt', label: 'PPT Generator', desc: 'Render downloadable .pptx files', icon: Presentation, color: 'indigo' },
+  { id: 'proposal', path: '/toolbox/proposal', label: 'Proposal Writer', desc: 'Custom business proposals & contracts', icon: Briefcase, color: 'blue' },
+  { id: 'legal', path: '/toolbox/legal', label: 'Legal Docs', desc: 'NDA / MOU / Service Agreements', icon: FileText, color: 'violet' },
+  { id: 'webpage', path: '/toolbox/webpage', label: 'Landing Page', desc: 'Tailwind responsive page design', icon: Globe, color: 'teal' },
+  { id: 'signature', path: '/toolbox/signature', label: 'Email Signature', desc: 'Global HTML signature editor', icon: Mail, color: 'orange' },
 ];
 
 const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon: string }> = {
@@ -30,7 +30,7 @@ const TYPE_ICON: Record<string, { icon: any; color: string }> = {
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '刚刚';
+  if (m < 1) return 'Just now';
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
@@ -58,7 +58,7 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
       <div className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden">
         <div className="p-4 space-y-1.5 flex-1 overflow-y-auto">
           {/* Tools section */}
-          <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">生成工具</h2>
+          <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Tools</h2>
           {TOOLS.map(tool => {
             const isActive = activeTool === tool.id;
             const colors = COLOR_MAP[tool.color];
@@ -83,7 +83,7 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
                 isHistory ? 'bg-gray-900 text-white' : 'bg-white border border-gray-100 text-gray-700 hover:bg-gray-50'
               }`}>
               <span className="text-xs font-bold flex items-center gap-2">
-                <History className="w-3.5 h-3.5" /> 工具历史
+                <History className="w-3.5 h-3.5" /> History
               </span>
               <ChevronRight className="w-3 h-3 opacity-50" />
             </button>
@@ -93,7 +93,7 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
           {recentAssets.length > 0 && (
             <div className="pt-3 mt-1 border-t border-gray-100">
               <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 最近生成
+                <Clock className="w-3 h-3" /> Recent
               </h2>
               <div className="space-y-1">
                 {recentAssets.map(asset => {
