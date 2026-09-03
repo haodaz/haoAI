@@ -5,8 +5,8 @@ import { marked } from 'marked';
 import { FileText, Briefcase, Presentation, Globe, Clock, Search, Eye, X, ExternalLink } from 'lucide-react';
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; toolPath: string; useModal: boolean }> = {
-  PROPOSAL: { label: 'Proposal',  icon: Briefcase,    color: 'text-blue-600',   bg: 'bg-blue-50',   toolPath: '/toolbox/proposal', useModal: true },
-  LEGAL:    { label: 'Legal',     icon: FileText,     color: 'text-violet-600', bg: 'bg-violet-50', toolPath: '/toolbox/legal',    useModal: true },
+  PROPOSAL: { label: 'Proposal',  icon: Briefcase,    color: 'text-blue-600',   bg: 'bg-blue-50',   toolPath: '/toolbox/proposal', useModal: false },
+  LEGAL:    { label: 'Legal',     icon: FileText,     color: 'text-violet-600', bg: 'bg-violet-50', toolPath: '/toolbox/legal',    useModal: false },
   PPT:      { label: 'PPT',       icon: Presentation, color: 'text-indigo-600', bg: 'bg-indigo-50', toolPath: '/toolbox/ppt',      useModal: false },
   WEB:      { label: 'Web Page',  icon: Globe,        color: 'text-teal-600',   bg: 'bg-teal-50',   toolPath: '/toolbox/webpage',  useModal: false },
 };

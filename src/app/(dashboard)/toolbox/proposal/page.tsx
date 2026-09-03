@@ -286,12 +286,15 @@ export default function ProposalPage() {
 
 
           {/* Markdown Result */}
-          <div className="flex-1">
-            <div className="bg-white rounded-xl border border-gray-100 p-10 shadow-sm min-h-full">
+          <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex justify-center py-10 px-4">
+            <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm">
               {proposalResult ? (
-                <div className="prose prose-sm max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: marked(proposalResult) as string }} />
+                <div className="prose prose-slate max-w-none text-gray-800 prose-headings:font-black prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-li:my-1" dangerouslySetInnerHTML={{ __html: marked(proposalResult) as string }} />
               ) : (
-                <div className="text-sm text-gray-400 text-center mt-20">Awaiting generation stream...</div>
+                <div className="text-sm text-gray-400 flex flex-col items-center justify-center h-full min-h-[500px]">
+                  <div className="animate-pulse w-16 h-16 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-2xl">📄</div>
+                  Awaiting generation stream...
+                </div>
               )}
             </div>
           </div>
