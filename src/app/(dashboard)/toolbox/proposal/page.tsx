@@ -264,9 +264,9 @@ export default function ProposalPage() {
                 </div>
                 <div className="p-3 border-t bg-white">
                   <div className="relative">
-                    <textarea value={copilotInput} onChange={e => setCopilotInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilotSend()}
+                    <textarea value={copilotInput} onChange={e => setCopilotInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilot()}
                       placeholder="Enter edit instruction..." rows={3} className="w-full p-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20" />
-                    <button onClick={handleCopilotSend} className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button onClick={handleCopilot} className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
