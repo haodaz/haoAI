@@ -68,6 +68,13 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   // Use the workspace context for the global Document Editor modal
   const { copilotView, setCopilotView } = useWorkspace();
 
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    if (activeTab === 'toolbox') {
+      setDesktopSidebarCollapsed(true);
+    }
+  }, [activeTab]);
+
   return (
     <div className="flex h-screen bg-[#f8f9fc] font-sans relative overflow-hidden">
       {/* Aurora gradient blobs */}
@@ -94,16 +101,18 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       
       {/* 左侧导航栏 */}
       <div className={`
-        w-64 bg-white text-gray-700 flex flex-col border-r border-gray-200/80 z-30 shadow-sm
+        bg-white text-gray-700 flex flex-col border-r border-gray-200/80 z-30 shadow-sm
         fixed md:relative inset-y-0 left-0
-        transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        transition-all duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${!sidebarOpen && desktopSidebarCollapsed ? 'md:w-16' : 'md:w-64'}
         pt-14 md:pt-0
       `}>
-        <div className="p-5 pb-3 border-b border-gray-200/80 hidden md:block">
-          <div className="flex items-center">
-            <img src="/logo_transparent.png" alt="BEP Logo" className="h-10 w-auto object-contain" />
-          </div>
+        <div className={`p-5 pb-3 border-b border-gray-200/80 hidden md:flex items-center ${desktopSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+          {!desktopSidebarCollapsed && <img src="/logo_transparent.png" alt="BEP Logo" className="h-10 w-auto object-contain" />}
+          <button onClick={() => setDesktopSidebarCollapsed(!desktopSidebarCollapsed)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
+             <Menu className="w-5 h-5" />
+          </button>
         </div>
 
         <nav className="flex-1 py-5 px-3 space-y-1 overflow-y-auto">
@@ -112,14 +121,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/new-task"
               onClick={() => setSidebarOpen(false)}
-              className={`w-full flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 mb-3 ${
+              title={desktopSidebarCollapsed ? t('bristh.nav.new_task') : undefined}
+              className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center py-3' : 'justify-center px-4 py-3'} rounded-xl transition-all duration-200 mb-3 ${
                 activeTab === 'new-task'
                   ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30'
                   : 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02] hover:bg-emerald-700'
               }`}
             >
-              <PlusCircle className="w-[18px] h-[18px] mr-2" />
-              <span className="text-[13px]">{t('bristh.nav.new_task', '发布新任务')}</span>
+              <PlusCircle className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-2'}`} />
+              {!desktopSidebarCollapsed && <span className="text-[13px]">{t('bristh.nav.new_task', '发布新任务')}</span>}
             </Link>
           )}
 
@@ -145,19 +155,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 <div key={tab.id} className="w-full mb-1">
                   <button
                     onClick={() => setKbExpanded(!kbExpanded)}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                    title={desktopSidebarCollapsed ? tab.label : undefined}
+                    className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-4'} py-2.5 rounded-xl transition-all duration-200 ${
                       activeTab === tab.id
                         ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm border border-emerald-100/80'
                         : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                     }`}
                   >
                     <div className="flex items-center">
-                      <tab.icon className={`w-[18px] h-[18px] mr-3 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
-                      <span className="text-[13px] font-semibold">{tab.label}</span>
+                      <tab.icon className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
+                      {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${kbExpanded ? 'rotate-180' : ''}`} />
+                    {!desktopSidebarCollapsed && <ChevronDown className={`w-4 h-4 transition-transform ${kbExpanded ? 'rotate-180' : ''}`} />}
                   </button>
-                  {kbExpanded && (
+                  {kbExpanded && !desktopSidebarCollapsed && (
                     <div className="mt-1 pl-4 space-y-1">
                       {tab.children.map(child => {
                         const isActive = pathname.startsWith(child.path);
@@ -187,15 +198,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 key={tab.id}
                 href={tab.path}
                 onClick={() => setSidebarOpen(false)}
+                title={desktopSidebarCollapsed ? tab.label : undefined}
                 {...('target' in tab && tab.target === '_blank' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className={`w-full flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 mb-1 ${
+                className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'px-4'} py-2.5 rounded-xl transition-all duration-200 mb-1 ${
                   activeTab === tab.id 
                     ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm border border-emerald-100/80' 
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
-                <tab.icon className={`w-[18px] h-[18px] mr-3 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
-                <span className="text-[13px] font-semibold">{tab.label}</span>
+                <tab.icon className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
+                {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
               </Link>
             );
           })}
@@ -206,18 +218,23 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="relative">
             <button
               onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-left"
+              className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-left`}
+              title={desktopSidebarCollapsed ? currentModel?.name || 'Loading...' : undefined}
             >
               <div className="flex items-center min-w-0">
-                <Cpu className="w-3.5 h-3.5 mr-2 text-emerald-400 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-400 font-medium leading-none">{t('bristh.model.current')}</p>
-                  <p className="text-[11px] font-bold text-gray-700 truncate mt-0.5">{currentModel?.name || 'Loading...'}</p>
-                </div>
+                <Cpu className={`w-3.5 h-3.5 ${desktopSidebarCollapsed ? '' : 'mr-2'} text-emerald-400 shrink-0`} />
+                {!desktopSidebarCollapsed && (
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 font-medium leading-none">{t('bristh.model.current')}</p>
+                    <p className="text-[11px] font-bold text-gray-700 truncate mt-0.5">{currentModel?.name || 'Loading...'}</p>
+                  </div>
+                )}
               </div>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ml-2 ${PROVIDER_COLORS[currentModel?.provider || ''] || 'bg-gray-100 text-gray-500'}`}>
-                {currentModel?.provider || '...'}
-              </span>
+              {!desktopSidebarCollapsed && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ml-2 ${PROVIDER_COLORS[currentModel?.provider || ''] || 'bg-gray-100 text-gray-500'}`}>
+                  {currentModel?.provider || '...'}
+                </span>
+              )}
             </button>
 
             {/* Dropdown */}
@@ -256,7 +273,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* User Card */}
-          <div className="flex items-center px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-100 group">
+          <div className={`flex items-center ${desktopSidebarCollapsed ? 'justify-center p-2' : 'px-3 py-2.5'} bg-gray-50 rounded-xl border border-gray-100 group`}>
             <button
               onClick={() => {
                 fetch('/api/auth/profile').then(r => r.json()).then(d => {
@@ -269,37 +286,43 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 });
                 setShowProfile(true);
               }}
-              className="flex items-center flex-1 min-w-0 hover:opacity-80 transition-opacity"
+              title={desktopSidebarCollapsed ? (user?.displayName || user?.username || 'User') : undefined}
+              className={`flex items-center ${desktopSidebarCollapsed ? 'justify-center' : 'flex-1'} min-w-0 hover:opacity-80 transition-opacity`}
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] font-bold text-white mr-2.5 shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden">
+              <div className={`w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] font-bold text-white ${desktopSidebarCollapsed ? '' : 'mr-2.5'} shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden`}>
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
                 ) : (
                   <span>{(user?.displayName || user?.username || '?')[0].toUpperCase()}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-700 truncate">{user?.displayName || user?.username || 'User'}</p>
-                <p className="text-[10px] font-semibold text-gray-400">
-                  {user?.role === 'admin' ? 'Admin' : 'User'}
-                </p>
-              </div>
+              {!desktopSidebarCollapsed && (
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-gray-700 truncate">{user?.displayName || user?.username || 'User'}</p>
+                  <p className="text-[10px] font-semibold text-gray-400">
+                    {user?.role === 'admin' ? 'Admin' : 'User'}
+                  </p>
+                </div>
+              )}
             </button>
-            <button
-              onClick={logout}
-              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-all ml-1 shrink-0"
-              title="退出登录"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {!desktopSidebarCollapsed && (
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-all ml-1 shrink-0"
+                title="退出登录"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Language Toggle */}
           <button
             onClick={() => { const next = i18n.language === 'zh' ? 'en' : 'zh'; i18n.changeLanguage(next); localStorage.setItem('bristh_lang', next); }}
-            className="w-full flex items-center justify-center px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-xs font-bold text-gray-500"
+            className={`w-full flex items-center justify-center ${desktopSidebarCollapsed ? 'px-0 py-2.5' : 'px-3 py-2'} bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-xs font-bold text-gray-500`}
+            title={desktopSidebarCollapsed ? t('bristh.lang.toggle') : undefined}
           >
-            🌐 {t('bristh.lang.toggle')}
+            {desktopSidebarCollapsed ? '🌐' : `🌐 ${t('bristh.lang.toggle')}`}
           </button>
         </div>
       </div>

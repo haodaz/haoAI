@@ -29,10 +29,6 @@ function WebpageView() {
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
 
   useEffect(() => {
-    setSidebarCollapsed(!!webResult || webLoading);
-  }, [webResult, webLoading, setSidebarCollapsed]);
-
-  useEffect(() => {
     if (assetId) {
       fetch(`/api/toolbox/assets?id=${assetId}`)
         .then(r => r.json())

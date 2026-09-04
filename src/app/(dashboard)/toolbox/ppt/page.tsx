@@ -40,10 +40,6 @@ function PptView() {
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
 
   useEffect(() => {
-    if (pptResult || pptLoading) setSidebarCollapsed(true);
-  }, [pptResult, pptLoading, setSidebarCollapsed]);
-
-  useEffect(() => {
     if (initialPpt && setPendingPptData) setPendingPptData(null);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

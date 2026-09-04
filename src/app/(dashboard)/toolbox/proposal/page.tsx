@@ -39,10 +39,6 @@ export default function ProposalPage() {
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
 
-  useEffect(() => {
-    if (proposalResult || loading) setSidebarCollapsed(true);
-  }, [proposalResult, loading, setSidebarCollapsed]);
-
   // Mode A: assetId — load existing generated content, skip re-generation
   useEffect(() => {
     if (!assetId || autoStartedRef.current) return;

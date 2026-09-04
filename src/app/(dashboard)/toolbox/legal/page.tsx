@@ -44,10 +44,6 @@ export default function LegalPage() {
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
 
-  useEffect(() => {
-    if (result || loading) setSidebarCollapsed(true);
-  }, [result, loading, setSidebarCollapsed]);
-
   // Mode A: assetId — load existing generated content into Copilot
   useEffect(() => {
     if (!assetId || autoStartedRef.current) return;
