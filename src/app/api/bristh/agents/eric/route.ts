@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 import { generateLegal } from '@/lib/toolbox-generators';
 
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
 
     // ── Step 2: Lightweight param extraction ──
     const { client, config } = await getModelClient();
+    const tracker = new TokenTracker();
     const extractionPrompt = `Extract legal document parameters from this request. Return ONLY valid JSON.
 
 User instruction: "${task.instruction}"
@@ -63,7 +65,8 @@ Output format:
   "templateStyle": "标准英式 | 中英双语 | 简约版"
 }`;
 
-    const extractRes = await client.chat.completions.create(
+    const extractRes = await trackableCompletion(
+      tracker, 'eric_param_extraction', client, config,
       buildCompletionParams(config, [{ role: 'user', content: extractionPrompt }], { requireJson: true })
     );
 
@@ -118,6 +121,8 @@ Output format:
     });
 
     recordTaskCompletion('eric', taskId, task.instruction, summary).catch(() => {});
+
+    await tracker.persist('agent', 'eric', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

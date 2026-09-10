@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import PptxGenJS from 'pptxgenjs';
 import path from 'path';
@@ -97,7 +98,9 @@ Use the Slide[] element-level format. Each slide has backgroundColor and element
     }
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'copilot_refine', client, config,
       buildCompletionParams(config, [
         { role: 'system', content: systemPrompt },
         ...history.map((h: any) => ({ role: h.role, content: h.content }))
@@ -177,6 +180,8 @@ Use the Slide[] element-level format. Each slide has backgroundColor and element
         copilotHistory: JSON.stringify(history)
       }
     });
+
+    await tracker.persist('copilot', task.agent.toLowerCase(), taskId, task.contextId).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask, reply: result.reply });
   } catch (error: any) {

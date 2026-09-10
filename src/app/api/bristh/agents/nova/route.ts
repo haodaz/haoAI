@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt, getTaskAttachments } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 import { runPolicySearchStream } from '@/lib/tools/findPolicies';
@@ -67,7 +68,9 @@ export async function POST(req: Request) {
       + '\n\n请基于以上检索数据，生成结构化的政策分析报告（Markdown格式）。包含：政策清单、适用条件分析、申报建议、对比总结。';
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'nova_main', client, config,
       buildCompletionParams(config, [{ role: 'system', content: systemPrompt }])
     );
 
@@ -90,6 +93,8 @@ export async function POST(req: Request) {
     });
 
     recordTaskCompletion('nova', taskId, task.instruction, resultMarkdown.slice(0, 200)).catch(() => {});
+
+    await tracker.persist('agent', 'nova', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

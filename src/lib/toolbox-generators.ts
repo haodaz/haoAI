@@ -6,6 +6,7 @@
  */
 
 import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import type { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 import { searchModule } from '@/lib/tools/modules/search';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -96,7 +97,8 @@ export interface ProposalResult {
  */
 export async function generateProposal(
   params: ProposalParams,
-  onProgress?: (msg: string) => void
+  onProgress?: (msg: string) => void,
+  tracker?: TokenTracker
 ): Promise<ProposalResult> {
   const { targetSchool, schoolProfile, businessModel = 'Fixed Retainer', focusAreas = [], kbFileIds = [], background = '' } = params;
   const focusString = focusAreas.length > 0 ? focusAreas.join(', ') : 'General International Recruitment';
@@ -167,6 +169,7 @@ export async function generateProposal(
   // ── BLOCK 4: Initial Conversation (AI-generated, style-guided) ──
   onProgress?.('[4/6] 正在生成 Initial Conversation (模板风格引导)...');
 
+  const introStart = Date.now();
   const introRes = await client.chat.completions.create({
     ...buildCompletionParams(config, [{ role: 'system', content: `You are the proposal writer at British Enrolment Partners (BEP). You are drafting the "Initial Conversation" section of a formal partnership proposal.
 
@@ -194,10 +197,14 @@ RULES:
 5. Do NOT use the word "guarantee" or make specific numerical promises about student numbers.
 6. Output ONLY the paragraphs and bullet list. No section headers.` }]),
     stream: true,
+    stream_options: { include_usage: true },
   });
+  let introUsage: any = null;
   for await (const chunk of introRes) {
     append(chunk.choices[0]?.delta?.content || '');
+    if (chunk.usage) introUsage = chunk.usage;
   }
+  tracker?.track('proposal_initial_conversation', config.modelName, introUsage, Date.now() - introStart);
 
   // ── BLOCK 5: Commercial Model (hardcoded from template) ──
   onProgress?.('[5/6] 拼接官方商业条款 (Commercial Model)...');
@@ -224,6 +231,7 @@ RULES:
   append(`\n\n### 3. What ${targetSchool} Gains\n\n`);
   onProgress?.('[6/6] 正在生成定制化收益 (What School Gains)...');
 
+  const benefitsStart = Date.now();
   const benefitsRes = await client.chat.completions.create({
     ...buildCompletionParams(config, [{ role: 'system', content: `You are the proposal writer at British Enrolment Partners (BEP).
 
@@ -243,10 +251,14 @@ RULES:
 4. Use professional British English, matching the tone of the rest of the proposal.
 5. Output ONLY the bullet points. No headers, no numbering, no introductory text.` }]),
     stream: true,
+    stream_options: { include_usage: true },
   });
+  let benefitsUsage: any = null;
   for await (const chunk of benefitsRes) {
     append(chunk.choices[0]?.delta?.content || '');
+    if (chunk.usage) benefitsUsage = chunk.usage;
   }
+  tracker?.track('proposal_benefits', config.modelName, benefitsUsage, Date.now() - benefitsStart);
 
   // ── BLOCK 7: Next Steps (hardcoded from template) ──
   onProgress?.('[完毕] 拼接推进步骤 (Next Steps)...');
@@ -448,7 +460,8 @@ IMPORTANT NOTICE: This Agreement is a legally binding contract. The Partner Scho
 
 export async function generateLegal(
   params: LegalParams,
-  onProgress?: (msg: string) => void
+  onProgress?: (msg: string) => void,
+  tracker?: TokenTracker
 ): Promise<LegalResult> {
   const { docType, partyA, partyB = '', keyTerms = '', background = '', templateStyle = '标准英式', kbFileIds = [] } = params;
   const { client, config } = await getModelClient();
@@ -472,6 +485,7 @@ export async function generateLegal(
 
   const isServiceAgreement = docType === '服务协议' || docType === '合作合同';
 
+  const legalStart = Date.now();
   const aiRes = await client.chat.completions.create({
     ...buildCompletionParams(config, [{ role: 'system', content: `You are a senior legal drafter at a UK law firm specialising in international education partnerships. Draft the MAIN BODY of ${docInstruction}.
 
@@ -500,10 +514,14 @@ RULES:
 - Include "IMPORTANT NOTICE: This Agreement is a legally binding contract" after the header
 - Output ONLY raw Markdown` }]),
     stream: true,
+    stream_options: { include_usage: true },
   });
+  let legalUsage: any = null;
   for await (const chunk of aiRes) {
     append(chunk.choices[0]?.delta?.content || '');
+    if (chunk.usage) legalUsage = chunk.usage;
   }
+  tracker?.track('legal_main_body', config.modelName, legalUsage, Date.now() - legalStart);
 
   // ── BLOCK 3: Hardcoded standard clauses from real BEP agreements ──
   onProgress?.('[3/4] 拼接标准保护性条款 (来自 BEP 真实协议模板)...');

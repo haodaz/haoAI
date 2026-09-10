@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt, getTaskAttachments } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 import { runTalentDeepSearchStream } from '@/lib/tools/talentDeepSearch';
@@ -88,7 +89,9 @@ ${policyData || '暂无政策检索结果'}
       + '\n\n报告必须包含：综合分析摘要（≥300字）、四维评分分析、推荐方向/匹配项、可操作建议、合作路线图、下一步行动。';
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'nexus_main', client, config,
       buildCompletionParams(config, [{ role: 'system', content: systemPrompt }])
     );
 
@@ -111,6 +114,8 @@ ${policyData || '暂无政策检索结果'}
     });
 
     recordTaskCompletion('nexus', taskId, instruction, resultMarkdown.slice(0, 200)).catch(() => {});
+
+    await tracker.persist('agent', 'nexus', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

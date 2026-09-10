@@ -4,7 +4,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { cookies } from 'next/headers';
 import { loadAgentConfig } from '@/lib/bristh-config';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 
 /**
  * Phase 1 of 2-step orchestration:
@@ -154,12 +155,15 @@ ${attachmentContext}${langInstruction}`;
       parsedJson = { tasks: tasksAnalysis };
     } else {
       const { client, config } = await getModelClient();
-      const response = await client.chat.completions.create(
+      const tracker = new TokenTracker();
+      const response = await trackableCompletion(
+        tracker, 'chief_analyze', client, config,
         buildCompletionParams(config, [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Input Context:\n\n${rawContent}${attachments?.length ? '\n\n[注意: 用户上传了 ' + attachments.length + ' 个附件，请参考上方附件列表进行任务分配]' : ''}` }
         ], { requireJson: true, maxTokens: 8192 })
       );
+      await tracker.persist('orchestrate', 'chief', undefined, context.id).catch(() => {});
       let rawResponse = response.choices[0].message.content || '{"tasks":[]}';
       console.log('[Orchestrate/Analyze] Raw AI response:', rawResponse.substring(0, 300));
       

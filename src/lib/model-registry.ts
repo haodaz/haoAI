@@ -189,3 +189,27 @@ export function buildCompletionParams(
   
   return params;
 }
+
+// ============================================
+// Token-tracked completion wrapper
+// ============================================
+
+import type { TokenTracker } from '@/lib/token-tracker';
+
+/**
+ * Wraps client.chat.completions.create with automatic token tracking.
+ * Drop-in replacement: just pass a tracker + stage name.
+ */
+export async function trackableCompletion(
+  tracker: TokenTracker,
+  stage: string,
+  client: OpenAI,
+  config: ModelConfig,
+  params: any
+) {
+  const start = Date.now();
+  const response = await client.chat.completions.create(params);
+  const durationMs = Date.now() - start;
+  tracker.track(stage, config.modelName, response.usage, durationMs);
+  return response;
+}

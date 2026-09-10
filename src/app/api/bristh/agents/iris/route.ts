@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 import fs from 'fs/promises';
@@ -122,7 +123,9 @@ OUTPUT FORMAT (strict JSON):
 Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`;
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'iris_main', client, config,
       buildCompletionParams(config, [{ role: 'system', content: systemPrompt }], { requireJson: true, maxTokens: 8192 })
     );
 
@@ -170,6 +173,8 @@ Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`
 
     // Memory hook
     recordTaskCompletion('iris', taskId, task.instruction, summary).catch(() => {});
+
+    await tracker.persist('agent', 'iris', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

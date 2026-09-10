@@ -4,7 +4,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { cookies } from 'next/headers';
 import { loadAgentConfig } from '@/lib/bristh-config';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 
 // Read the Agent Capability Dictionary (YAML as plain text for prompt injection)
 async function loadCapabilityDict(): Promise<string> {
@@ -133,7 +134,9 @@ ${attachmentContext}${langInstruction}`;
       parsedJson = { tasks: tasksToCreate };
     } else {
       const { client, config } = await getModelClient();
-      const response = await client.chat.completions.create(
+      const tracker = new TokenTracker();
+      const response = await trackableCompletion(
+        tracker, 'chief_orchestrate', client, config,
         buildCompletionParams(config, [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Input Context:\n\n${rawContent}${attachments?.length ? '\n\n[用户上传了 ' + attachments.length + ' 个附件，请参考附件列表进行分配]' : ''}` }
@@ -225,5 +228,15 @@ ${attachmentContext}${langInstruction}`;
   } catch (error: any) {
     console.error('Orchestration error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  } finally {
+    // Persist token usage outside the try/catch so it runs even on error paths
+    // 'tracker' only exists in the non-demo branch, so we check
+    try {
+      // @ts-ignore — tracker defined in inner scope
+      if (typeof tracker !== 'undefined' && tracker?.count > 0) {
+        // @ts-ignore
+        await tracker.persist('orchestrate', 'chief', undefined, context?.id);
+      }
+    } catch {}
   }
 }

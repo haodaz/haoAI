@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthGuard';
 import { canAccessTab } from '@/lib/roles';
 import { useTranslation } from 'react-i18next';
-import { Building2, Cpu, History, BookOpen, Settings, Users, Layout, Wrench, PenTool, MessageSquare, CheckCircle, ChevronDown, Menu, X, LogOut, UserCircle, Phone, AtSign, Camera, Save, PlusCircle, ClipboardList, Brain, ChevronRight } from 'lucide-react';
+import { Building2, Cpu, History, BookOpen, Settings, Users, Layout, Wrench, PenTool, MessageSquare, CheckCircle, ChevronDown, Menu, X, LogOut, UserCircle, Phone, AtSign, Camera, Save, PlusCircle, ClipboardList, Brain, ChevronRight, BarChart3 } from 'lucide-react';
 import { Modal } from 'antd';
 import { WorkspaceProvider, useWorkspace } from '@/components/layout/WorkspaceContext';
 import DocumentEditorView from '@/components/shared/DocumentEditorView';
@@ -144,6 +144,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 { id: 'AIkb/memory', path: '/AIkb/memory', label: t('bristh.nav.kb_memory', 'AI 私人记忆'), icon: Brain },
             ] },
             { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
+            { id: 'token-usage', path: '/token-usage', label: 'Token 台账', icon: BarChart3 },
             { id: 'toolbox', path: '/toolbox', label: t('bristh.nav.toolbox'), icon: Wrench },
             { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
             { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },

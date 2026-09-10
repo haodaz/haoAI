@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { buildAgentPrompt, getTaskAttachments } from '@/lib/bristh-config';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 
 /**
@@ -52,7 +53,9 @@ export async function POST(req: Request) {
 
     // 4. Call AI model
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'kelly_main', client, config,
       buildCompletionParams(config, [{ role: 'system', content: systemPrompt }])
     );
 
@@ -86,6 +89,8 @@ export async function POST(req: Request) {
 
     // Memory hook
     recordTaskCompletion('kelly', taskId, task.instruction, resultMarkdown.slice(0, 200)).catch(() => {});
+
+    await tracker.persist('agent', 'kelly', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

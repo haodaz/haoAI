@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 import { generateProposal } from '@/lib/toolbox-generators';
 
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
 
     // ── Step 1: Lightweight param extraction ──
     const { client, config } = await getModelClient();
+    const tracker = new TokenTracker();
     const extractionPrompt = `Extract key parameters from this proposal request. Return ONLY valid JSON.
 
 User instruction: "${task.instruction}"
@@ -36,7 +38,8 @@ Output format:
   "additionalNotes": "any other relevant details"
 }`;
 
-    const extractRes = await client.chat.completions.create(
+    const extractRes = await trackableCompletion(
+      tracker, 'alice_param_extraction', client, config,
       buildCompletionParams(config, [{ role: 'user', content: extractionPrompt }], { requireJson: true })
     );
 
@@ -73,7 +76,8 @@ Output format:
         focusAreas: params.focusAreas || [],
         background: task.context?.rawContent || '',
       },
-      writeProgress // live progress ticker
+      writeProgress, // live progress ticker
+      tracker
     );
 
     // ── Step 3: Bring result back to task — content is now in the pipeline ──
@@ -96,6 +100,8 @@ Output format:
     });
 
     recordTaskCompletion('alice', taskId, task.instruction, summary).catch(() => {});
+
+    await tracker.persist('agent', 'alice', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

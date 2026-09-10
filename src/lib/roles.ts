@@ -21,6 +21,7 @@ export const TAB_PERMISSIONS: Record<string, UserRole[]> = {
   history:   ['admin', 'user'],
   kb:        ['admin', 'user'],
   settings:  ['admin'],
+  'token-usage': ['admin'],
   toolbox:   ['admin'],
   skills:    ['admin'],
   logic:     ['admin'],

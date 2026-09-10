@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 
@@ -42,7 +43,9 @@ export async function POST(req: Request) {
 Use proper Markdown formatting with tables, headings, and bullet points. Be precise with numbers and percentages. Just output the raw Markdown content.`;
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'hugo_main', client, config,
       buildCompletionParams(config, [{ role: 'system', content: systemPrompt }], { maxTokens: 4096 })
     );
 
@@ -68,6 +71,8 @@ Use proper Markdown formatting with tables, headings, and bullet points. Be prec
 
     // Memory hook
     recordTaskCompletion('hugo', taskId, task.instruction, resultMarkdown.slice(0, 200)).catch(() => {});
+
+    await tracker.persist('agent', 'hugo', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

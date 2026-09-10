@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import PptxGenJS from 'pptxgenjs';
 import path from 'path';
 import fs from 'fs/promises';
@@ -89,7 +90,9 @@ Rules:
 - Generate unique ids like "s0-title", "s0-body", "s1-title" etc`;
 
     const { client, config } = await getModelClient();
-    const response = await client.chat.completions.create(
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'edda_main', client, config,
       buildCompletionParams(config, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Generate the presentation JSON now. Output ONLY valid JSON.' }
@@ -234,6 +237,8 @@ Rules:
     });
 
     recordTaskCompletion('edda', taskId, task.instruction, `PPT ${slides.length} 页`).catch(() => {});
+
+    await tracker.persist('agent', 'edda', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

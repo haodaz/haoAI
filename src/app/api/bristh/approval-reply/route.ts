@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 
 /**
  * POST /api/bristh/approval-reply
@@ -63,7 +64,10 @@ Rules:
 
 Output ONLY valid JSON array. No markdown, no explanations.`;
 
-    const response = await client.chat.completions.create(
+    const { client, config } = await getModelClient();
+    const tracker = new TokenTracker();
+    const response = await trackableCompletion(
+      tracker, 'approval_parse', client, config,
       buildCompletionParams(config, [
         { role: 'system', content: parsePrompt },
       ], { requireJson: true })
@@ -187,6 +191,8 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
         console.error(`[ApprovalReply] Notify error:`, err.message);
       }
     }
+
+    await tracker.persist('agent', 'approval', undefined, contextId).catch(() => {});
 
     return NextResponse.json({
       success: true,
