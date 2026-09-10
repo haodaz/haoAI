@@ -64,7 +64,6 @@ Rules:
 
 Output ONLY valid JSON array. No markdown, no explanations.`;
 
-    const { client, config } = await getModelClient();
     const tracker = new TokenTracker();
     const response = await trackableCompletion(
       tracker, 'approval_parse', client, config,
