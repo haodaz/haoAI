@@ -1,4 +1,5 @@
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
         };
 
         try {
+          const tracker = new TokenTracker();
           send('log', { step: '[1/3]', message: '🔄 Loading knowledge base...' });
 
           // ── KB retrieval ──
@@ -169,7 +171,8 @@ OUTPUT FORMAT (strict JSON):
 ${selectedFormat === 'trifold' ? 'Output exactly 2 pages: { id: "front", label: "Outside" } and { id: "back", label: "Inside Spread" }.' : ''}
 Output ONLY valid JSON.`;
 
-          const res = await client.chat.completions.create(
+          const res = await trackableCompletion(
+            tracker, 'brochure_generate', client, config,
             buildCompletionParams(config, [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: `Topic: ${topic}\nPreferences: ${preferences || 'None'}\n${background ? `Background:\n${background}` : ''}\nGenerate the brochure now. Output ONLY valid JSON.` }
@@ -196,6 +199,7 @@ Output ONLY valid JSON.`;
           });
 
           send('result', { brochure: result, format: selectedFormat, assetId: asset.id });
+          await tracker.persist('toolbox', 'brochure').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);

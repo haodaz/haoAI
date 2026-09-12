@@ -1,4 +1,5 @@
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
@@ -140,6 +141,7 @@ export async function POST(req: Request) {
         };
 
         try {
+          const tracker = new TokenTracker();
           send('log', { step: '[1/3]', message: `📊 Preparing ${config.label}...` });
 
           // ── Phase 1: KB Loading ──
@@ -208,7 +210,8 @@ ${config.outputSchema}
 
 Be thorough, professional, and use realistic numbers. Output ONLY valid JSON.`;
 
-          const response = await client.chat.completions.create(
+          const response = await trackableCompletion(
+            tracker, `finance_${docType}`, client, modelConfig,
             buildCompletionParams(modelConfig, [
               { role: 'system', content: fullPrompt },
               { role: 'user', content: `Generate the ${config.label} now. Output ONLY valid JSON.` }
@@ -237,6 +240,7 @@ Be thorough, professional, and use realistic numbers. Output ONLY valid JSON.`;
 
           send('log', { step: '[3/3]', message: `✅ ${config.label} generated successfully!` });
           send('result', { docType, result, assetId: asset.id });
+          await tracker.persist('toolbox', 'finance').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error('Finance Toolbox error:', err);

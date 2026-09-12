@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import { renderRichPPTX, RichSlideData } from '@/lib/pptx-renderer';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import prisma from '@/lib/prisma';
@@ -122,6 +123,7 @@ export async function POST(req: Request) {
         };
 
         try {
+          const tracker = new TokenTracker();
           // ═══════════════════════════════════════════════════════════════════
           // PHASE 0: KB Loading
           // ═══════════════════════════════════════════════════════════════════
@@ -202,7 +204,8 @@ RULES:
 5. For pattern "F" (last slide), contentBrief must include REAL contact info from KB if available.
 6. Output ONLY valid JSON. No markdown, no explanation.`;
 
-          const outlineRes = await client.chat.completions.create(
+          const outlineRes = await trackableCompletion(
+            tracker, 'ppt_outline', client, config,
             buildCompletionParams(config, [
               { role: 'system', content: outlinePrompt },
               { role: 'user', content: `Plan a ${targetSlides}-slide presentation for "${topic}". Output ONLY the JSON array.` }
@@ -264,7 +267,8 @@ RULES:
 9. Write full sentences with context and supporting details, as if this were a real business document.`;
 
             try {
-              const res = await client.chat.completions.create(
+              const res = await trackableCompletion(
+                tracker, `ppt_slide_${item.index}`, client, config,
                 buildCompletionParams(config, [
                   { role: 'system', content: slidePrompt },
                   { role: 'user', content: `Generate the complete elements JSON for slide ${item.index}: "${item.title}". Output ONLY the JSON object.` }
@@ -337,6 +341,7 @@ RULES:
 
           send('log', { step: '[Phase 3]', message: `✅ PPTX rendered! ${finalSlides.length} slides` });
           send('result', { slides: finalSlides, fileUrl, fileName, slideCount: finalSlides.length });
+          await tracker.persist('toolbox', 'ppt').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error('PPT Toolbox error:', err);
@@ -371,6 +376,7 @@ export async function PUT(req: Request) {
     }
 
     const { client, config } = await getModelClient();
+    const putTracker = new TokenTracker();
 
     let personaPrefix = '';
     try {
@@ -399,7 +405,8 @@ RULES when editing:
 - Reply format: "Your brief reply\n---\n[complete updated slides JSON array]"
 - The JSON after "---" must be the COMPLETE slides array, not just changed slides.`;
 
-    const response = await client.chat.completions.create(
+    const response = await trackableCompletion(
+      putTracker, 'ppt_copilot', client, config,
       buildCompletionParams(config, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: instruction }
@@ -420,6 +427,7 @@ RULES when editing:
       }
     }
 
+    await putTracker.persist('toolbox', 'ppt').catch(() => {});
     return NextResponse.json({
       reply,
       slides: updatedSlides || slides,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 import { searchModule } from '@/lib/tools/modules/search';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
         };
 
         try {
+          const tracker = new TokenTracker();
           // ── BLOCK 1: KB Retrieval ──
           sendLog('[1/5]', '🔄 Retrieving BEP core knowledge and custom documents...');
           
@@ -175,10 +177,16 @@ RULES:
             stream: true,
           });
 
+          const introStart = Date.now();
+          let introTokens = 0;
           for await (const chunk of introRes) {
             const text = chunk.choices[0]?.delta?.content || '';
-            if (text) sendChunk(text);
+            if (text) { sendChunk(text); introTokens += text.length / 4; }
           }
+          tracker.track('proposal_intro_stream', config.modelName, {
+            prompt_tokens: Math.round(3000),
+            completion_tokens: Math.round(introTokens),
+          }, Date.now() - introStart);
           sendLog('[4/6]', '✅ Initial Conversation generated');
 
           // ── BLOCK 5: Commercial Model (hardcoded from template) ──
@@ -226,10 +234,16 @@ RULES:
             stream: true,
           });
 
+          const benefitsStart = Date.now();
+          let benefitsTokens = 0;
           for await (const chunk of benefitsRes) {
             const text = chunk.choices[0]?.delta?.content || '';
-            if (text) sendChunk(text);
+            if (text) { sendChunk(text); benefitsTokens += text.length / 4; }
           }
+          tracker.track('proposal_benefits_stream', config.modelName, {
+            prompt_tokens: Math.round(1500),
+            completion_tokens: Math.round(benefitsTokens),
+          }, Date.now() - benefitsStart);
 
           // ── BLOCK 7: Next Steps (hardcoded from template) ──
           sendLog('[Done]', '🔄 Assembling Next Steps...');
@@ -247,6 +261,7 @@ RULES:
             }
           });
           sendDone(asset.id);
+          await tracker.persist('toolbox', 'proposal').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);
@@ -289,6 +304,7 @@ export async function PUT(req: Request) {
         };
 
         try {
+          const putTracker = new TokenTracker();
           const { client, config } = await getModelClient();
 
           const systemPrompt = `You are an expert business proposal editor at British Enrolment Partners (BEP).
@@ -307,7 +323,8 @@ IMPORTANT:
 - Keep the 4-section structure (Initial Conversation / Commercial Model / What School Gains / Next Steps).
 - Output format MUST be: "Brief reply\n---DOCUMENT---\n[full updated markdown]"`;
 
-          const response = await client.chat.completions.create(
+          const response = await trackableCompletion(
+            putTracker, 'proposal_copilot', client, config,
             buildCompletionParams(config, [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: instruction }
@@ -319,8 +336,9 @@ IMPORTANT:
           const reply = parts[0].trim();
           const updatedDoc = parts[1]?.trim() || currentDocument;
 
-          send('reply', reply || '✅ Proposal 已根据指令更新。');
+          send('reply', reply || '✅ Proposal updated per instructions.');
           send('document', updatedDoc);
+          await putTracker.persist('toolbox', 'proposal').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);

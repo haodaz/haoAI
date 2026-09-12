@@ -1,4 +1,5 @@
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 
 export const maxDuration = 300;
@@ -123,7 +124,8 @@ export async function POST(req: Request) {
         };
 
         try {
-          sendLog('[1/4]', '✅ 初始化参数，加载文书类型配置...');
+          const tracker = new TokenTracker();
+          sendLog('[1/4]', '✅ Initialising parameters, loading document type config...');
 
           // --- BLOCK 1: KB retrieval ---
           let kbContext = '';
@@ -155,15 +157,22 @@ Output ONLY the following sections in Markdown (do NOT include standard protecti
 
 Use [INSERT ...] placeholders for any missing specific values. Output ONLY raw Markdown.`;
 
+          const streamStart = Date.now();
           const aiRes = await client.chat.completions.create({
             ...buildCompletionParams(config, [{ role: 'system', content: systemPrompt }]),
             stream: true,
           });
 
+          let streamTokenEstimate = 0;
           for await (const chunk of aiRes) {
             const text = chunk.choices[0]?.delta?.content || '';
-            if (text) sendChunk(text);
+            if (text) { sendChunk(text); streamTokenEstimate += text.length / 4; }
           }
+          // Estimate tokens for streamed call (no usage available in streaming)
+          tracker.track('legal_body_stream', config.modelName, {
+            prompt_tokens: Math.round(systemPrompt.length / 4),
+            completion_tokens: Math.round(streamTokenEstimate),
+          }, Date.now() - streamStart);
 
           // --- BLOCK 3: Hardcoded standard clauses ---
           sendLog('[3/4]', '✅ 主体条款生成完毕。正在拼接硬编码标准保护性条款...');
@@ -184,6 +193,7 @@ Use [INSERT ...] placeholders for any missing specific values. Output ONLY raw M
             }
           });
           sendDone(asset.id);
+          await tracker.persist('toolbox', 'legal').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);
@@ -245,7 +255,9 @@ IMPORTANT:
 - Keep the hardcoded standard clauses (Governing Law, Confidentiality, Remedies etc.) exactly as-is.
 - Output format MUST be: "Brief reply\n---DOCUMENT---\n[full updated markdown document]"`;
 
-          const response = await client.chat.completions.create(
+          const putTracker = new TokenTracker();
+          const response = await trackableCompletion(
+            putTracker, 'legal_copilot', client, config,
             buildCompletionParams(config, [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: instruction }
@@ -257,8 +269,9 @@ IMPORTANT:
           const reply = parts[0].trim();
           const updatedDoc = parts[1]?.trim() || currentDocument;
 
-          send('reply', reply || '✅ 文书已根据指令更新。');
+          send('reply', reply || '✅ Document updated per instructions.');
           send('document', updatedDoc);
+          await putTracker.persist('toolbox', 'legal').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);

@@ -1,4 +1,5 @@
-import { getModelClient, buildCompletionParams } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { TokenTracker } from '@/lib/token-tracker';
 import prisma from '@/lib/prisma';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
         };
 
         try {
+          const tracker = new TokenTracker();
           send('log', { step: '[1/4]', message: '✅ System started, loading knowledge base...' });
 
           // ── Gather KB context ──
@@ -124,7 +126,8 @@ export async function POST(req: Request) {
 }
 Output ONLY valid JSON.`;
 
-          const planRes = await client.chat.completions.create(
+          const planRes = await trackableCompletion(
+            tracker, 'webpage_planner', client, config,
             buildCompletionParams(config, [
               { role: 'system', content: plannerPrompt },
               { role: 'user', content: `Style: ${selectedStyle}\nPreferences: ${preferences || 'None'}\n${finalBackground ? `Context:\n${finalBackground}` : ''}\nOutput ONLY valid JSON.` }
@@ -185,7 +188,8 @@ PAGE: ${page.title} - ${page.description}
 Output ONLY valid JSON.`;
 
             try {
-              const workerRes = await client.chat.completions.create(
+              const workerRes = await trackableCompletion(
+                tracker, `webpage_page_${idx}`, client, config,
                 buildCompletionParams(config, [
                   { role: 'system', content: workerSystemPrompt },
                   { role: 'user', content: `Generate complete HTML for "${page.title}".` }
@@ -206,6 +210,7 @@ Output ONLY valid JSON.`;
           // Phase 3: Assembly
           send('log', { step: '[4/4]', message: '✅ All pages assembled — website generation complete!' });
           send('result', { site: sitePlan });
+          await tracker.persist('toolbox', 'webpage').catch(() => {});
           controller.close();
         } catch (err: any) {
           console.error(err);
