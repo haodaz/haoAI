@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion, getInternalBaseUrl } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
 
 /**
@@ -114,7 +114,7 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
 
         // Call the agent's copilot endpoint to apply the modification
         try {
-          const copilotRes = await fetch(`http://localhost:5859/api/bristh/copilot`, {
+          const copilotRes = await fetch(`${getInternalBaseUrl()}/api/bristh/copilot`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -164,7 +164,7 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
       if (graceTask) {
         console.log(`[ApprovalReply] All approved! Triggering Grace...`);
         try {
-          await fetch(`http://localhost:5859/api/bristh/agents/grace`, {
+          await fetch(`${getInternalBaseUrl()}/api/bristh/agents/grace`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ taskId: graceTask.id }),
@@ -180,7 +180,7 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
     if (hasRevisions && stillAwaiting.length > 0) {
       console.log(`[ApprovalReply] Revisions applied. Re-sending notification email...`);
       try {
-        await fetch(`http://localhost:5859/api/bristh/notify`, {
+        await fetch(`${getInternalBaseUrl()}/api/bristh/notify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contextId }),

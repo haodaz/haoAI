@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion, getInternalBaseUrl } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
 import nodemailer from 'nodemailer';
 import path from 'path';
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
            const payload = JSON.parse(sibling.resultPayload);
            if (payload.toolboxUrl) {
              // Brochure — add a note in email, not a Word doc
-             const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5859';
+             const baseUrl = getInternalBaseUrl();
              parsedEmail.htmlBody = (parsedEmail.htmlBody || '') +
                `<br/><p><strong>📄 Marketing Brochure:</strong> <a href="${baseUrl}${payload.toolboxUrl}">Open in Brochure Designer</a></p>`;
            } else {

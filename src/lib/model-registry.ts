@@ -215,3 +215,21 @@ export async function trackableCompletion(
   tracker.track(stage, config.modelName, response.usage, durationMs);
   return response;
 }
+
+// ============================================
+// Internal Base URL for server-to-server calls
+// ============================================
+
+/**
+ * Returns the base URL for internal API calls (agent → toolbox delegation).
+ * Works in both local dev and Vercel production.
+ */
+export function getInternalBaseUrl(): string {
+  // Explicit config takes priority
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  // Vercel auto-sets VERCEL_URL (without protocol)
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Local development fallback
+  return `http://localhost:${process.env.PORT || '5859'}`;
+}

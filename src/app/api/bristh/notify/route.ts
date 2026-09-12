@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import nodemailer from 'nodemailer';
+import { getInternalBaseUrl } from '@/lib/model-registry';
 import { marked } from 'marked';
 import path from 'path';
 import crypto from 'crypto';
@@ -173,7 +174,7 @@ export async function POST(req: Request) {
         </div>
 
         <p style="color:#9ca3af; font-size:11px; margin-top:20px; text-align:center;">
-          也可以<a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5859'}/office" style="color:#3b82f6;">登入系统</a>在线查看和审批
+          也可以<a href="${getInternalBaseUrl()}/office" style="color:#3b82f6;">登入系统</a>在线查看和审批
         </p>
       </div>
     </div>`;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion, getInternalBaseUrl } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
@@ -103,7 +103,7 @@ async function handleBrochure(task: any, taskId: string, locale?: string) {
   else if (/booklet|多页|multi/i.test(task.instruction)) format = 'multipage';
 
   // Call the brochure API internally (same server)
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5859';
+  const baseUrl = getInternalBaseUrl();
   const brochureRes = await fetch(`${baseUrl}/api/toolbox/brochure`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
