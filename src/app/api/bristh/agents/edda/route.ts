@@ -59,9 +59,8 @@ export async function POST(req: Request) {
     }
 
     const systemPrompt = await buildAgentPrompt('edda', task.instruction, finalBackground, fallbackPersona, locale)
-      + `\n\nOutput exactly in this JSON format:
+      + `\n\nOutput ONLY a valid JSON object in this exact format (no markdown, no explanation):
 {
-  "think": "Write your step-by-step thinking in Markdown here",
   "slides": [
     {
       "backgroundColor": "#ffffff",
@@ -87,7 +86,9 @@ export async function POST(req: Request) {
 Rules:
 - x, y, width, height are percentages (0-100). Ensure x+width<=100 and y+height<=100
 - First slide should be a cover with centered title
-- Generate unique ids like "s0-title", "s0-body", "s1-title" etc`;
+- Generate unique ids like "s0-title", "s0-body", "s1-title" etc
+- Keep content concise — use bullet points, not long paragraphs
+- Do NOT include a "think" field — output ONLY the slides array`;
 
     const { client, config } = await getModelClient();
     const tracker = new TokenTracker();
@@ -129,7 +130,7 @@ Rules:
     }
 
     const slides = parsedData.slides || [];
-    const thinkLog = parsedData.think || 'Edda is analyzing your request and designing slides...';
+    const thinkLog = 'Edda analyzed the brief and designed the presentation.';
 
     if (slides.length === 0) {
         throw new Error("Failed to parse slides from AI.");
