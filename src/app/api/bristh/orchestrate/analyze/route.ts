@@ -21,13 +21,14 @@ async function loadCapabilityDict(): Promise<string> {
     return await fs.readFile(yamlPath, 'utf-8');
   } catch {
     return `Available Agents:
-- "Alice": 方案架构 (Proposal writing)
-- "Bob": 日程安排 (Calendar invites)
-- "Edda": PPT制作 (Generate PPTs)
-- "David": 内控纪检 (Internal audits)
-- "Fiona": 组织宣发 (Memos for absent stakeholders)
-- "Eric": 法务写作 (Contract drafts / NDAs)
-- "Grace": 邮件分发 (Email dispatch - always last)`;
+- "Alice": Proposal writing
+- "Bob": Calendar invites / scheduling
+- "Edda": Generate PPTs / presentations
+- "David": Internal audits / compliance
+- "Fiona": Internal memos + Brochure design (flyers, tri-folds, booklets)
+- "Eric": Contract drafts / NDAs / legal docs
+- "Iris": Website / landing page generation
+- "Grace": Email dispatch (always last)`;
   }
 }
 

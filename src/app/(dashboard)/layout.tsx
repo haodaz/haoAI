@@ -129,7 +129,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <PlusCircle className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-2'}`} />
-              {!desktopSidebarCollapsed && <span className="text-[13px]">{t('bristh.nav.new_task', '发布新任务')}</span>}
+              {!desktopSidebarCollapsed && <span className="text-[13px]">{t('bristh.nav.new_task', 'New Task')}</span>}
             </Link>
           )}
 
@@ -137,19 +137,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             { id: 'office', path: '/office', label: t('bristh.nav.office'), icon: Layout },
             { id: 'toolbox', path: '/toolbox', label: 'AI Native Tools', icon: Wrench },
             { id: 'AImployee', path: '/AImployee', label: t('bristh.nav.employees'), icon: Users },
-            { id: 'groupchat', path: '/groupchat', label: t('bristh.nav.group_chat', 'AI 群聊'), icon: MessageSquare },
+            { id: 'groupchat', path: '/groupchat', label: t('bristh.nav.group_chat', 'AI Group Chat'), icon: MessageSquare },
             { id: 'history', path: '/history', label: t('bristh.nav.history'), icon: History },
             { id: 'kb', label: t('bristh.nav.kb'), icon: BookOpen, children: [
-                { id: 'AIkb/business', path: '/AIkb/business', label: t('bristh.nav.kb_business', '业务知识'), icon: BookOpen },
-                { id: 'AIkb/tasks', path: '/AIkb/tasks', label: t('bristh.nav.kb_tasks', '任务记忆'), icon: ClipboardList },
-                { id: 'AIkb/memory', path: '/AIkb/memory', label: t('bristh.nav.kb_memory', 'AI 私人记忆'), icon: Brain },
+                { id: 'AIkb/business', path: '/AIkb/business', label: t('bristh.nav.kb_business', 'Business KB'), icon: BookOpen },
+                { id: 'AIkb/tasks', path: '/AIkb/tasks', label: t('bristh.nav.kb_tasks', 'Task Memory'), icon: ClipboardList },
+                { id: 'AIkb/memory', path: '/AIkb/memory', label: t('bristh.nav.kb_memory', 'AI Memory'), icon: Brain },
             ] },
             { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
-            { id: 'token-usage', path: '/token-usage', label: 'Token 台账', icon: BarChart3 },
+            { id: 'token-usage', path: '/token-usage', label: 'Token Ledger', icon: BarChart3 },
             { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
             { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
             { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
-            { id: 'external_ai', path: '/chat/bep', label: 'BEP 对外 AI', icon: MessageSquare, target: '_blank' },
+            { id: 'external_ai', path: '/chat/bep', label: 'BEP Client AI', icon: MessageSquare, target: '_blank' },
           ].filter(tab => canAccessTab(tab.id === 'AImployee' ? 'employees' : tab.id === 'groupchat' ? 'group_chat' : tab.id, user?.role || 'user')).map(tab => {
             if (tab.children) {
               return (

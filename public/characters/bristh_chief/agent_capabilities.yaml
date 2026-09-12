@@ -46,14 +46,16 @@ agents:
     notes: "David 是防御性角色，专门找问题。建议在涉及客户承诺的场景中必选。"
 
   - name: "Fiona"
-    title: "组织宣发专员 / Communications Specialist"
+    title: "Communications & Marketing Design Specialist"
     capabilities:
       - 内部通报 Memo 撰写 (Internal Memo Drafting)
       - 信息同步与路由 (Information Synchronization & Routing)
       - 行动项派发 (Action Item Distribution)
-    output_format: "markdown (memo format)"
-    trigger_keywords: ["通报", "memo", "同步", "汇报", "不在场", "absent", "内部", "部门"]
-    notes: "Fiona 解决信息断层问题。当有重要决策需要同步给未在场人员时必选。"
+      - 宣传画册设计 (Marketing Brochure Design - flyers, tri-folds, booklets)
+      - 品牌物料制作 (Branded Collateral Production)
+    output_format: "markdown (memo) or json → brochure HTML"
+    trigger_keywords: ["通报", "memo", "同步", "汇报", "不在场", "absent", "内部", "部门", "brochure", "flyer", "leaflet", "tri-fold", "booklet", "画册", "传单", "折页", "宣传册", "print", "pamphlet"]
+    notes: "Fiona handles both internal memos AND marketing brochure design. For brochure tasks, she generates professional print-ready layouts (single page flyers, tri-fold leaflets, multi-page booklets) using the /api/toolbox/brochure pipeline."
 
   - name: "Eric"
     title: "法务写作专员 / Legal & Compliance Officer"
@@ -82,13 +84,12 @@ agents:
     title: "网页设计师 / Web Designer"
     capabilities:
       - 市场宣传页面生成 (Marketing Landing Page Generation)
-      - 招生画册设计 (Enrollment Brochure Design)
       - 品牌官网建设 (Brand Website Creation)
       - 多页面站点架构 (Multi-page Site Architecture)
       - 图片占位与替换 (Image Placeholder & Replacement)
     output_format: "json → multi-page HTML website"
-    trigger_keywords: ["宣传页", "着陆页", "建站", "网页", "网站", "landing page", "brochure", "webpage", "官网", "画册", "landing", "page", "web"]
-    notes: "Iris 生成完整的多页 HTML 网站。产出可发布到 /sites/slug 供外部访问。适合招生宣传、项目推广等场景。"
+    trigger_keywords: ["宣传页", "着陆页", "建站", "网页", "网站", "landing page", "webpage", "官网", "landing", "page", "web", "website"]
+    notes: "Iris generates multi-page HTML websites (NOT print brochures — those go to Fiona). Output is publishable to /sites/slug for external access."
 
   - name: "Jarvis"
     title: "人才AI助手 / Talent Intelligence Specialist"
