@@ -106,9 +106,18 @@ Return ONLY valid JSON:
     });
 
     // Parse SSE stream to extract final result
+    if (!pptRes.ok) {
+      const errBody = await pptRes.text().catch(() => '');
+      console.error(`[Edda] PPT API returned ${pptRes.status}: ${errBody.substring(0, 500)}`);
+      throw new Error(`PPT API returned status ${pptRes.status}: ${errBody.substring(0, 200)}`);
+    }
+
     const responseText = await pptRes.text();
+    console.log(`[Edda] PPT response length: ${responseText.length}, first 300 chars: ${responseText.substring(0, 300)}`);
+    
     const lines = responseText.split('\n\n');
     let pptResult: any = null;
+    let lastError = '';
 
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue;
@@ -116,12 +125,15 @@ Return ONLY valid JSON:
         const data = JSON.parse(line.substring(6));
         if (data.type === 'result') {
           pptResult = data.data;
+        } else if (data.type === 'error') {
+          lastError = data.data?.message || JSON.stringify(data.data);
+          console.error(`[Edda] PPT pipeline error event: ${lastError}`);
         }
       } catch { /* ignore partial SSE lines */ }
     }
 
     if (!pptResult || !pptResult.fileUrl) {
-      throw new Error('PPT Tool pipeline failed to produce a result');
+      throw new Error(`PPT Tool pipeline failed: ${lastError || 'no result event in SSE stream'}`);
     }
 
     // ── Phase 3: Save — Store result with file link and toolbox URL ──

@@ -119,11 +119,21 @@ async function handleBrochure(task: any, taskId: string, locale?: string) {
     })
   });
 
+  // Check HTTP status first
+  if (!brochureRes.ok) {
+    const errBody = await brochureRes.text().catch(() => '');
+    console.error(`[Fiona] Brochure API returned ${brochureRes.status}: ${errBody.substring(0, 500)}`);
+    throw new Error(`Brochure API returned status ${brochureRes.status}: ${errBody.substring(0, 200)}`);
+  }
+
   // Parse SSE stream to get final result
   const text = await brochureRes.text();
+  console.log(`[Fiona] Brochure response length: ${text.length}, first 300 chars: ${text.substring(0, 300)}`);
+  
   const lines = text.split('\n\n');
   let brochureResult: any = null;
   let assetId = '';
+  let lastError = '';
 
   for (const line of lines) {
     if (!line.startsWith('data: ')) continue;
@@ -132,12 +142,15 @@ async function handleBrochure(task: any, taskId: string, locale?: string) {
       if (data.type === 'result' && data.data?.brochure) {
         brochureResult = data.data.brochure;
         assetId = data.data.assetId || '';
+      } else if (data.type === 'error') {
+        lastError = data.data?.message || JSON.stringify(data.data);
+        console.error(`[Fiona] Brochure pipeline error event: ${lastError}`);
       }
     } catch { /* ignore */ }
   }
 
   if (!brochureResult) {
-    throw new Error('Brochure generation failed');
+    throw new Error(`Brochure generation failed: ${lastError || 'no result event in SSE stream'}`);
   }
 
   const toolboxUrl = `/toolbox/brochure?assetId=${assetId}`;
