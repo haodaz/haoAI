@@ -7,35 +7,18 @@ import { recordTaskCompletion } from '@/lib/memory-hooks';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Allow up to 120s for webpage generation (large HTML output)
-export const maxDuration = 120;
+// Allow up to 300s — same as the Webpage tool pipeline
+export const maxDuration = 300;
 
-/**
- * Robust JSON extraction
- */
-function extractJSON(raw: string): any {
-  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  try { return JSON.parse(cleaned); } catch {}
-  const objMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (objMatch) {
-    try { return JSON.parse(objMatch[0]); } catch {}
-  }
-  return null;
-}
+const SITES_DIR = path.join(process.cwd(), 'public', '_sites');
 
-/**
- * Auto-publish site to /sites/slug
- */
+/** Publish a generated site to /public/_sites/<slug>.json */
 async function publishSite(site: any): Promise<string> {
-  const SITES_DIR = path.join(process.cwd(), 'public', '_sites');
-  try { await fs.mkdir(SITES_DIR, { recursive: true }); } catch {}
-  
   const slug = (site.name || 'site')
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
-    .replace(/^-|-$/g, '')
-    || 'site-' + Date.now();
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    + '-' + Date.now();
 
+  await fs.mkdir(SITES_DIR, { recursive: true });
   await fs.writeFile(
     path.join(SITES_DIR, `${slug}.json`),
     JSON.stringify({
@@ -52,6 +35,13 @@ async function publishSite(site: any): Promise<string> {
   return `/sites/${slug}`;
 }
 
+/**
+ * Iris Agent v2 — Think + Delegate architecture
+ *
+ * Phase 1 (Think): Lightweight LLM call to extract parameters from task instruction
+ * Phase 2 (Delegate): Call /api/toolbox/webpage internally and parse SSE result
+ * Phase 3 (Save): Store result, publish site, create asset
+ */
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {
@@ -67,76 +57,106 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // 1. Update status to RUNNING
     await prisma.task.update({
       where: { id: taskId },
       data: { status: 'RUNNING' }
     });
 
-    // 2. Build prompt
-    const fallbackPersona = 'You are Iris, the Web Designer at Bristh Enrollment Partners. You create stunning marketing landing pages using Tailwind CSS.';
-    
-    let finalBackground = task.context.rawContent;
+    // ── Phase 1: Think — Extract structured parameters ──
+    const { client, config } = await getModelClient();
+    const tracker = new TokenTracker();
+
+    // Gather any KB file IDs from task attachments
+    let attachmentKbIds: string[] = [];
+    let localAttachmentText = '';
     if (task.attachmentIds) {
       try {
         const attIds = JSON.parse(task.attachmentIds);
         const contextAttachments = task.context.attachments ? JSON.parse(task.context.attachments) : [];
         const matched = contextAttachments.filter((a: any) => attIds.includes(a.id));
-        
-        const kbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
-        const localExtracted = matched.filter((a: any) => !a.isKbFile).map((a: any) => `【上传文件: ${a.originalName}】\n${a.extractedText || a.summary}`).join('\n\n');
-        
-        let kbTexts = '';
-        if (kbIds.length > 0) {
-          const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbIds } } });
-          kbTexts = kbFiles.map(f => `【知识库文件: ${f.title}】\n${f.content || '无正文'}`).join('\n\n');
-        }
-        
-        const extraContext = [localExtracted, kbTexts].filter(Boolean).join('\n\n');
-        if (extraContext) {
-           finalBackground = finalBackground + '\n\n' + extraContext;
-        }
-      } catch (e) {
-        console.error('Failed to parse attachments for Iris', e);
-      }
+        attachmentKbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
+        localAttachmentText = matched
+          .filter((a: any) => !a.isKbFile)
+          .map((a: any) => `[Uploaded: ${a.originalName}]\n${a.extractedText || a.summary || ''}`)
+          .join('\n\n');
+      } catch { /* ignore */ }
     }
 
-    const systemPrompt = await buildAgentPrompt('iris', task.instruction, finalBackground, fallbackPersona, locale)
-      + `\n\nBased on this context, generate a complete multi-page marketing website as a JSON object.
+    const extractionPrompt = `You are Iris, the Web Designer. Analyze this task and extract the key parameters needed to generate a professional marketing website.
 
-CRITICAL REQUIREMENTS:
-1. All HTML must use Tailwind CSS classes (loaded via CDN)
-2. Include image placeholders with data-image-placeholder attribute: <div class="bg-gray-200" data-image-placeholder="description"></div>
-3. Create fully functional responsive layouts.
-4. JSON ESCAPING: You MUST escape all double quotes inside the "html" string values using backslash (\\").
-5. JSON FORMATTING: Do NOT use literal newlines inside string values. The "html" string must be a single continuous string.
+Task instruction: "${task.instruction}"
+Context: ${task.context.rawContent || 'No additional context'}
+${localAttachmentText ? `\nAttached content:\n${localAttachmentText}` : ''}
 
-OUTPUT FORMAT (strict JSON):
+Return ONLY valid JSON:
 {
-  "name": "Site Name",
-  "themeColor": "#hex",
-  "pages": [
-    { "id": "home", "title": "首页", "html": "<section>...</section>", "inNav": true }
-  ]
+  "topic": "The main topic/purpose of the website",
+  "pageCount": 3,
+  "style": "bep",
+  "preferences": "Any specific design preferences or requirements mentioned",
+  "background": "Summary of the key business context that should be reflected in the website"
 }
 
-Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`;
+Style options: "bep" (BEP corporate green+gold), "education", "modern-tech", "business"`;
 
-    const { client, config } = await getModelClient();
-    const tracker = new TokenTracker();
-    const response = await trackableCompletion(
-      tracker, 'iris_main', client, config,
-      buildCompletionParams(config, [{ role: 'system', content: systemPrompt }], { requireJson: true, maxTokens: 8192 })
+    const extractRes = await trackableCompletion(
+      tracker, 'iris_param_extraction', client, config,
+      buildCompletionParams(config, [{ role: 'user', content: extractionPrompt }], { requireJson: true, maxTokens: 2048 })
     );
 
-    const raw = response.choices[0].message.content || '';
-    const site = extractJSON(raw);
-
-    if (!site || !site.pages) {
-      throw new Error('Failed to parse webpage JSON from LLM output');
+    let params: Record<string, any> = {};
+    try {
+      let raw = extractRes.choices[0].message.content || '{}';
+      raw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+      params = JSON.parse(raw);
+    } catch {
+      params = {
+        topic: task.instruction.slice(0, 200),
+        pageCount: 3,
+        style: 'bep',
+        preferences: '',
+        background: task.context.rawContent?.slice(0, 2000) || '',
+      };
     }
 
-    // 3. Auto-publish to /sites/slug
+    // ── Phase 2: Delegate — Call the Webpage Tool pipeline ──
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5859';
+
+    const webRes = await fetch(`${baseUrl}/api/toolbox/webpage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: params.topic || task.instruction,
+        pageCount: params.pageCount || 3,
+        style: params.style || 'bep',
+        background: params.background || task.context.rawContent || '',
+        preferences: params.preferences || '',
+        kbFileIds: attachmentKbIds.length > 0 ? attachmentKbIds : undefined,
+      })
+    });
+
+    // Parse SSE stream to extract final result
+    const responseText = await webRes.text();
+    const lines = responseText.split('\n\n');
+    let webResult: any = null;
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const data = JSON.parse(line.substring(6));
+        if (data.type === 'result') {
+          webResult = data.data;
+        }
+      } catch { /* ignore partial SSE lines */ }
+    }
+
+    if (!webResult || !webResult.site) {
+      throw new Error('Webpage Tool pipeline failed to produce a result');
+    }
+
+    const site = webResult.site;
+
+    // ── Phase 3: Save — Publish site, create asset, store task result ──
     let publishedUrl = '';
     try {
       publishedUrl = await publishSite(site);
@@ -147,16 +167,29 @@ Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`
     const generatedAsset = await prisma.generatedAsset.create({
       data: {
         type: 'WEB',
-        title: site.name || ('Iris 生成的站点 ' + new Date().toLocaleTimeString('zh-CN')),
+        title: site.name || `Iris Website — ${params.topic}`,
         payload: JSON.stringify({ site, publishedUrl })
       }
     });
 
-    // 4. Save result with published URL for downstream agents (e.g. Grace)
-    const summary = `🌐 已生成 ${site.pages.length} 页宣传站点「${site.name}」${publishedUrl ? ` → ${publishedUrl}` : ''}`;
+    const toolCallsLog = JSON.stringify([
+      {
+        tool: 'webpage_toolbox_pipeline',
+        status: 'success',
+        logs: [
+          '⏳ [Phase 1] Extracted website parameters from task',
+          `✅ Topic: "${params.topic}", Pages: ${params.pageCount}, Style: ${params.style}`,
+          `✅ KB files: ${attachmentKbIds.length > 0 ? attachmentKbIds.length + ' attached' : 'auto-search'}`,
+          '⏳ [Phase 2] Delegated to Webpage Tool (multi-page pipeline)',
+          `✅ Webpage Tool completed: ${site.pages?.length || '?'} pages generated`,
+          publishedUrl ? `✅ Published to: ${publishedUrl}` : '⚠️ Publish skipped',
+        ]
+      }
+    ]);
+
+    const summary = `Generated ${site.pages?.length || '?'}-page website: ${site.name || params.topic}${publishedUrl ? ` → ${publishedUrl}` : ''}`;
     const resultPayload = JSON.stringify({
       summary,
-      content: raw,
       site,
       publishedUrl,
       assetId: generatedAsset.id,
@@ -165,15 +198,15 @@ Generate 1-2 pages (keep it concise to avoid timeouts). Output ONLY valid JSON.`
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
-      data: { 
+      data: {
         status: task.requiresApproval ? 'AWAITING_APPROVAL' : 'COMPLETED',
-        resultPayload
+        resultPayload,
+        thinkLog: `Iris analyzed the task and delegated to the Webpage Tool pipeline.\nTopic: ${params.topic}\nPages: ${params.pageCount}\nStyle: ${params.style}`,
+        toolCallsLog,
       }
     });
 
-    // Memory hook
-    recordTaskCompletion('iris', taskId, task.instruction, summary).catch(() => {});
-
+    await recordTaskCompletion('iris', taskId, task.instruction, summary).catch(() => {});
     await tracker.persist('agent', 'iris', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });

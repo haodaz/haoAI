@@ -2,15 +2,19 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
-import PptxGenJS from 'pptxgenjs';
-import path from 'path';
-import fs from 'fs/promises';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 
-// Allow up to 120s for PPT generation (GPT-4o JSON output can be slow)
-export const maxDuration = 120;
+// Allow up to 300s — same as the PPT tool pipeline
+export const maxDuration = 300;
 
+/**
+ * Edda Agent v2 — Think + Delegate architecture
+ *
+ * Phase 1 (Think): Lightweight LLM call to extract parameters from task instruction
+ * Phase 2 (Delegate): Call /api/toolbox/ppt internally and parse SSE result
+ * Phase 3 (Save): Store result with toolboxUrl link
+ */
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {
@@ -31,214 +35,140 @@ export async function POST(req: Request) {
       data: { status: 'RUNNING' }
     });
 
-    const fallbackPersona = 'You are Edda, the Presentation Specialist at Bristh Enrollment Partners. Transform text into structured slide presentations.';
-    
-    let finalBackground = task.context.rawContent;
+    // ── Phase 1: Think — Extract structured parameters ──
+    const { client, config } = await getModelClient();
+    const tracker = new TokenTracker();
+
+    // Gather any KB file IDs from task attachments
+    let attachmentKbIds: string[] = [];
+    let localAttachmentText = '';
     if (task.attachmentIds) {
       try {
         const attIds = JSON.parse(task.attachmentIds);
         const contextAttachments = task.context.attachments ? JSON.parse(task.context.attachments) : [];
         const matched = contextAttachments.filter((a: any) => attIds.includes(a.id));
-        
-        const kbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
-        const localExtracted = matched.filter((a: any) => !a.isKbFile).map((a: any) => `【上传文件: ${a.originalName}】\n${a.extractedText || a.summary}`).join('\n\n');
-        
-        let kbTexts = '';
-        if (kbIds.length > 0) {
-          const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbIds } } });
-          kbTexts = kbFiles.map(f => `【知识库文件: ${f.title}】\n${f.content || '无正文'}`).join('\n\n');
-        }
-        
-        const extraContext = [localExtracted, kbTexts].filter(Boolean).join('\n\n');
-        if (extraContext) {
-           finalBackground = finalBackground + '\n\n' + extraContext;
-        }
-      } catch (e) {
-        console.error('Failed to parse attachments for Edda', e);
-      }
+        attachmentKbIds = matched.filter((a: any) => a.isKbFile).map((a: any) => a.id);
+        localAttachmentText = matched
+          .filter((a: any) => !a.isKbFile)
+          .map((a: any) => `[Uploaded: ${a.originalName}]\n${a.extractedText || a.summary || ''}`)
+          .join('\n\n');
+      } catch { /* ignore */ }
     }
 
-    const systemPrompt = await buildAgentPrompt('edda', task.instruction, finalBackground, fallbackPersona, locale)
-      + `\n\nOutput ONLY a valid JSON object in this exact format (no markdown, no explanation):
+    const extractionPrompt = `You are Edda, the Presentation Specialist. Analyze this task and extract the key parameters needed to generate a professional presentation.
+
+Task instruction: "${task.instruction}"
+Context: ${task.context.rawContent || 'No additional context'}
+${localAttachmentText ? `\nAttached content:\n${localAttachmentText}` : ''}
+
+Return ONLY valid JSON:
 {
-  "slides": [
-    {
-      "backgroundColor": "#ffffff",
-      "elements": [
-        {
-          "id": "s0-title",
-          "type": "TEXT_BOX",
-          "content": "Slide Title",
-          "x": 10, "y": 8, "width": 80, "height": 14,
-          "style": { "fontSize": 2.4, "fontWeight": "bold", "textAlign": "left", "color": "#1a1a2e", "backgroundColor": "transparent", "padding": 1, "borderRadius": 0 }
-        },
-        {
-          "id": "s0-body",
-          "type": "TEXT_BOX",
-          "content": "• Point 1\\n• Point 2",
-          "x": 10, "y": 28, "width": 80, "height": 62,
-          "style": { "fontSize": 1.1, "fontWeight": "normal", "textAlign": "left", "color": "#333333", "backgroundColor": "transparent", "padding": 1, "borderRadius": 0 }
-        }
-      ]
-    }
-  ]
-}
-Rules:
-- x, y, width, height are percentages (0-100). Ensure x+width<=100 and y+height<=100
-- First slide should be a cover with centered title
-- Generate unique ids like "s0-title", "s0-body", "s1-title" etc
-- Keep content concise — use bullet points, not long paragraphs
-- Do NOT include a "think" field — output ONLY the slides array`;
+  "topic": "The main topic/title for the presentation",
+  "slideCount": 10,
+  "preferences": "Any specific design preferences or requirements mentioned",
+  "background": "Summary of the key business context that should be reflected in slides"
+}`;
 
-    const { client, config } = await getModelClient();
-    const tracker = new TokenTracker();
-    const response = await trackableCompletion(
-      tracker, 'edda_main', client, config,
-      buildCompletionParams(config, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: 'Generate the presentation JSON now. Output ONLY valid JSON.' }
-      ], { requireJson: true, maxTokens: 16000 })
+    const extractRes = await trackableCompletion(
+      tracker, 'edda_param_extraction', client, config,
+      buildCompletionParams(config, [{ role: 'user', content: extractionPrompt }], { requireJson: true, maxTokens: 2048 })
     );
 
-    let rawJson = response.choices[0].message.content || '{"think": "", "slides": []}';
-    rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    // Robust parsing — Claude often outputs trailing commas
-    function sanitizeJson(str: string): string {
-      return str.replace(/,\s*([\]}])/g, '$1');
-    }
-
-    let parsedData;
+    let params: Record<string, any> = {};
     try {
-      parsedData = JSON.parse(rawJson);
+      let raw = extractRes.choices[0].message.content || '{}';
+      raw = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+      params = JSON.parse(raw);
     } catch {
-      try {
-        parsedData = JSON.parse(sanitizeJson(rawJson));
-      } catch {
-        // Try to extract JSON object
-        const match = rawJson.match(/\{[\s\S]*\}/);
-        if (match) {
-          try {
-            parsedData = JSON.parse(match[0]);
-          } catch {
-            parsedData = JSON.parse(sanitizeJson(match[0]));
-          }
-        } else {
-          throw new Error('Failed to parse AI response as JSON');
-        }
-      }
+      params = {
+        topic: task.instruction.slice(0, 200),
+        slideCount: 10,
+        preferences: '',
+        background: task.context.rawContent?.slice(0, 2000) || '',
+      };
     }
 
-    const slides = parsedData.slides || [];
-    const thinkLog = 'Edda analyzed the brief and designed the presentation.';
-
-    if (slides.length === 0) {
-        throw new Error("Failed to parse slides from AI.");
-    }
+    // ── Phase 2: Delegate — Call the PPT Tool pipeline ──
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5859';
     
-    // Create Tool Calls Log for transparent UI rendering
+    const pptRes = await fetch(`${baseUrl}/api/toolbox/ppt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: params.topic || task.instruction,
+        slideCount: String(params.slideCount || 10),
+        density: 'medium',
+        background: params.background || task.context.rawContent || '',
+        preferences: params.preferences || '',
+        kbFileIds: attachmentKbIds.length > 0 ? attachmentKbIds : undefined,
+        theme: 'bep',
+      })
+    });
+
+    // Parse SSE stream to extract final result
+    const responseText = await pptRes.text();
+    const lines = responseText.split('\n\n');
+    let pptResult: any = null;
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const data = JSON.parse(line.substring(6));
+        if (data.type === 'result') {
+          pptResult = data.data;
+        }
+      } catch { /* ignore partial SSE lines */ }
+    }
+
+    if (!pptResult || !pptResult.fileUrl) {
+      throw new Error('PPT Tool pipeline failed to produce a result');
+    }
+
+    // ── Phase 3: Save — Store result with file link and toolbox URL ──
     const toolCallsLog = JSON.stringify([
       {
-        tool: 'pptxgenjs_renderer',
+        tool: 'ppt_toolbox_pipeline',
         status: 'success',
         logs: [
-          '⏳ [Phase 1] Parsing extracted outline data...',
-          '✅ Loaded ' + slides.length + ' slide structure(s)',
-          '⏳ [Phase 2] Writing master slide styles (Corporate Layout)...',
-          '⏳ [Phase 3] Rendering text and placeholder nodes...',
-          '✅ All text nodes rendered',
-          '✅ File packaged (.pptx)'
+          '⏳ [Phase 1] Extracted presentation parameters from task',
+          `✅ Topic: "${params.topic}", Slides: ${params.slideCount}`,
+          `✅ KB files: ${attachmentKbIds.length > 0 ? attachmentKbIds.length + ' attached' : 'auto-search'}`,
+          '⏳ [Phase 2] Delegated to PPT Tool (3-phase pipeline)',
+          `✅ PPT Tool completed: ${pptResult.slideCount || '?'} slides rendered`,
+          `✅ PPTX file: ${pptResult.fileName || 'generated'}`,
         ]
       }
     ]);
 
-    // Generate .pptx file
-    const pptx = new PptxGenJS();
-    pptx.layout = 'LAYOUT_16x9';
-
-    // Title Slide (Cover)
-    const coverSlide = pptx.addSlide();
-    coverSlide.background = { color: '1E3A8A' };
-    coverSlide.addText('Bristh Enrollment Partners', {
-        x: '10%', y: '40%', w: '80%', h: 1, 
-        fontSize: 36, color: 'FFFFFF', bold: true, align: 'center'
-    });
-    coverSlide.addText('Professional Proposal', {
-        x: '10%', y: '55%', w: '80%', h: 1, 
-        fontSize: 24, color: 'E2E8F0', align: 'center'
-    });
-
-    // Content Slides — extract from new Slide[] format
-    slides.forEach((s: any) => {
-        const slide = pptx.addSlide();
-        
-        // Find title element (bold, larger font)
-        const titleEl = s.elements?.find((e: any) => e.style?.fontWeight === 'bold' && e.style?.fontSize >= 1.8);
-        const bodyEls = s.elements?.filter((e: any) => e !== titleEl) || [];
-
-        // Title bar
-        slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.8, fill: { color: '1E3A8A' } });
-        slide.addText(titleEl?.content || 'Slide', {
-            x: 0.5, y: 0, w: '90%', h: 0.8,
-            fontSize: 24, color: 'FFFFFF', bold: true, align: 'left'
-        });
-
-        // Body content
-        const allBullets = bodyEls
-            .map((e: any) => (e.content || '').split('\n').filter((l: string) => l.trim()))
-            .flat()
-            .map((b: string) => b.replace(/^[•\-]\s*/, ''));
-
-        if (allBullets.length > 0) {
-            const bulletText = allBullets.map((b: string) => ({
-                text: b,
-                options: { bullet: true, fontSize: 18, color: '333333', breakLine: true }
-            }));
-            slide.addText(bulletText, {
-                x: 0.5, y: 1.2, w: '90%', h: '80%',
-                valign: 'top'
-            });
-        }
-    });
-
-    const fileName = `Edda_PPT_${Date.now()}.pptx`;
-    const tmpDir = path.join('/tmp', 'bristh-downloads');
-    await fs.mkdir(tmpDir, { recursive: true });
-    const filePath = path.join(tmpDir, fileName);
-    
-    const buffer = await pptx.write({ outputType: 'nodebuffer' }) as Buffer;
-    await fs.writeFile(filePath, buffer);
-
-    const fileUrl = `/api/bristh/download?file=${fileName}`;
-
-    const generatedAsset = await prisma.generatedAsset.create({
-      data: {
-        type: 'PPT',
-        title: 'Edda 生成的演示文稿 ' + new Date().toLocaleTimeString('zh-CN'),
-        payload: JSON.stringify({ slides, fileUrl })
-      }
-    });
+    // Look up the asset that the PPT tool created
+    let assetId = '';
+    try {
+      const latestAsset = await prisma.generatedAsset.findFirst({
+        where: { type: 'PPT' },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (latestAsset) assetId = latestAsset.id;
+    } catch { /* ignore */ }
 
     const resultPayload = JSON.stringify({
-        summary: `成功生成 PPTX 文件，共包含 ${slides.length} 页幻灯片。`,
-        fileUrl: fileUrl,
-        rawSlides: slides,
-        assetId: generatedAsset.id,
-        toolboxUrl: `/toolbox/ppt?assetId=${generatedAsset.id}`,
+      summary: `Generated ${pptResult.slideCount || '?'}-slide presentation: ${params.topic}`,
+      fileUrl: pptResult.fileUrl,
+      rawSlides: pptResult.slides,
+      assetId,
+      toolboxUrl: assetId ? `/toolbox/ppt?assetId=${assetId}` : '/toolbox/ppt',
     });
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
-      data: { 
+      data: {
         status: task.requiresApproval ? 'AWAITING_APPROVAL' : 'COMPLETED',
-        resultPayload: resultPayload,
-        thinkLog: thinkLog,
-        toolCallsLog: toolCallsLog
+        resultPayload,
+        thinkLog: `Edda analyzed the task and delegated to the PPT Tool pipeline.\nTopic: ${params.topic}\nSlides: ${params.slideCount}\nKB files: ${attachmentKbIds.length}`,
+        toolCallsLog,
       }
     });
 
-    recordTaskCompletion('edda', taskId, task.instruction, `PPT ${slides.length} 页`).catch(() => {});
-
+    await recordTaskCompletion('edda', taskId, task.instruction, `PPT ${pptResult.slideCount} slides`).catch(() => {});
     await tracker.persist('agent', 'edda', taskId, task.context.id).catch(() => {});
 
     return NextResponse.json({ success: true, task: updatedTask });

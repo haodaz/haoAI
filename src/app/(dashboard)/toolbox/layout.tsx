@@ -14,7 +14,7 @@ export function useToolbox() {
   return useContext(ToolboxContext);
 }
 import { Spin } from 'antd';
-import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight, BookOpen } from 'lucide-react';
+import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight, BookOpen, DollarSign } from 'lucide-react';
 
 const TOOLS = [
   { id: 'ppt', path: '/toolbox/ppt', label: 'PPT Generator', desc: 'Render downloadable .pptx files', icon: Presentation, color: 'indigo' },
@@ -22,6 +22,7 @@ const TOOLS = [
   { id: 'legal', path: '/toolbox/legal', label: 'Legal Docs', desc: 'NDA / MOU / Service Agreements', icon: FileText, color: 'violet' },
   { id: 'webpage', path: '/toolbox/webpage', label: 'Website Builder', desc: 'Responsive website with brand design', icon: Globe, color: 'teal' },
   { id: 'brochure', path: '/toolbox/brochure', label: 'Brochure Design', desc: 'Flyers, tri-folds & booklets', icon: BookOpen, color: 'emerald' },
+  { id: 'finance', path: '/toolbox/finance', label: 'Finance Tool', desc: 'Invoices, reports & commissions', icon: DollarSign, color: 'cyan' },
   { id: 'signature', path: '/toolbox/signature', label: 'Email Signature', desc: 'Global HTML signature editor', icon: Mail, color: 'orange' },
 ];
 
@@ -31,6 +32,7 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon
   violet: { bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700', icon: 'text-violet-500' },
   teal:    { bg: 'bg-teal-50',    border: 'border-teal-100',    text: 'text-teal-700',    icon: 'text-teal-500' },
   emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: 'text-emerald-500' },
+  cyan:    { bg: 'bg-cyan-50',    border: 'border-cyan-100',    text: 'text-cyan-700',    icon: 'text-cyan-500' },
   orange:  { bg: 'bg-orange-50',  border: 'border-orange-100',  text: 'text-orange-700',  icon: 'text-orange-500' },
 };
 
@@ -39,6 +41,7 @@ const TYPE_ICON: Record<string, { icon: any; color: string }> = {
   LEGAL:    { icon: FileText,      color: 'text-violet-500' },
   PPT:      { icon: Presentation,  color: 'text-indigo-500' },
   WEB:      { icon: Globe,         color: 'text-teal-500' },
+  FINANCE:  { icon: DollarSign,    color: 'text-cyan-500' },
 };
 
 function timeAgo(dateStr: string) {
