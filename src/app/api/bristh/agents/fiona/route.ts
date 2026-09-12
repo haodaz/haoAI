@@ -16,6 +16,9 @@ function extractJSON(raw: string): any {
   return null;
 }
 
+// Allow up to 300s — brochure generation needs time
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {

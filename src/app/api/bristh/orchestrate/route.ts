@@ -7,6 +7,9 @@ import { loadAgentConfig } from '@/lib/bristh-config';
 import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
 
+// Allow up to 120s for Chief orchestration (think + DB writes)
+export const maxDuration = 120;
+
 // Read the Agent Capability Dictionary (YAML as plain text for prompt injection)
 async function loadCapabilityDict(): Promise<string> {
   try {

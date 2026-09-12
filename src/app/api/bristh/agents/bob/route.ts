@@ -6,6 +6,8 @@ import * as ics from 'ics';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
 
+// Allow up to 300s for agent processing
+export const maxDuration = 300;
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {

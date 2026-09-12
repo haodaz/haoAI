@@ -30,6 +30,8 @@ async function consumeSSEStream(stream: ReadableStream): Promise<string> {
   return result;
 }
 
+// Allow up to 300s for agent processing
+export const maxDuration = 300;
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {

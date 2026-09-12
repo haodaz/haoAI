@@ -6,6 +6,8 @@ import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
 
 
+// Allow up to 300s for agent processing
+export const maxDuration = 300;
 export async function POST(req: Request) {
   let taskIdForError = '';
   try {

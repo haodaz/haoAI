@@ -7,6 +7,8 @@ import path from 'path';
 import { marked } from 'marked';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 
+// Allow up to 300s for email drafting and attachment processing
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let taskIdForError = '';

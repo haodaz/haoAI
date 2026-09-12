@@ -20,6 +20,8 @@ import { recordTaskCompletion } from '@/lib/memory-hooks';
  * Her output is clean, actionable processed content.
  */
 
+// Allow up to 300s for agent processing
+export const maxDuration = 300;
 export async function POST(req: Request) {
   let taskIdForError: string | null = null;
   try {
