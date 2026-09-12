@@ -32,7 +32,8 @@ interface Stats {
 }
 
 const USD_TO_CNY = 7.2;
-type Currency = 'CNY' | 'USD';
+const USD_TO_GBP = 0.79;
+type Currency = 'CNY' | 'USD' | 'GBP';
 
 const MODEL_COLORS: Record<string, string> = {
   'gemini-38-flash': '#4285f4',
@@ -98,6 +99,12 @@ function formatCost(usd: number, currency: Currency): string {
     if (cny >= 1) return '¥' + cny.toFixed(2);
     if (cny >= 0.01) return '¥' + cny.toFixed(3);
     return '¥' + cny.toFixed(4);
+  }
+  if (currency === 'GBP') {
+    const gbp = usd * USD_TO_GBP;
+    if (gbp >= 1) return '£' + gbp.toFixed(2);
+    if (gbp >= 0.01) return '£' + gbp.toFixed(3);
+    return '£' + gbp.toFixed(4);
   }
   if (usd >= 1) return '$' + usd.toFixed(2);
   if (usd >= 0.01) return '$' + usd.toFixed(3);
@@ -186,10 +193,10 @@ export default function TokenUsagePage() {
             {loading ? '⏳' : '🔄'} Refresh
           </button>
           <button
-            onClick={() => setCurrency(c => c === 'CNY' ? 'USD' : 'CNY')}
+            onClick={() => setCurrency(c => c === 'CNY' ? 'USD' : c === 'USD' ? 'GBP' : 'CNY')}
             style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
           >
-            {currency === 'CNY' ? '¥ CNY' : '$ USD'}
+            {currency === 'CNY' ? '¥ CNY' : currency === 'GBP' ? '£ GBP' : '$ USD'}
           </button>
         </div>
       </div>
