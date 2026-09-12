@@ -95,11 +95,11 @@ export default function BEPChatPage() {
           </Link>
 
           <div className="flex items-center space-x-3 border-l border-white/20 pl-6">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-inner">
-              <span className="text-emerald-700 font-black text-xl">BEP</span>
+            <div className="w-10 h-10 rounded-lg overflow-hidden shadow-inner bg-white">
+              <img src="/images/bep_chat_avatar.png" alt="BEP" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-xl tracking-wide text-white drop-shadow-md">
-              {language === 'en' ? 'UK Boarding Schools Overseas Admissions' : '英国寄宿学校海外招生办'}
+              {language === 'en' ? 'British Enrolment Partners' : 'BEP 英国招生合作伙伴'}
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function BEPChatPage() {
           customTitle={language === 'en' ? "Welcome to BEP Digital Assistant" : "欢迎来到 BEP 智能助手"}
           customSubtitle={language === 'en' ? "Your outsourced admissions office for UK boarding schools." : "您好！我是 BEP 的数字代表。BEP 作为英国寄宿学校的海外招生办公室，致力于帮学校统管国际招生流程。"}
           customCards={cards}
-          customLogo={<div className="w-full h-full bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-xl">BEP</div>}
+          customLogo={<img src="/images/bep_chat_avatar.png" alt="BEP" className="w-full h-full rounded-lg object-cover" />}
           customDisclaimer={language === 'en' ? "AI generated content. Please verify with our official consultants." : "AI 生成内容仅供参考，具体合作细节请与我们的业务团队确认。"}
           customQuickPrompts={language === 'en' ? ["How are you fundamentally different from traditional agencies?", "Will we lose control over final admissions?", "How does the Performance Model (15% commission) work?", "Who owns the data if we terminate the partnership?"] : ["你们和传统的留学中介有什么根本区别？", "学校会失去对最终录取和发 Offer 的控制权吗？", "‘绩效模式 (15% 提成)’是怎么运作的？", "如果终止合作，生源管道和数据归谁？"]}
           customPlaceholder={language === 'en' ? "Ask about admissions, fees, or type: 'How can I get more suitable international students for my school?'" : "请输入您关心的招生政策、费用细节，或直接询问：'如何让我的学校获得更多合适的国际生源？'"}
