@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Presentation, Briefcase, FileText, Globe, BookOpen, DollarSign, Mail,
-  Clock, ArrowRight, Sparkles, Zap, ChevronRight
+  Clock, ArrowRight, Sparkles, TrendingUp, Zap, ChevronRight
 } from 'lucide-react';
 
 const TOOLS = [
@@ -111,44 +111,72 @@ export default function ToolboxDashboard() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-[1200px] mx-auto px-6 py-8">
 
-        {/* Hero Section */}
-        <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-          {/* Decorative background pattern */}
-          <div className="absolute inset-0 opacity-[0.06]">
+        {/* Hero Section — light with decorative photos */}
+        <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 border border-gray-200/60 p-8">
+          {/* Decorative background dots */}
+          <div className="absolute inset-0 opacity-[0.03]">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="white" strokeWidth="0.5"/>
+                <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill="#0f172a"/>
                 </pattern>
               </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
+              <rect width="100%" height="100%" fill="url(#dots)" />
             </svg>
           </div>
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/20 to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-indigo-500/15 to-transparent rounded-full blur-3xl" />
+          {/* Soft glows */}
+          <div className="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-bl from-emerald-200/30 to-transparent rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-gradient-to-tr from-indigo-200/20 to-transparent rounded-full blur-3xl" />
           
-          <div className="relative z-10 flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
-                  <Zap className="w-5 h-5 text-emerald-400" />
-                </div>
-                <h1 className="text-2xl font-black text-white tracking-tight">Creative Workbench</h1>
+          {/* Floating decorative photos — right side */}
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-3">
+            <div className="w-[110px] h-[110px] rounded-2xl overflow-hidden shadow-lg shadow-gray-200/60 border border-white/80 rotate-[-3deg] hover:rotate-0 transition-transform duration-500">
+              <img src="/images/placeholders/team_meeting.png" alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="w-[90px] h-[90px] rounded-2xl overflow-hidden shadow-lg shadow-gray-200/60 border border-white/80 rotate-[2deg] hover:rotate-0 transition-transform duration-500">
+                <img src="/images/placeholders/hero_campus.png" alt="" className="w-full h-full object-cover" />
               </div>
-              <p className="text-sm text-gray-400 max-w-lg leading-relaxed">
+              <div className="w-[90px] h-[70px] rounded-xl overflow-hidden shadow-md shadow-gray-200/40 border border-white/80 rotate-[-1deg] hover:rotate-0 transition-transform duration-500">
+                <img src="/images/placeholders/campus_walkway.png" alt="" className="w-full h-full object-cover" />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex items-start justify-between">
+            <div className="max-w-[55%]">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-black text-gray-800 tracking-tight">Creative Workbench</h1>
+              </div>
+              <p className="text-sm text-gray-500 max-w-lg leading-relaxed">
                 AI-powered tools for document generation, design, and business intelligence.
                 Select any tool below to start creating.
               </p>
             </div>
-            <div className="hidden md:flex items-center gap-4">
-              <div className="text-right px-5 py-3 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-                <p className="text-2xl font-black text-white">{stats.total || '\u2014'}</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Recent Files</p>
+            <div className="hidden md:flex lg:hidden items-center gap-3">
+              <div className="text-right px-4 py-2.5 bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100 shadow-sm">
+                <p className="text-xl font-black text-gray-800">{stats.total || '\u2014'}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recent Files</p>
               </div>
-              <div className="text-right px-5 py-3 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-                <p className="text-2xl font-black text-emerald-400">{stats.thisWeek || '\u2014'}</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">This Week</p>
+              <div className="text-right px-4 py-2.5 bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100 shadow-sm">
+                <p className="text-xl font-black text-emerald-600">{stats.thisWeek || '\u2014'}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">This Week</p>
               </div>
+            </div>
+          </div>
+
+          {/* Stats — small badges on large screens (below the floating photos) */}
+          <div className="relative z-10 hidden lg:flex items-center gap-3 mt-5">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-xs font-bold text-gray-700">{stats.total || 0} Files Generated</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-xs font-bold text-gray-700">{stats.thisWeek || 0} This Week</span>
             </div>
           </div>
         </div>
