@@ -14,18 +14,24 @@ import prisma from '@/lib/prisma';
 
 /** 每 1M token 的价格 (USD) — 2026Q3 公开定价 */
 const PRICING_PER_1M: Record<string, { input: number; output: number }> = {
+  // Google Gemini (primary)
+  'gemini-38-flash':          { input: 0.75, output: 3.75 },
+  'gemini-3.8-flash':         { input: 0.75, output: 3.75 },
+  'gemini-3.6-flash':         { input: 0.75, output: 3.75 },
+  'gemini-3.5-flash':         { input: 0.75, output: 3.75 },
+  'gemini-flash-latest':      { input: 0.75, output: 3.75 },
+  'gemini-31-pro-preview':    { input: 7.00, output: 12.00 },
+  'gemini-3.1-pro':           { input: 7.00, output: 12.00 },
   // DeepSeek (DashScope)
-  'deepseek-v3':            { input: 0.27, output: 1.10 },
-  'deepseek-chat':          { input: 0.27, output: 1.10 },
+  'deepseek-v3':              { input: 0.27, output: 1.10 },
+  'deepseek-chat':            { input: 0.27, output: 1.10 },
   // Anthropic Claude
-  'claude-sonnet-5':        { input: 3.00, output: 15.0 },
-  'claude-sonnet-4':        { input: 3.00, output: 15.0 },
-  // Google Gemini Flash
-  'gemini-3.6-flash':       { input: 0.75, output: 3.75 },
-  'gemini-3.5-flash':       { input: 0.75, output: 3.75 },
+  'claude-sonnet-4':          { input: 3.00, output: 15.0 },
   // OpenAI
-  'gpt-4o':                 { input: 2.50, output: 10.0 },
-  'gpt-4o-mini':            { input: 0.15, output: 0.60 },
+  'gpt-4o':                   { input: 2.50, output: 10.0 },
+  'gpt-4o-mini':              { input: 0.15, output: 0.60 },
+  // Qwen Plus
+  'qwen-plus':                { input: 0.80, output: 2.00 },
 };
 
 /** 兜底价格 */
