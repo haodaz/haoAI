@@ -994,10 +994,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           <div className="mt-4 flex space-x-2">
             {status === 'idle' ? (
               <>
-                <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-xs font-bold hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-emerald-500/20">
+                <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-500 shadow-md shadow-emerald-500/20">
                   <Plus className="w-3 h-3 mr-1" /> {t('bristh.office.newTaskBtn')}
                 </button>
-                <button onClick={() => loadHistory('latest')} className="flex-1 flex items-center justify-center py-2 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100 shadow-sm border border-purple-200">
+                <button onClick={() => loadHistory('latest')} className="flex-1 flex items-center justify-center py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 shadow-sm border border-emerald-300">
                   <History className="w-3 h-3 mr-1" /> {t('bristh.office.loadLatestBtn')}
                 </button>
               </>
