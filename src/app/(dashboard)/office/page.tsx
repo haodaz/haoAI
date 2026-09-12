@@ -26,6 +26,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [currentContextId, setCurrentContextId] = useState<string | null>(null);
+  const lastDispatchedInputRef = useRef('');
   const logsRef = useRef<LogEntry[]>([]);
 
   // Restore pipeline state from session on mount (Bug 2 fix)
@@ -259,6 +260,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       setStatus('completed');
       const restoredCtxId = tasks[0].contextId;
       setCurrentContextId(restoredCtxId);
+      // Restore rawContent for re-run support
+      if (tasks[0].context?.rawContent) {
+        lastDispatchedInputRef.current = tasks[0].context.rawContent;
+      }
       setCurrentTaskDisplay(`[Restored] Context: ${restoredCtxId?.substring(0, 12)}...`);
 
       // Try to restore logs from DB
@@ -340,6 +345,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
     try {
       console.log('[Office] Calling orchestrate with', dispatchAttachments?.length || 0, 'attachments');
+      lastDispatchedInputRef.current = dispatchInput;
       const res = await fetch('/api/bristh/orchestrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1006,7 +1012,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                   </button>
                 )}
                 {status === 'completed' && (
-                  <button onClick={() => { terminateTask(); router.push('/new-task'); }} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
+                  <button onClick={() => {
+                    const savedInput = lastDispatchedInputRef.current;
+                    if (savedInput) {
+                      terminateTask();
+                      setTimeout(() => handleDispatch(savedInput, 'text'), 100);
+                    }
+                  }} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
                     <RefreshCw className="w-3 h-3 mr-1" /> {t('bristh.office.rerunBtn')}
                   </button>
                 )}

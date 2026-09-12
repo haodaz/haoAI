@@ -612,7 +612,8 @@ export default function GroupChatView() {
     fetch('/api/bristh/agents/config')
       .then(res => res.json())
       .then(data => {
-        setAllAgents(data.filter((a: any) => a.role !== 'orchestrator' && a.enabled));
+        const HIDDEN_AGENTS = ['atlas', 'jarvis', 'nexus', 'nova'];
+        setAllAgents(data.filter((a: any) => a.role !== 'orchestrator' && a.enabled && !HIDDEN_AGENTS.includes(a.name?.toLowerCase())));
         setLoading(false);
       });
   }, []);

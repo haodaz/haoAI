@@ -129,7 +129,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <PlusCircle className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-2'}`} />
-              {!desktopSidebarCollapsed && <span className="text-[13px]">{t('bristh.nav.new_task', 'New Task')}</span>}
+              {!desktopSidebarCollapsed && <span className="text-[15px]">{t('bristh.nav.new_task', 'New Task')}</span>}
             </Link>
           )}
 
@@ -146,7 +146,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             ] },
             { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
             { id: 'token-usage', path: '/token-usage', label: 'Token Ledger', icon: BarChart3 },
-            { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
+            // { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
             { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
             { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
             { id: 'external_ai', path: '/chat/bep', label: 'BEP Client AI', icon: MessageSquare, target: '_blank' },
@@ -165,7 +165,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   >
                     <div className="flex items-center">
                       <tab.icon className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
-                      {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
+                      {!desktopSidebarCollapsed && <span className="text-[15px] font-semibold">{tab.label}</span>}
                     </div>
                     {!desktopSidebarCollapsed && <ChevronDown className={`w-4 h-4 transition-transform ${kbExpanded ? 'rotate-180' : ''}`} />}
                   </button>
@@ -185,7 +185,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                             }`}
                           >
                             <child.icon className={`w-[14px] h-[14px] mr-3 ${isActive ? 'text-emerald-500' : 'text-gray-300'}`} />
-                            <span className="text-xs font-semibold">{child.label}</span>
+                            <span className="text-[14px] font-semibold">{child.label}</span>
                           </Link>
                         )
                       })}
@@ -208,7 +208,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <tab.icon className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`} />
-                {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
+                {!desktopSidebarCollapsed && <span className="text-[15px] font-semibold">{tab.label}</span>}
               </Link>
             );
           })}
