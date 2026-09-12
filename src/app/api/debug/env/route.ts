@@ -7,6 +7,8 @@ export async function GET() {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || '(not set)',
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '(not set)',
     VERCEL_URL: process.env.VERCEL_URL || '(not set)',
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL || '(not set)',
+    VERCEL: process.env.VERCEL || '(not set)',
     VERCEL_ENV: process.env.VERCEL_ENV || '(not set)',
     PORT: process.env.PORT || '(not set)',
     resolvedBaseUrl: baseUrl,

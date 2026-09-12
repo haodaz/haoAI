@@ -223,13 +223,19 @@ export async function trackableCompletion(
 /**
  * Returns the base URL for internal API calls (agent → toolbox delegation).
  * Works in both local dev and Vercel production.
+ * 
+ * IMPORTANT: VERCEL_URL points to deployment-specific URLs (e.g. hao-xxx.vercel.app)
+ * which are protected by Vercel Deployment Protection (returns 401).
+ * We must use the production domain instead.
  */
 export function getInternalBaseUrl(): string {
   // Explicit config takes priority
   if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  // Vercel auto-sets VERCEL_URL (without protocol)
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Vercel auto-sets VERCEL_PROJECT_PRODUCTION_URL to the production domain
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  // Fallback: use the custom domain directly when on Vercel
+  if (process.env.VERCEL) return 'https://www.bepoffice.com';
   // Local development fallback
   return `http://localhost:${process.env.PORT || '5859'}`;
 }
