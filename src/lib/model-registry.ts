@@ -20,25 +20,23 @@ export interface ModelConfig {
 }
 
 export const MODEL_REGISTRY: Record<string, ModelConfig> = {
-  'deepseek-v3': {
-    id: 'deepseek-v3',
-    name: 'DeepSeek V3',
-    provider: 'DashScope',
-    modelName: 'deepseek-v3',
-    apiKeyEnv: 'DASHSCOPE_API_KEY',
-    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  'gemini-38-flash': {
+    id: 'gemini-38-flash',
+    name: 'Gemini 3.8 Flash',
+    provider: 'Google',
+    modelName: 'gemini-3.8-flash',
+    apiKeyEnv: 'GEMINI_API_KEY',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     supportsJsonMode: true,
-    // DeepSeek-specific: no extra params needed, fully OpenAI-compatible
   },
-  'claude-sonnet': {
-    id: 'claude-sonnet',
-    name: 'Claude Sonnet 5',
-    provider: 'Anthropic',
-    modelName: 'claude-sonnet-5',
-    apiKeyEnv: 'ANTHROPIC_API_KEY',
-    baseURL: 'https://api.anthropic.com/v1',
-    supportsJsonMode: false,
-    extraParams: { defaultHeaders: { 'anthropic-version': '2023-06-01' } },
+  'gemini-31-pro': {
+    id: 'gemini-31-pro',
+    name: 'Gemini 3.1 Pro (Preview)',
+    provider: 'Google',
+    modelName: 'gemini-3.1-pro-preview',
+    apiKeyEnv: 'GEMINI_API_KEY',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    supportsJsonMode: true,
   },
   'gemini-flash': {
     id: 'gemini-flash',
@@ -74,15 +72,19 @@ const SELECTION_FILE = path.join('/tmp', 'bristh-model-selection.json');
 
 /**
  * Get the currently selected model ID.
- * Falls back to 'deepseek-v3' if no selection exists.
+ * Falls back to 'gemini-38-flash' if no selection exists.
  */
 export async function getSelectedModelId(): Promise<string> {
   try {
     const raw = await fs.readFile(SELECTION_FILE, 'utf-8');
     const data = JSON.parse(raw);
-    return data.modelId || 'deepseek-v3';
+    // Validate the model still exists in registry
+    if (data.modelId && MODEL_REGISTRY[data.modelId]) {
+      return data.modelId;
+    }
+    return 'gemini-38-flash';
   } catch {
-    return 'deepseek-v3';
+    return 'gemini-38-flash';
   }
 }
 
@@ -98,7 +100,7 @@ export async function setSelectedModelId(modelId: string): Promise<void> {
  */
 export async function getActiveModelConfig(): Promise<ModelConfig> {
   const modelId = await getSelectedModelId();
-  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY['deepseek-v3'];
+  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY['gemini-38-flash'];
 }
 
 /**

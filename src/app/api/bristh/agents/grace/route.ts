@@ -48,6 +48,18 @@ export async function POST(req: Request) {
     rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsedEmail = JSON.parse(rawJson);
 
+    // Check for failed sibling tasks
+    const failedSiblings = await prisma.task.findMany({
+      where: { contextId: task.contextId, id: { not: taskId }, status: 'FAILED' }
+    });
+    if (failedSiblings.length > 0) {
+      const failedNames = failedSiblings.map((t: any) => t.agent).join(', ');
+      console.warn(`[Grace] Warning: ${failedNames} failed. Proceeding with available results.`);
+      // Add a note to the email body
+      parsedEmail.htmlBody = (parsedEmail.htmlBody || '') + 
+        `<br/><hr/><p style="color:#b91c1c;font-size:12px;">⚠️ Note: ${failedNames} task(s) failed and their outputs are not included.</p>`;
+    }
+
     const siblingTasks = await prisma.task.findMany({
       where: { 
         contextId: task.contextId,
@@ -64,7 +76,6 @@ export async function POST(req: Request) {
          try {
            const payload = JSON.parse(sibling.resultPayload);
            if (payload.fileUrl) {
-              // Support both old /downloads/xxx.pptx and new /api/bristh/download?file=xxx.pptx
               let filePath: string;
               if (payload.fileUrl.includes('?file=')) {
                 const fileName = new URL(payload.fileUrl, 'http://localhost').searchParams.get('file') || '';
@@ -88,8 +99,30 @@ export async function POST(req: Request) {
               });
            }
          } catch(e) {}
+       } else if (sibling.agent === 'Fiona') {
+         // Fiona: check if brochure (has toolboxUrl) or memo
+         try {
+           const payload = JSON.parse(sibling.resultPayload);
+           if (payload.toolboxUrl) {
+             // Brochure — add a note in email, not a Word doc
+             const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5859';
+             parsedEmail.htmlBody = (parsedEmail.htmlBody || '') +
+               `<br/><p><strong>📄 Marketing Brochure:</strong> <a href="${baseUrl}${payload.toolboxUrl}">Open in Brochure Designer</a></p>`;
+           } else {
+             // Regular memo — convert to Word
+             const mdContent = payload.content || sibling.resultPayload;
+             const htmlBody = marked(mdContent) as string;
+             const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.6;color:#333}h1{font-size:20pt;font-weight:bold}h2{font-size:16pt;font-weight:bold}h3{font-size:14pt;font-weight:bold}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px}</style></head><body>${htmlBody}</body></html>`;
+             mailAttachments.push({ filename: `Fiona_Document.doc`, content: wordHtml });
+           }
+         } catch(e) {
+           // Fallback: attach as Word
+           const htmlBody = marked(sibling.resultPayload) as string;
+           const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.6;color:#333}</style></head><body>${htmlBody}</body></html>`;
+           mailAttachments.push({ filename: `Fiona_Document.doc`, content: wordHtml });
+         }
        } else {
-         // Markdown agents: Alice, Eric, David, Fiona
+         // Markdown agents: Alice, Eric, David, etc.
          let mdContent = sibling.resultPayload;
          try {
            const parsed = JSON.parse(sibling.resultPayload);

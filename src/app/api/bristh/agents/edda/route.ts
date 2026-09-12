@@ -96,7 +96,7 @@ Rules:
       buildCompletionParams(config, [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Generate the presentation JSON now. Output ONLY valid JSON.' }
-      ], { requireJson: true, maxTokens: 8192 })
+      ], { requireJson: true, maxTokens: 16000 })
     );
 
     let rawJson = response.choices[0].message.content || '{"think": "", "slides": []}';
@@ -129,7 +129,7 @@ Rules:
     }
 
     const slides = parsedData.slides || [];
-    const thinkLog = parsedData.think || '🤔 Edda 正在分析您的请求并设计演示文稿...';
+    const thinkLog = parsedData.think || 'Edda is analyzing your request and designing slides...';
 
     if (slides.length === 0) {
         throw new Error("Failed to parse slides from AI.");
@@ -141,12 +141,12 @@ Rules:
         tool: 'pptxgenjs_renderer',
         status: 'success',
         logs: [
-          '⏳ [第一阶段] 正在解析抽取到的大纲数据...',
-          '✅ 成功载入 ' + slides.length + ' 页结构数据',
-          '⏳ [第二阶段] 正在写入系统母版样式 (Corporate Layout)...',
-          '⏳ [第三阶段] 正在并发渲染文本和占位节点...',
-          '✅ 成功渲染所有文本节点',
-          '✅ 文件打包生成完毕 (.pptx)'
+          '⏳ [Phase 1] Parsing extracted outline data...',
+          '✅ Loaded ' + slides.length + ' slide structure(s)',
+          '⏳ [Phase 2] Writing master slide styles (Corporate Layout)...',
+          '⏳ [Phase 3] Rendering text and placeholder nodes...',
+          '✅ All text nodes rendered',
+          '✅ File packaged (.pptx)'
         ]
       }
     ]);

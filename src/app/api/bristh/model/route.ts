@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const currentModelId = await getSelectedModelId();
-    const currentModel = MODEL_REGISTRY[currentModelId] || MODEL_REGISTRY['deepseek-v3'];
+    const currentModel = MODEL_REGISTRY[currentModelId] || MODEL_REGISTRY['gemini-38-flash'];
     
     const available = Object.values(MODEL_REGISTRY).map(m => ({
       id: m.id,

@@ -95,13 +95,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .catch(() => {
         // Fallback: if API fails, use hardcoded defaults
         setSubAIs([
-          { id: 'Alice', name: `Alice, ${t('bristh.agents.Alice.title', {defaultValue: '方案架构师'})}`, desc: t('bristh.agents.Alice.desc', {defaultValue: '撰写商业方案'}), image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Bob', name: `Bob, ${t('bristh.agents.Bob.title', {defaultValue: '日程安排专员'})}`, desc: t('bristh.agents.Bob.desc', {defaultValue: '生成日历邀请'}), image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Edda', name: `Edda, ${t('bristh.agents.Edda.title', {defaultValue: 'PPT制作专员'})}`, desc: t('bristh.agents.Edda.desc', {defaultValue: '生成幻灯片'}), image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
-          { id: 'David', name: `David, ${t('bristh.agents.David.title', {defaultValue: '内控纪检专员'})}`, desc: t('bristh.agents.David.desc', {defaultValue: '内部整改'}), image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
-          { id: 'Fiona', name: `Fiona, ${t('bristh.agents.Fiona.title', {defaultValue: '组织宣发专员'})}`, desc: t('bristh.agents.Fiona.desc', {defaultValue: '内部通报'}), image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20' },
-          { id: 'Eric', name: `Eric, ${t('bristh.agents.Eric.title', {defaultValue: '法务写作专员'})}`, desc: t('bristh.agents.Eric.desc', {defaultValue: '法律文书'}), image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20' },
-          { id: 'Grace', name: `Grace, ${t('bristh.agents.Grace.title', {defaultValue: '邮件分发专员'})}`, desc: t('bristh.agents.Grace.desc', {defaultValue: '邮件发送'}), image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20' },
+          { id: 'Alice', name: `Alice, ${t('bristh.agents.Alice.title', {defaultValue: 'Proposal Architect'})}`, desc: t('bristh.agents.Alice.desc', {defaultValue: 'Business proposals'}), image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
+          { id: 'Bob', name: `Bob, ${t('bristh.agents.Bob.title', {defaultValue: 'Scheduling Assistant'})}`, desc: t('bristh.agents.Bob.desc', {defaultValue: 'Calendar invites'}), image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
+          { id: 'Edda', name: `Edda, ${t('bristh.agents.Edda.title', {defaultValue: 'Presentation Specialist'})}`, desc: t('bristh.agents.Edda.desc', {defaultValue: 'Slide decks'}), image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
+          { id: 'David', name: `David, ${t('bristh.agents.David.title', {defaultValue: 'Internal Audit Specialist'})}`, desc: t('bristh.agents.David.desc', {defaultValue: 'Compliance audit'}), image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
+          { id: 'Fiona', name: `Fiona, ${t('bristh.agents.Fiona.title', {defaultValue: 'Communications Specialist'})}`, desc: t('bristh.agents.Fiona.desc', {defaultValue: 'Memos & brochures'}), image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20' },
+          { id: 'Eric', name: `Eric, ${t('bristh.agents.Eric.title', {defaultValue: 'Legal Officer'})}`, desc: t('bristh.agents.Eric.desc', {defaultValue: 'Legal documents'}), image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20' },
+          { id: 'Grace', name: `Grace, ${t('bristh.agents.Grace.title', {defaultValue: 'Email Dispatch'})}`, desc: t('bristh.agents.Grace.desc', {defaultValue: 'Send emails'}), image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20' },
         ]);
       });
   }, []);
@@ -118,10 +118,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
   // Known steps per agent for simulated ticker
   const AGENT_STEPS: Record<string, string[]> = {
-    Alice: ['[1/4] 检索 BEP 知识库...', '[2/4] 生成 Initial Conversation...', '[3/4] 拼接商业条款...', '[4/4] 定制 What School Gains...'],
-    Eric:  ['[1/4] 加载文书类型配置...', '[2/4] AI 生成主体条款...', '[3/4] 拼接标准保护性条款...', '[4/4] 文书文书完成...'],
-    Edda:  ['[1/4] 解析演示需求...', '[2/4] 生成幻灯片内容...', '[3/4] 渲染 .pptx 文件...', '[4/4] 上传文件...'],
-    Iris:  ['[1/4] 解析页面需求...', '[2/4] 生成 HTML 模板...', '[3/4] 青昌设计元素...', '[4/4] 发布落地页...'],
+    Alice: ['[1/4] Searching BEP knowledge base...', '[2/4] Generating Initial Conversation...', '[3/4] Assembling commercial terms...', '[4/4] Customizing What School Gains...'],
+    Eric:  ['[1/4] Loading legal document config...', '[2/4] AI drafting core clauses...', '[3/4] Appending protective clauses...', '[4/4] Finalizing document...'],
+    Edda:  ['[1/4] Parsing presentation brief...', '[2/4] Generating slide content...', '[3/4] Rendering .pptx file...', '[4/4] Uploading file...'],
+    Iris:  ['[1/4] Parsing page requirements...', '[2/4] Generating HTML template...', '[3/4] Applying design elements...', '[4/4] Publishing landing page...'],
+    Fiona: ['[1/4] Detecting task type...', '[2/4] Loading KB content...', '[3/4] Generating brochure layout...', '[4/4] Saving asset...'],
+    Grace: ['[1/4] Collecting attachments...', '[2/4] Composing email...', '[3/4] Building HTML body...', '[4/4] Sending via SMTP...'],
   };
   const tickerTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const tickerCounters = useRef<Record<string, number>>({});
@@ -130,7 +132,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const startTicker = (taskId: string, agentName: string) => {
     if (tickerTimers.current[taskId]) return; // already running
     const agentKey = Object.keys(AGENT_STEPS).find(k => agentName.includes(k));
-    const steps = agentKey ? AGENT_STEPS[agentKey] : ['[?/4] 工具执行中...'];
+    const steps = agentKey ? AGENT_STEPS[agentKey] : ['[?/4] Processing...'];
     tickerCounters.current[taskId] = 0;
     setNodeProgress(prev => ({ ...prev, [taskId]: steps[0] }));
     tickerTimers.current[taskId] = setInterval(() => {
@@ -325,14 +327,14 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     // Clear persisted pipeline for new task
     try { sessionStorage.removeItem('office_pipeline'); } catch { /* ignore */ }
 
-    setCurrentTaskDisplay(dispatchMode === 'text' ? dispatchInput.substring(0, 50) + '...' : `已关联${dispatchMode === 'file' ? '上传文件' : 'CRM邮件'}`);
+    setCurrentTaskDisplay(dispatchMode === 'text' ? dispatchInput.substring(0, 50) + '...' : `Linked ${dispatchMode === 'file' ? 'uploaded file' : 'CRM email'}`);
     setStatus('analyzing');
     setActiveNodes([]);
     setLogs([]);
     
     addLog('System', 'Task initiated. Routing to Chief Master AI.');
     if (dispatchAttachments?.length) {
-      addLog('System', `📎 ${dispatchAttachments.length} 个附件已关联到任务上下文。`);
+      addLog('System', `📎 ${dispatchAttachments.length} attachment(s) linked to task context.`);
     }
     addLog('Chief', 'Reading context and analyzing intent...');
 
@@ -351,7 +353,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       const assignedTasks = data.tasks || [];
       addLog('Chief', `Orchestration complete. Participating agents: ${assignedTasks.map((t:any) => t.agent).join(', ')}.`);
       // Use Chief's phase assignments (dynamic pipeline)
-      const PHASE_LABELS: Record<number, string> = { 1: '信息准备', 2: '核心工作', 3: '整合分发' };
+      const PHASE_LABELS: Record<number, string> = { 1: 'Information Prep', 2: 'Core Execution', 3: 'Consolidation' };
 
       const initialActiveNodes = assignedTasks.map((t:any) => ({
         agent: t.agent,
@@ -473,7 +475,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     addLog('Chief', `Dispatching ${preCreatedTasks.length} agents: ${preCreatedTasks.map((t: any) => t.agent).join(', ')}.`);
 
     // Use Chief's phase assignments (dynamic pipeline)
-    const PHASE_LABELS2: Record<number, string> = { 1: '信息准备', 2: '核心工作', 3: '整合分发' };
+    const PHASE_LABELS2: Record<number, string> = { 1: 'Information Prep', 2: 'Core Execution', 3: 'Consolidation' };
 
     const initialActiveNodes = preCreatedTasks.map((t: any) => ({
       agent: t.agent,
@@ -614,7 +616,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       addLog(agentName, '✅ Completed.');
       const requiresApproval = agentData.task?.requiresApproval;
       const finalStatus = requiresApproval ? 'awaiting_approval' : 'done';
-      if (requiresApproval) addLog(agentName, `🟡 需要人工审批确认才能继续。`);
+      if (requiresApproval) addLog(agentName, `🟡 Requires manual approval to continue.`);
       setActiveNodes(prev => prev.map(n => n.taskId === taskId ? { ...n, status: finalStatus, summary } : n));
     } catch (err: any) {
       addLog(agentName, `❌ Error: ${err.message}`);
@@ -1420,7 +1422,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                     <input 
                       type="text" 
                       className="flex-1 outline-none text-sm bg-transparent placeholder-gray-400"
-                      placeholder="告诉 AI 哪里需要修改..."
+                      placeholder="Tell AI what to change..."
                       value={copilotMessage}
                       onChange={(e) => setCopilotMessage(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && sendCopilotMessage()}
@@ -1440,7 +1442,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         ) : (
           <div className="flex items-center justify-center h-64">
             <Spin size="large" />
-            <span className="ml-3 text-gray-500 font-bold">加载任务数据中...</span>
+            <span className="ml-3 text-gray-500 font-bold">Loading task data...</span>
           </div>
         )}
       </Modal>

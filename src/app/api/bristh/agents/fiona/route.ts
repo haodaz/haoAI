@@ -154,7 +154,7 @@ async function handleBrochure(task: any, taskId: string, locale?: string) {
   });
 
   await tracker.persist('agent', 'fiona', taskId, task.context.id).catch(() => {});
-  await recordTaskCompletion(task, updatedTask).catch(() => {});
+  await recordTaskCompletion('fiona', taskId, task.instruction, `Brochure: ${brochureResult?.title || 'untitled'}`).catch(() => {});
 
   return NextResponse.json({ success: true, task: updatedTask });
 }
