@@ -56,9 +56,7 @@ const MODEL_PRICING_REF = [
   { name: 'Gemini 3.6 Flash', input: '$0.75', output: '$3.75' },
   { name: 'Gemini 3.5 Flash', input: '$0.75', output: '$3.75' },
   { name: 'Gemini 3.1 Pro', tag: 'Pro', tagColor: '#ea4335', input: '$7.00', output: '$12.00' },
-  { name: 'DeepSeek V3', tag: 'Budget', tagColor: '#7c3aed', input: '$0.27', output: '$1.10' },
   { name: 'GPT-4o', input: '$2.50', output: '$10.00' },
-  { name: 'Qwen Plus', tag: 'Budget Alt', tagColor: '#ff6a00', input: '$0.80', output: '$2.00' },
 ];
 
 const AGENT_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
