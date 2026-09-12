@@ -76,19 +76,32 @@ export async function POST(req: Request) {
          try {
            const payload = JSON.parse(sibling.resultPayload);
            if (payload.fileUrl) {
-              let filePath: string;
-              if (payload.fileUrl.includes('?file=')) {
+              if (payload.fileUrl.startsWith('data:')) {
+                // data: URI — extract base64 and attach as buffer
+                const base64Match = payload.fileUrl.match(/base64,(.+)$/);
+                if (base64Match) {
+                  mailAttachments.push({
+                    filename: `${payload.summary || 'BEP_Presentation'}.pptx`,
+                    content: Buffer.from(base64Match[1], 'base64'),
+                    contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                  });
+                }
+              } else if (payload.fileUrl.includes('?file=')) {
                 const fileName = new URL(payload.fileUrl, 'http://localhost').searchParams.get('file') || '';
-                filePath = path.join('/tmp', 'bristh-downloads', fileName);
+                const filePath = path.join('/tmp', 'bristh-downloads', fileName);
+                mailAttachments.push({
+                   filename: `${sibling.agent}_Presentation.pptx`,
+                   path: filePath
+                });
               } else {
-                filePath = path.join(process.cwd(), 'public', payload.fileUrl);
+                const filePath = path.join(process.cwd(), 'public', payload.fileUrl);
+                mailAttachments.push({
+                   filename: `${sibling.agent}_Presentation.pptx`,
+                   path: filePath
+                });
               }
-              mailAttachments.push({
-                 filename: `${sibling.agent}_Presentation.pptx`,
-                 path: filePath
-              });
            }
-         } catch(e) {}
+         } catch(e) { console.error('[Grace] Failed to process Edda attachment:', e); }
        } else if (sibling.agent === 'Bob') {
          try {
            const payload = JSON.parse(sibling.resultPayload);
@@ -197,10 +210,10 @@ export async function POST(req: Request) {
       attachments: mailAttachments
     });
 
-    const resultContent = `### 邮件发送成功 ✅\n\n**收件人**: ${toEmail}${parsedEmail.cc ? `\n**CC**: ${parsedEmail.cc}` : ''}\n**主题**: ${parsedEmail.subject}\n\n**正文内容预览**:\n${parsedEmail.htmlBody.replace(/<[^>]+>/g, '')}`;
+    const resultContent = `### Email Sent Successfully ✅\n\n**To**: ${toEmail}${parsedEmail.cc ? `\n**CC**: ${parsedEmail.cc}` : ''}\n**Subject**: ${parsedEmail.subject}\n\n**Body Preview**:\n${parsedEmail.htmlBody.replace(/<[^>]+>/g, '')}`;
 
     const resultPayload = JSON.stringify({
-      summary: `📧 邮件已发送至 ${toEmail}：${parsedEmail.subject}`,
+      summary: `📧 Email sent to ${toEmail}: ${parsedEmail.subject}`,
       content: resultContent
     });
 
