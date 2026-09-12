@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
         try {
           // ── BLOCK 1: KB Retrieval ──
-          sendLog('[1/5]', '🔄 正在检索 BEP 核心知识库与自定义文档...');
+          sendLog('[1/5]', '🔄 Retrieving BEP core knowledge and custom documents...');
           
           const { client, config } = await getModelClient();
           const focusString = (focusAreas || []).length > 0 ? focusAreas.join(', ') : 'General International Recruitment';
@@ -92,20 +92,20 @@ export async function POST(req: Request) {
           let kbContext = '';
           if (kbFileIds && Array.isArray(kbFileIds) && kbFileIds.length > 0) {
             const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
-            kbContext += kbFiles.map((f: any) => `【补充资料: ${f.title}】\n${f.content}`).join('\n\n') + '\n\n';
+            kbContext += kbFiles.map((f: any) => `【Reference: ${f.title}】\n${f.content}`).join('\n\n') + '\n\n';
           }
           const coreKbFiles = await prisma.knowledgeItem.findMany({ where: { title: { startsWith: 'BEP Introduction' } }, take: 2 });
-          kbContext += coreKbFiles.map((f: any) => `【BEP核心资料: ${f.title}】\n${f.content}`).join('\n\n');
-          sendLog('[1/6]', '✅ 知识库检索完毕');
+          kbContext += coreKbFiles.map((f: any) => `【BEP Core: ${f.title}】\n${f.content}`).join('\n\n');
+          sendLog('[1/6]', '✅ Knowledge base retrieval complete');
 
           // ── BLOCK 2: Web Search for School Information ──
           // Priority: Gemini Search Grounding (Google) → Aliyun → Bocha → DuckDuckGo
-          sendLog('[2/6]', '🌐 正在联网检索院校信息...');
+          sendLog('[2/6]', '🌐 Searching for school information online...');
           let schoolSearchDone = false;
           try {
             const geminiKey = process.env.GEMINI_API_KEY;
             if (geminiKey) {
-              sendLog('[2/6]', '🚀 启动 Gemini Search Grounding (Google 搜索直连)...');
+              sendLog('[2/6]', '🚀 Launching Gemini Search Grounding (Google direct search)...');
               const genAI = new GoogleGenerativeAI(geminiKey);
               const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', tools: [{ googleSearch: {} }] as any });
               const geminiQuery = `Please use Google Search to find comprehensive information about "${targetSchool}" — a UK independent school. Provide a detailed summary covering: location, founding year, student numbers (total and boarding), age range, curriculum offered (A-Levels, IB, GCSE), key strengths and USPs, notable facilities, recent developments, and international student provision. Output in English.`;
@@ -113,38 +113,38 @@ export async function POST(req: Request) {
               const geminiText = geminiResult.response.text();
               if (geminiText && geminiText.length > 100) {
                 kbContext += `\n\n【Gemini 联网检索: ${targetSchool} 院校信息】\n${geminiText}`;
-                sendLog('[2/6]', `✅ Gemini 搜索完成，获取 ${geminiText.length} 字院校资料`);
+                sendLog('[2/6]', `✅ Gemini search complete — retrieved ${geminiText.length} characters of school data`);
                 schoolSearchDone = true;
               }
             }
             if (!schoolSearchDone) {
-              sendLog('[2/6]', `${process.env.GEMINI_API_KEY ? '⚠️ Gemini 结果不足，' : ''}降级使用 阿里云/Bocha 综合检索...`);
+              sendLog('[2/6]', `${process.env.GEMINI_API_KEY ? '⚠️ Gemini results insufficient, ' : ''}falling back to Aliyun/Bocha search...`);
               const searchExecutor = searchModule.executors.search_internet;
               const searchQuery = `"${targetSchool}" UK independent school boarding international students prospectus`;
               const searchResult = await searchExecutor({ query: searchQuery, num_results: '5' });
               if (searchResult && !searchResult.startsWith('未能检索到')) {
                 kbContext += `\n\n【联网检索: ${targetSchool} 院校信息】\n${searchResult}`;
-                sendLog('[2/6]', `✅ 联网搜索完成，获取 ${searchResult.length} 字院校资料`);
+                sendLog('[2/6]', `✅ Web search complete — retrieved ${searchResult.length} characters of school data`);
                 schoolSearchDone = true;
               }
             }
             if (!schoolSearchDone) {
-              sendLog('[2/6]', '⚠️ 联网搜索未返回结果，将使用已有信息继续');
+              sendLog('[2/6]', '⚠️ Web search returned no results, proceeding with available information');
             }
           } catch (searchErr: any) {
             console.error('[Proposal] Web search failed:', searchErr.message);
-            sendLog('[2/6]', '⚠️ 联网搜索失败，将使用已有信息继续');
+            sendLog('[2/6]', '⚠️ Web search failed, proceeding with available information');
           }
 
           // ── BLOCK 3: Document Header (hardcoded from template) ──
-          sendLog('[3/6]', '🔄 正在组装文档头 (Proposal Template)...');
+          sendLog('[3/6]', '🔄 Assembling document header (Proposal Template)...');
           const today = new Date();
           const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
           const header = `# British Enrolment Partners x ${targetSchool}\n\n**Prepared by** British Enrolment Partners\n**Prepared for** ${targetSchool}\n\n*Private & Confidential*\n*${dateStr}*\n\n## International Enrolment Strategy, Recruitment Coordination and Growth Partnership\n\n### 1. Initial Conversation\n\n`;
           sendChunk(header);
 
           // ── BLOCK 4: Initial Conversation (AI-generated, style-guided) ──
-          sendLog('[4/6]', '🔄 正在生成 Initial Conversation (模板风格引导)...');
+          sendLog('[4/6]', '🔄 Generating Initial Conversation (template-guided style)...');
 
           const introRes = await client.chat.completions.create({
             ...buildCompletionParams(config, [{ role: 'system', content: `You are the proposal writer at British Enrolment Partners (BEP). You are drafting the "Initial Conversation" section of a formal partnership proposal.
@@ -179,10 +179,10 @@ RULES:
             const text = chunk.choices[0]?.delta?.content || '';
             if (text) sendChunk(text);
           }
-          sendLog('[4/6]', '✅ Initial Conversation 生成完成');
+          sendLog('[4/6]', '✅ Initial Conversation generated');
 
           // ── BLOCK 5: Commercial Model (hardcoded from template) ──
-          sendLog('[5/6]', '🔄 拼接官方商业条款 (Commercial Model)...');
+          sendLog('[5/6]', '🔄 Assembling official commercial terms (Commercial Model)...');
           const modelFn = COMMERCIAL_MODELS[businessModel] || COMMERCIAL_MODELS['Fixed Retainer'];
           const modelDescription = modelFn(targetSchool);
 
@@ -199,11 +199,11 @@ RULES:
             modelSection += `\n\n${modelDescription}`;
           }
           sendChunk(modelSection);
-          sendLog('[5/6]', '✅ 商业条款拼装完毕');
+          sendLog('[5/6]', '✅ Commercial terms assembled');
 
           // ── BLOCK 6: What School Gains (AI-personalised from template baseline) ──
           sendChunk(`\n\n### 3. What ${targetSchool} Gains\n\n`);
-          sendLog('[6/6]', '🔄 正在生成定制化收益 (What School Gains)...');
+          sendLog('[6/6]', '🔄 Generating customised benefits (What School Gains)...');
           
           const benefitsRes = await client.chat.completions.create({
             ...buildCompletionParams(config, [{ role: 'system', content: `You are the proposal writer at British Enrolment Partners (BEP).
@@ -232,11 +232,11 @@ RULES:
           }
 
           // ── BLOCK 7: Next Steps (hardcoded from template) ──
-          sendLog('[完毕]', '🔄 拼接推进步骤 (Next Steps)...');
+          sendLog('[Done]', '🔄 Assembling Next Steps...');
           const nextStepsBlock = `\n\n### 4. Recommendation and Next Steps\n\nShould ${targetSchool} wish to proceed, we suggest the following next steps:\n\n• Confirm the preferred partnership model.\n\n• Jointly agree recruitment/revenue targets & markets, implementation roadmap and reporting framework.\n\n• Deliver comprehensive training for the BEP recruitment team, including in-person sessions for our UK staff and online training for our overseas teams, ensuring everyone has a thorough understanding of the ${targetSchool} offering, culture and admissions process.\n\n• Work closely with your marketing team to obtain the necessary marketing materials and develop a coordinated recruitment and marketing plan for the agreed markets.\n\n• We are genuinely excited by the opportunity to work together and believe BEP can make a meaningful contribution to expanding ${targetSchool}'s international presence.`;
           sendChunk(nextStepsBlock);
 
-          sendLog('[完毕]', '✅ Proposal 全部生成完毕！');
+          sendLog('[Done]', '✅ Proposal fully generated!');
 
           // Save to GeneratedAsset for history
           const asset = await prisma.generatedAsset.create({

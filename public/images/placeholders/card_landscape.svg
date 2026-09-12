@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <defs>
+    <pattern id="grid-card_landscape" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0E3018" stroke-width="0.3" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="600" height="400" fill="#f0f4f0" rx="6"/>
+  <rect width="600" height="400" fill="url(#grid-card_landscape)" rx="6"/>
+  <rect x="3" y="3" width="594" height="394" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="8,4" rx="4" opacity="0.5"/>
+  <g transform="translate(300, 180)">
+    <rect x="-18" y="-12" width="36" height="24" rx="4" fill="none" stroke="#0E3018" stroke-width="2" opacity="0.4"/>
+           <path d="M-12,-4 L-4,4 L2,-2 L12,4" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+           <circle cx="6" cy="-4" r="3" fill="#c9a84c" opacity="0.4"/>
+  </g>
+  <text x="300" y="222" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700">Landscape Image</text>
+  <text x="300" y="240" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="12" opacity="0.45">Side content or feature photo</text>
+</svg>

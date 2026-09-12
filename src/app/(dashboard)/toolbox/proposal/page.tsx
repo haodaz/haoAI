@@ -173,7 +173,7 @@ export default function ProposalPage() {
     setProposalResult(textBuffer);
     setEditorHtml(marked(textBuffer) as string);
     setLoading(false);
-    setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 complete!\n\nYou can enter edit instructions below, e.g.:\n- "Switch the model to Performance Partnership"\n- "Add a section about the Korean market"\n- "Include boarding enrolment data in Section 3"` }]);
+    setCopilotHistory([{ role: 'bot', content: `✅ Proposal Draft 1 is ready! I can help you refine it. Try asking me to:` }]);
   };
 
   const handleCopilot = async () => {
@@ -252,6 +252,23 @@ export default function ProposalPage() {
                       </div>
                     </div>
                   ))}
+                  {/* Quick action bubbles */}
+                  {copilotHistory.length > 0 && copilotHistory.length <= 2 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {[
+                        'Switch to Performance Partnership model',
+                        'Add a section about the Chinese market',
+                        'Make the tone more persuasive',
+                        'Add boarding enrolment statistics',
+                        'Expand the Next Steps section',
+                        'Add a school-specific case study',
+                      ].map((q, qi) => (
+                        <button key={qi} onClick={() => { setCopilotInput(q); }} className="px-3 py-1.5 text-[11px] bg-blue-50 text-blue-600 border border-blue-100 rounded-full hover:bg-blue-100 transition-all">
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {copilotLoading && (
                     <div className="flex items-center gap-2 text-sm text-gray-500 p-2">
                       <Spin size="small" /> AI is revising...
@@ -300,7 +317,9 @@ export default function ProposalPage() {
           {/* Markdown / Editor Result */}
           <div className="flex-1 bg-gray-100 overflow-y-auto max-h-[calc(100vh-130px)] flex flex-col items-center">
             {loading ? (
-              <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm my-10">
+              <div className="bg-white shadow-xl border border-gray-200 w-full max-w-[210mm] min-h-[297mm] p-12 md:p-16 shrink-0 rounded-sm my-10 relative">
+                {/* BEP Logo top-right */}
+                <img src="/images/bep_logo_light.png" alt="BEP" className="absolute top-6 right-6 w-28 opacity-80" />
                 <div className="prose prose-slate max-w-none text-gray-800 prose-headings:font-black prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-li:my-1" dangerouslySetInnerHTML={{ __html: marked(proposalResult) as string }} />
               </div>
             ) : editorHtml ? (
@@ -309,11 +328,11 @@ export default function ProposalPage() {
                 <style>{`
                   .a4-editor-wrapper .quill { width: 100%; display: flex; flex-direction: column; align-items: center; }
                   .a4-editor-wrapper .ql-toolbar.ql-snow { width: 100%; border: none; border-bottom: 1px solid #e5e7eb; padding: 12px; position: sticky; top: 0; z-index: 50; background: white; display: flex; justify-content: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-                  .a4-editor-wrapper .ql-container.ql-snow { border: none; background: white; width: 100%; max-width: 210mm; min-height: 297mm; padding: 60px; margin-top: 40px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-radius: 4px; font-size: 15px; font-family: inherit; }
+                  .a4-editor-wrapper .ql-container.ql-snow { border: none; background: white; width: 100%; max-width: 210mm; min-height: 297mm; padding: 60px; margin-top: 40px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-radius: 4px; font-size: 15px; font-family: inherit; background-image: url('/images/bep_logo_light.png'); background-repeat: no-repeat; background-position: top 20px right 20px; background-size: 100px auto; }
                   .a4-editor-wrapper .ql-editor { padding: 0; line-height: 1.8; color: #374151; }
-                  .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #111827; }
-                  .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
-                  .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827; }
+                  .a4-editor-wrapper .ql-editor h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: #0E3018; }
+                  .a4-editor-wrapper .ql-editor h2 { font-size: 1.5rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0E3018; }
+                  .a4-editor-wrapper .ql-editor h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0E3018; }
                 `}</style>
               </div>
             ) : (

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+  <defs>
+    <pattern id="grid-card_portrait" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0E3018" stroke-width="0.3" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="400" height="600" fill="#f0f4f0" rx="6"/>
+  <rect width="400" height="600" fill="url(#grid-card_portrait)" rx="6"/>
+  <rect x="3" y="3" width="394" height="594" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="8,4" rx="4" opacity="0.5"/>
+  <g transform="translate(200, 280)">
+    <rect x="-14" y="-18" width="28" height="36" rx="4" fill="none" stroke="#0E3018" stroke-width="2" opacity="0.4"/>
+           <circle cx="0" cy="-6" r="8" fill="none" stroke="#c9a84c" stroke-width="1.5" opacity="0.4"/>
+           <path d="M-10,10 Q0,4 10,10" fill="none" stroke="#0E3018" stroke-width="1.5" opacity="0.3"/>
+  </g>
+  <text x="200" y="322" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="13.333333333333334" font-weight="700">Portrait Image</text>
+  <text x="200" y="340" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="10" opacity="0.45">Tall sidebar or profile photo</text>
+</svg>

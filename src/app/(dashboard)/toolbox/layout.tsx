@@ -14,13 +14,14 @@ export function useToolbox() {
   return useContext(ToolboxContext);
 }
 import { Spin } from 'antd';
-import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight } from 'lucide-react';
+import { Presentation, FileText, Globe, Mail, Briefcase, History, Clock, ChevronRight, BookOpen } from 'lucide-react';
 
 const TOOLS = [
   { id: 'ppt', path: '/toolbox/ppt', label: 'PPT Generator', desc: 'Render downloadable .pptx files', icon: Presentation, color: 'indigo' },
   { id: 'proposal', path: '/toolbox/proposal', label: 'Proposal Writer', desc: 'Custom business proposals & contracts', icon: Briefcase, color: 'blue' },
   { id: 'legal', path: '/toolbox/legal', label: 'Legal Docs', desc: 'NDA / MOU / Service Agreements', icon: FileText, color: 'violet' },
-  { id: 'webpage', path: '/toolbox/webpage', label: 'Landing Page', desc: 'Tailwind responsive page design', icon: Globe, color: 'teal' },
+  { id: 'webpage', path: '/toolbox/webpage', label: 'Website Builder', desc: 'Responsive website with brand design', icon: Globe, color: 'teal' },
+  { id: 'brochure', path: '/toolbox/brochure', label: 'Brochure Design', desc: 'Flyers, tri-folds & booklets', icon: BookOpen, color: 'emerald' },
   { id: 'signature', path: '/toolbox/signature', label: 'Email Signature', desc: 'Global HTML signature editor', icon: Mail, color: 'orange' },
 ];
 
@@ -28,8 +29,9 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon
   indigo: { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-700', icon: 'text-indigo-500' },
   blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   text: 'text-blue-700',   icon: 'text-blue-500' },
   violet: { bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700', icon: 'text-violet-500' },
-  teal:   { bg: 'bg-teal-50',   border: 'border-teal-100',   text: 'text-teal-700',   icon: 'text-teal-500' },
-  orange: { bg: 'bg-orange-50', border: 'border-orange-100', text: 'text-orange-700', icon: 'text-orange-500' },
+  teal:    { bg: 'bg-teal-50',    border: 'border-teal-100',    text: 'text-teal-700',    icon: 'text-teal-500' },
+  emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: 'text-emerald-500' },
+  orange:  { bg: 'bg-orange-50',  border: 'border-orange-100',  text: 'text-orange-700',  icon: 'text-orange-500' },
 };
 
 const TYPE_ICON: Record<string, { icon: any; color: string }> = {
@@ -69,10 +71,10 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
     <ToolboxContext.Provider value={{ sidebarCollapsed, setSidebarCollapsed }}>
       <div className="w-full h-full bg-[#f8f9fc] flex flex-col md:flex-row overflow-hidden">
         {/* Tool Sidebar */}
-        <div className={`bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'w-full md:w-16' : 'w-full md:w-56'}`}>
+        <div className={`bg-white border-b md:border-b-0 md:border-r border-gray-200/80 flex flex-col shrink-0 overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'w-full md:w-16' : 'w-full md:w-[300px]'}`}>
           <div className="p-4 space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden">
             {/* Tools section */}
-            {!sidebarCollapsed && <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Tools</h2>}
+            {!sidebarCollapsed && <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Tools</h2>}
             {TOOLS.map(tool => {
               const isActive = activeTool === tool.id;
               const colors = COLOR_MAP[tool.color];
@@ -82,8 +84,8 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
                   className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center ${sidebarCollapsed ? 'justify-center' : ''} ${
                     isActive ? `${colors.bg} border ${colors.border}` : 'bg-white border border-gray-100 hover:bg-gray-50'
                   }`}>
-                  <h3 className={`text-xs font-bold flex items-center ${isActive ? colors.text : 'text-gray-700'}`}>
-                    <Icon className={`w-3.5 h-3.5 ${sidebarCollapsed ? '' : 'mr-2'} ${isActive ? colors.icon : 'text-gray-400'}`} />
+                  <h3 className={`text-[16px] font-bold flex items-center ${isActive ? colors.text : 'text-gray-700'}`}>
+                    <Icon className={`w-4 h-4 ${sidebarCollapsed ? '' : 'mr-2.5'} ${isActive ? colors.icon : 'text-gray-400'}`} />
                     {!sidebarCollapsed && tool.label}
                   </h3>
                 </button>
@@ -128,17 +130,18 @@ export default function ToolboxLayout({ children }: { children: React.ReactNode 
               </div>
             </div>
           )}
+          {/* Collapse / Expand toggle */}
+          <div className="p-2 border-t border-gray-100 shrink-0">
+            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="w-full p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-400 transition-all flex items-center justify-center gap-1">
+              <ChevronRight className={`w-4 h-4 transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
+              {!sidebarCollapsed && <span className="text-xs font-bold">Collapse</span>}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50/50 relative">
-        <button 
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
-          className="absolute top-4 left-4 z-50 p-1.5 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 md:hidden"
-        >
-          <ChevronRight className={`w-4 h-4 transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
-        </button>
+      <div className="flex-1 overflow-y-auto bg-gray-50/50 relative">
         <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Spin /></div>}>
           {children}
         </Suspense>

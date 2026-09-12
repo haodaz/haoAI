@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+  <defs>
+    <pattern id="grid-banner_hero" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0E3018" stroke-width="0.3" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="500" fill="#f0f4f0" rx="6"/>
+  <rect width="1200" height="500" fill="url(#grid-banner_hero)" rx="6"/>
+  <rect x="3" y="3" width="1194" height="494" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="8,4" rx="4" opacity="0.5"/>
+  <g transform="translate(600, 230)">
+    <rect x="-20" y="-14" width="40" height="28" rx="4" fill="none" stroke="#0E3018" stroke-width="2" opacity="0.4"/>
+           <path d="M-14,-6 L-6,2 L0,-4 L14,6" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+           <circle cx="8" cy="-6" r="4" fill="#c9a84c" opacity="0.4"/>
+  </g>
+  <text x="600" y="272" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700">Hero Banner</text>
+  <text x="600" y="290" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="12" opacity="0.45">Upload a wide banner image</text>
+</svg>

@@ -60,7 +60,9 @@ export async function POST() {
       const text = parsedMail.text || '';
 
       // Skip empty emails
-      if (!text.trim()) continue;
+      if (!text.trim() && !subject.trim()) continue;
+      
+      const emailContent = text.trim() ? text : `(No body, subject: ${subject})`;
 
       // Call AI to analyze email
       const analysisPrompt = `
@@ -69,7 +71,7 @@ export async function POST() {
       Sender: ${from}
       Subject: ${subject}
       Body:
-      ${text}
+      ${emailContent}
 
       Extract the following information and return ONLY a strict JSON object:
       {
@@ -120,7 +122,7 @@ export async function POST() {
               type: 'EMAIL',
               summary: `收到主题为 "${subject}" 的邮件咨询。`,
               messages: JSON.stringify([
-                { role: 'user', content: text, timestamp: parsedMail.date?.toISOString() || new Date().toISOString() }
+                { role: 'user', content: emailContent, timestamp: parsedMail.date?.toISOString() || new Date().toISOString() }
               ])
             }
           }

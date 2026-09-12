@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <pattern id="grid-icon_circle" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0E3018" stroke-width="0.3" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="120" height="120" fill="#f0f4f0" rx="6"/>
+  <rect width="120" height="120" fill="url(#grid-icon_circle)" rx="6"/>
+  <rect x="3" y="3" width="114" height="114" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="8,4" rx="4" opacity="0.5"/>
+  <g transform="translate(60, 40)">
+    <circle cx="0" cy="0" r="18" fill="#0E3018" opacity="0.1"/>
+           <path d="M-6,-6 L6,-6 L6,6 L-6,6 Z" fill="none" stroke="#c9a84c" stroke-width="2" opacity="0.6"/>
+  </g>
+  <text x="60" y="82" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700">Icon</text>
+  <text x="60" y="100" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="8" opacity="0.45">Feature icon</text>
+</svg>

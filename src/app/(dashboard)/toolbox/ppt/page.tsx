@@ -2,16 +2,21 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Spin } from 'antd';
-import { Presentation, FileText, Send, Download, ChevronLeft, ChevronRight, Plus, XCircle, MessageSquare, Database, X, Wand2, ArrowRight } from 'lucide-react';
+import { Presentation, FileText, Send, Download, ChevronLeft, ChevronRight, Plus, XCircle, MessageSquare, Database, X, Wand2, ArrowRight, ImagePlus, Upload } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { useToolbox } from '../layout';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 
+const SLIDE_SCALES = [
+  { id: '5', name: '~5 pages', desc: 'Quick overview, executive summary' },
+  { id: '10', name: '~10 pages', desc: 'Standard business presentation' },
+  { id: '15', name: '~15 pages', desc: 'Detailed analysis with sections' },
+  { id: '20', name: '~20 pages', desc: 'Comprehensive full report' },
+];
 const THEMES = [
-  { id: 'graphite', name: 'Modern Graphite', colors: ['#2D3436', '#DFE6E9', '#0984E3'] },
-  { id: 'blue', name: 'Professional Blue', colors: ['#1E3A8A', '#3B82F6', '#DBEAFE'] },
-  { id: 'emerald', name: 'Creative Emerald', colors: ['#065F46', '#10B981', '#D1FAE5'] },
-  { id: 'light', name: 'Minimalist Light', colors: ['#64748B', '#94A3B8', '#F1F5F9'] },
+  { id: 'bep', name: 'BEP Corporate', desc: 'Official brand: dark green, gold accent, logo', colors: ['#0E3018', '#c9a84c', '#ffffff'] },
+  { id: 'clean', name: 'Modern Clean', desc: 'Neutral grays, clean typography', colors: ['#1e293b', '#64748b', '#f8fafc'] },
+  { id: 'blue', name: 'Professional Blue', desc: 'Classic corporate blue palette', colors: ['#1e3a8a', '#3b82f6', '#dbeafe'] },
 ];
 const DENSITIES = [
   { id: 'comprehensive', name: 'Comprehensive', desc: 'Content-rich, ideal for detailed reports' },
@@ -27,7 +32,33 @@ function PptView() {
   const { setSidebarCollapsed } = useToolbox();
   const initialPpt = pendingPptData;
 
-  const [pptForm, setPptForm] = useState({ topic: initialPpt?.topic || '', slideCount: '~10 slides', theme: 'blue', density: 'standard', background: '', preferences: '', kbFiles: [] as KbFile[] });
+  // ── Inject BEP logo as a real draggable element into slides ──
+  const injectLogoElements = (slides: any[]): any[] => {
+    const DARK_HEX = ['0e3018', '000000', '111111', '222222', '1a2f5e'];
+    return slides.map((slide: any, idx: number) => {
+      // Skip if slide already has a logo element
+      if (slide.elements?.some((el: any) => el.id?.startsWith('logo-'))) return slide;
+      const bg = (slide.backgroundColor || '').replace('#', '').toLowerCase();
+      const isDark = DARK_HEX.some(d => bg.includes(d));
+      const logoSrc = isDark ? '/images/bep_logo_dark.png' : '/images/bep_logo_light.png';
+      let logoEl: any;
+      if (idx === 0 && isDark) {
+        // Cover: centered, smaller
+        logoEl = { id: `logo-${idx}`, type: 'IMAGE', content: logoSrc, imagePath: logoSrc, x: 35, y: 3, width: 30, height: 12, style: {} };
+      } else if (isDark) {
+        // Divider: bottom-right, small
+        logoEl = { id: `logo-${idx}`, type: 'IMAGE', content: logoSrc, imagePath: logoSrc, x: 78, y: 87, width: 18, height: 8, style: {} };
+      } else {
+        // Content: top-right corner, compact
+        logoEl = { id: `logo-${idx}`, type: 'IMAGE', content: logoSrc, imagePath: logoSrc, x: 82, y: 2, width: 15, height: 6, style: {} };
+      }
+      return { ...slide, elements: [...(slide.elements || []), logoEl] };
+    });
+  };
+
+  const [pptForm, setPptForm] = useState({ topic: initialPpt?.topic || '', slideCount: '10', theme: 'bep', density: 'standard', background: '', preferences: '', kbFiles: [] as KbFile[] });
+  const [outlineData, setOutlineData] = useState<any[] | null>(null);
+  const [slideProgress, setSlideProgress] = useState<Record<number, { done: boolean; success: boolean; title: string }>>({});
   const [pptResult, setPptResult] = useState<{ slides: any[]; fileUrl: string } | null>(initialPpt ? { slides: initialPpt.slides, fileUrl: initialPpt.fileUrl } : null);
   const [pptLoading, setPptLoading] = useState(false);
   const [pptLogs, setPptLogs] = useState<{ step: string; message: string }[]>([]);
@@ -38,6 +69,10 @@ function PptView() {
   const [pptChatInput, setPptChatInput] = useState('');
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [kbSelectorOpen, setKbSelectorOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [draggingEl, setDraggingEl] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [resizingEl, setResizingEl] = useState<{ id: string; startX: number; startY: number; origW: number; origH: number } | null>(null);
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialPpt && setPendingPptData) setPendingPptData(null);
@@ -50,7 +85,7 @@ function PptView() {
         .then(data => {
           if (data.error || data.type !== 'PPT') return;
           const payload = JSON.parse(data.payload);
-          setPptResult({ slides: payload.slides || payload.rawSlides || [], fileUrl: payload.fileUrl });
+          setPptResult({ slides: injectLogoElements(payload.slides || payload.rawSlides || []), fileUrl: payload.fileUrl });
           setPptForm(prev => ({ ...prev, topic: data.title }));
           setPptChatHistory([{ role: 'bot', content: `Loaded PPT from history: ${data.title}` }]);
         }).catch(console.error);
@@ -58,24 +93,34 @@ function PptView() {
   }, [assetId]);
 
   const handleGeneratePPT = async () => {
-    setPptLoading(true); setPptResult(null); setPptLogs([]);
+    setPptLoading(true); setPptResult(null); setPptLogs([]); setOutlineData(null); setSlideProgress({});
     try {
-      const res = await fetch('/api/toolbox/ppt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...pptForm, kbFileIds: pptForm.kbFiles.map(f => f.id) }) });
+      const res = await fetch('/api/toolbox/ppt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...pptForm, kbFileIds: pptForm.kbFiles.map(f => f.id), theme: pptForm.theme }) });
       if (!res.body) throw new Error('No stream');
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
       let done = false;
       while (!done) {
         const { value, done: dr } = await reader.read();
         done = dr;
         if (value) {
-          const lines = decoder.decode(value, { stream: true }).split('\n\n');
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || ''; // keep incomplete line in buffer
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue;
             try {
               const data = JSON.parse(line.substring(6));
               if (data.type === 'log') setPptLogs(p => [...p, data.data]);
-              else if (data.type === 'result') setPptResult({ slides: data.data.slides, fileUrl: data.data.fileUrl });
+              else if (data.type === 'outline') setOutlineData(data.data);
+              else if (data.type === 'slide_done') {
+                setSlideProgress(p => ({ ...p, [data.data.index]: { done: true, success: data.data.success, title: data.data.title } }));
+              }
+              else if (data.type === 'result') {
+                setPptResult({ slides: injectLogoElements(data.data.slides), fileUrl: data.data.fileUrl });
+                setPptChatHistory([{ role: 'bot', content: `✅ Your ${data.data.slideCount || data.data.slides?.length}-slide presentation is ready! I can help you edit it. Try:` }]);
+              }
               else if (data.type === 'error') alert(data.data.message || 'Generation failed');
             } catch { /* ignore */ }
           }
@@ -91,13 +136,14 @@ function PptView() {
         <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse" />
-            <h3 className="text-sm font-bold text-gray-800">SSE Pipeline — Generating PPT</h3>
+            <h3 className="text-sm font-bold text-gray-800">3-Phase Pipeline — Generating PPT</h3>
           </div>
-          <div className="space-y-4">
+          {/* Phase logs */}
+          <div className="space-y-3 mb-4">
             {pptLogs.map((log, idx) => (
               <div key={idx} className="flex gap-3">
                 <div className="mt-0.5 shrink-0 text-base">
-                  {log.message.includes('✅') ? '✅' : '🔄'}
+                  {log.message.includes('✅') ? '✅' : log.message.includes('⚠️') ? '⚠️' : '🔄'}
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{log.step}</div>
@@ -106,7 +152,39 @@ function PptView() {
               </div>
             ))}
           </div>
-          <div className="mt-5 pt-4 border-t border-gray-50 text-xs text-gray-400">Slide content will auto-render to PPTX once generation is complete...</div>
+          {/* Outline preview */}
+          {outlineData && (
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">Outline ({outlineData.length} slides)</p>
+              <div className="grid grid-cols-2 gap-2">
+                {outlineData.map((item: any, idx: number) => {
+                  const progress = slideProgress[idx];
+                  return (
+                    <div key={idx} className={`p-2.5 rounded-lg border text-xs transition-all ${
+                      progress?.done
+                        ? progress.success ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+                        : 'bg-gray-50 border-gray-100'
+                    }`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[9px] font-black text-gray-400 w-4 h-4 rounded-full bg-white border flex items-center justify-center shrink-0">{idx + 1}</span>
+                        <span className="text-[9px] font-bold text-indigo-500 uppercase">{item.pattern}</span>
+                        {progress?.done && (
+                          <span className="ml-auto text-[10px]">{progress.success ? '✅' : '❌'}</span>
+                        )}
+                        {!progress?.done && outlineData && Object.keys(slideProgress).length > 0 && (
+                          <span className="ml-auto w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                        )}
+                      </div>
+                      <p className="font-bold text-gray-700 text-[11px] truncate">{item.title}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div className="mt-5 pt-4 border-t border-gray-50 text-xs text-gray-400">
+            {outlineData ? 'Generating slides... PPTX will render automatically when done.' : 'Planning presentation outline...'}
+          </div>
         </div>
       </div>
     );
@@ -124,23 +202,33 @@ function PptView() {
             <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">Step 1: Basic Info</h3></div>
             <div className="p-5 space-y-3">
               <input value={pptForm.topic} onChange={e => setPptForm({ ...pptForm, topic: e.target.value })} placeholder="Presentation topic *" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-              <input value={pptForm.slideCount} onChange={e => setPptForm({ ...pptForm, slideCount: e.target.value })} placeholder="Slide count" className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400" />
+              <p className="text-[11px] font-bold text-gray-500 mt-1">Presentation Scale</p>
+              <p className="text-[10px] text-gray-400 -mt-2">This is an approximate length target, not exact page count</p>
+              <div className="grid grid-cols-4 gap-2">
+                {SLIDE_SCALES.map(s => (
+                  <button key={s.id} onClick={() => setPptForm({ ...pptForm, slideCount: s.id })} className={`p-2.5 rounded-xl border-2 text-left transition-all ${pptForm.slideCount === s.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                    <span className="text-xs font-bold text-gray-700 block">{s.name}</span>
+                    <span className="text-[10px] text-gray-400">{s.desc}</span>
+                  </button>
+                ))}
+              </div>
               <textarea value={pptForm.preferences} onChange={e => setPptForm({ ...pptForm, preferences: e.target.value })} placeholder="Preferences (tone, style, target audience...)" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">Step 2: Visual Style</h3></div>
+            <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-600">Step 2: Style</h3></div>
             <div className="p-5 space-y-4">
-              <p className="text-[11px] font-bold text-gray-500">Theme Colour</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <p className="text-[11px] font-bold text-gray-500">Theme</p>
+              <div className="grid grid-cols-3 gap-3">
                 {THEMES.map(t => (
                   <button key={t.id} onClick={() => setPptForm({ ...pptForm, theme: t.id })} className={`p-3 rounded-xl border-2 text-left transition-all ${pptForm.theme === t.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}>
                     <div className="flex gap-1 mb-2">{t.colors.map((c, i) => <div key={i} className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: c }} />)}</div>
-                    <span className="text-[10px] font-bold text-gray-700">{t.name}</span>
+                    <span className="text-xs font-bold text-gray-700 block">{t.name}</span>
+                    <span className="text-[10px] text-gray-400">{t.desc}</span>
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] font-bold text-gray-500 mt-4">Content Density</p>
+              <p className="text-[11px] font-bold text-gray-500 mt-3">Content Density</p>
               <div className="grid grid-cols-2 gap-3">
                 {DENSITIES.map(d => (
                   <button key={d.id} onClick={() => setPptForm({ ...pptForm, density: d.id })} className={`p-3 rounded-xl border-2 text-left transition-all ${pptForm.density === d.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}>
@@ -229,13 +317,53 @@ function PptView() {
     const newSlide = {
       backgroundColor: '#ffffff',
       elements: [
-        { id: `title-${ts}`, type: 'TEXT_BOX', content: 'New Slide Title', x: 10, y: 10, width: 80, height: 15, style: { fontSize: 2.4, fontWeight: 'bold', textAlign: 'left', color: '#000000', backgroundColor: 'transparent', padding: 1, borderRadius: 0 } },
-        { id: `body-${ts}`, type: 'TEXT_BOX', content: 'Enter content here...', x: 10, y: 30, width: 80, height: 60, style: { fontSize: 1.1, fontWeight: 'normal', textAlign: 'left', color: '#333333', backgroundColor: 'transparent', padding: 1, borderRadius: 0 } },
+        // Gold left accent bar (matching BEP template)
+        { id: `bar-${ts}`, type: 'SHAPE_BOX', content: '', x: 0, y: 0, width: 1.5, height: 100, style: { backgroundColor: '#c9a84c', borderRadius: 0 } },
+        // Dark green title
+        { id: `title-${ts}`, type: 'TEXT_BOX', content: 'New Slide Title', x: 5, y: 8, width: 85, height: 12, style: { fontSize: 2.4, fontWeight: 'bold', textAlign: 'left', color: '#0E3018', backgroundColor: 'transparent', padding: 1, borderRadius: 0 } },
+        // Gold underline
+        { id: `line-${ts}`, type: 'SHAPE_BOX', content: '', x: 5, y: 20, width: 20, height: 0.5, style: { backgroundColor: '#c9a84c', borderRadius: 0 } },
+        // Body text
+        { id: `body-${ts}`, type: 'TEXT_BOX', content: 'Enter content here...', x: 5, y: 25, width: 85, height: 65, style: { fontSize: 1.1, fontWeight: 'normal', textAlign: 'left', color: '#374151', backgroundColor: 'transparent', padding: 1, borderRadius: 0 } },
       ],
     };
     const ns = [...slides];
     ns.splice(idx, 0, newSlide);
     setPptResult({ ...pptResult, slides: ns });
+    setCurrentSlide(idx);
+  };
+
+  const handleImageUpload = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) { const err = await res.json(); alert(err.error || 'Upload failed'); setUploading(false); return; }
+        const { url } = await res.json();
+        const ts = Date.now();
+        const ns = [...slides];
+        const s = ns[currentSlide];
+        s.elements = [...(s.elements || []), {
+          id: `img-${ts}`,
+          type: 'IMAGE',
+          content: url,
+          imagePath: url,
+          x: 25, y: 20, width: 50, height: 55,
+          style: {},
+        }];
+        setPptResult({ ...pptResult, slides: ns });
+        setSelectedElementId(`img-${ts}`);
+      } catch { alert('Upload failed'); }
+      setUploading(false);
+    };
+    input.click();
   };
 
   return (
@@ -272,6 +400,22 @@ function PptView() {
                 <div className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-50 border border-gray-100 text-gray-700'}`}>{msg.content}</div>
               </div>
             ))}
+            {pptChatHistory.length > 0 && pptChatHistory.length <= 2 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {[
+                  'Add a new slide about our team',
+                  'Make the cover slide more impactful',
+                  'Add more data to the KPI slide',
+                  'Change tone to more formal',
+                  'Add a comparison table slide',
+                  'Translate all content to Chinese',
+                ].map((q, qi) => (
+                  <button key={qi} onClick={() => { setPptChatInput(q); }} className="px-3 py-1.5 text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full hover:bg-indigo-100 transition-all">
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="p-3 border-t bg-white">
             <div className="relative">
@@ -287,23 +431,62 @@ function PptView() {
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex-1 flex items-center justify-center p-4 md:p-10 bg-gray-50 overflow-hidden relative group">
-                  <div style={{ backgroundColor: slide?.backgroundColor || '#fff', aspectRatio: '16 / 9' }} className="w-full max-w-[900px] shadow-2xl relative rounded-sm overflow-hidden border border-gray-100" onClick={() => setSelectedElementId(null)}>
+                  <div
+                    ref={(el) => { if (el) el.dataset.slideContainer = 'true'; }}
+                    style={{ backgroundColor: slide?.backgroundColor || '#fff', aspectRatio: '16 / 9' }}
+                    className="w-full max-w-[900px] shadow-2xl relative rounded-sm overflow-hidden border border-gray-100"
+                    onClick={() => { setSelectedElementId(null); setEditingElementId(null); }}
+                    onMouseMove={(e) => {
+                      if (!draggingEl && !resizingEl) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const pctX = ((e.clientX - rect.left) / rect.width) * 100;
+                      const pctY = ((e.clientY - rect.top) / rect.height) * 100;
+                      if (draggingEl) {
+                        const dx = pctX - draggingEl.startX;
+                        const dy = pctY - draggingEl.startY;
+                        updateElement(draggingEl.id, { x: Math.max(0, Math.min(95, draggingEl.origX + dx)), y: Math.max(0, Math.min(95, draggingEl.origY + dy)) });
+                      } else if (resizingEl) {
+                        const dx = pctX - resizingEl.startX;
+                        const dy = pctY - resizingEl.startY;
+                        updateElement(resizingEl.id, { width: Math.max(5, resizingEl.origW + dx), height: Math.max(3, resizingEl.origH + dy) });
+                      }
+                    }}
+                    onMouseUp={() => { setDraggingEl(null); setResizingEl(null); }}
+                    onMouseLeave={() => { setDraggingEl(null); setResizingEl(null); }}
+                  >
                     {slide?.elements?.map((element: any) => {
                       const isShape = element.type === 'SHAPE_BOX';
+                      const isImage = element.type === 'IMAGE';
                       const isSelected = selectedElementId === element.id;
                       return (
                         <div key={element.id}
-                          onClick={(e) => { e.stopPropagation(); setSelectedElementId(element.id); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedElementId(element.id); if (editingElementId && editingElementId !== element.id) setEditingElementId(null); }}
+                          onDoubleClick={(e) => {
+                            if (!isShape && !isImage) {
+                              e.stopPropagation();
+                              setEditingElementId(element.id);
+                              setDraggingEl(null);
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            if (e.button !== 0 || editingElementId === element.id) return;
+                            e.stopPropagation();
+                            setSelectedElementId(element.id);
+                            const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                            const pctX = ((e.clientX - rect.left) / rect.width) * 100;
+                            const pctY = ((e.clientY - rect.top) / rect.height) * 100;
+                            setDraggingEl({ id: element.id, startX: pctX, startY: pctY, origX: element.x, origY: element.y });
+                          }}
                           style={{
                             position: 'absolute',
                             left: `${element.x}%`, top: `${element.y}%`,
                             width: `${element.width}%`, height: `${element.height}%`,
-                            backgroundColor: element.style?.backgroundColor || (isShape ? '#1a2f5e' : 'transparent'),
+                            backgroundColor: isImage ? 'transparent' : (element.style?.backgroundColor || (isShape ? '#0E3018' : 'transparent')),
                             borderRadius: element.style?.borderRadius ? `${element.style.borderRadius}px` : '0',
-                            zIndex: isShape ? 0 : 1,
-                            transition: 'all 0.1s ease-out',
+                            zIndex: isImage ? 2 : (isShape ? 0 : 1),
+                            cursor: draggingEl?.id === element.id ? 'grabbing' : 'grab',
                             // TEXT_BOX only
-                            ...(!isShape ? {
+                            ...(!isShape && !isImage ? {
                               color: element.style?.color || '#000',
                               fontSize: `clamp(0.35rem, ${(element.style?.fontSize || 1) * 0.9}vw, ${element.style?.fontSize || 1}rem)`,
                               fontWeight: element.style?.fontWeight || 'normal',
@@ -315,10 +498,49 @@ function PptView() {
                               lineHeight: 1.5,
                             } : {}),
                           }}
-                          className={`cursor-pointer ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : isShape ? 'hover:brightness-110' : 'hover:ring-1 hover:ring-indigo-300'}`}
+                          className={`${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : isShape ? 'hover:brightness-110' : 'hover:ring-1 hover:ring-indigo-300'}`}
                         >
-                          {!isShape && (
-                            <div className="w-full h-full whitespace-pre-wrap leading-snug">{element.content}</div>
+                          {isImage && (element.content || '').startsWith('placeholder:') ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-amber-300 rounded-lg">
+                              <ImagePlus className="w-6 h-6 text-gray-300 mb-1" />
+                              <span className="text-[8px] text-gray-400 font-medium text-center px-2">{(element.content || '').replace('placeholder:', '')}</span>
+                              <button onClick={(e) => { e.stopPropagation(); handleImageUpload(); }} className="mt-1 text-[7px] text-indigo-500 underline hover:text-indigo-700">Upload</button>
+                            </div>
+                          ) : isImage ? (
+                            <img src={element.imagePath || element.content} alt="" className="w-full h-full object-contain pointer-events-none" draggable={false} />
+                          ) : null}
+                          {!isShape && !isImage && editingElementId === element.id ? (
+                            <textarea
+                              autoFocus
+                              value={element.content || ''}
+                              onChange={(e) => updateElement(element.id, { content: e.target.value })}
+                              onBlur={() => setEditingElementId(null)}
+                              onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setEditingElementId(null); } }}
+                              className="w-full h-full bg-transparent border-none outline-none resize-none leading-snug p-0"
+                              style={{
+                                color: 'inherit', fontSize: 'inherit', fontWeight: 'inherit',
+                                textAlign: (element.style?.textAlign || 'left') as any,
+                                fontFamily: 'inherit', lineHeight: 'inherit',
+                                padding: 'inherit',
+                              }}
+                            />
+                          ) : !isShape && !isImage ? (
+                            <div className="w-full h-full whitespace-pre-wrap leading-snug pointer-events-none">{element.content}</div>
+                          ) : null}
+                          {/* Resize handle */}
+                          {isSelected && (
+                            <div
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.parentElement!.parentElement!.getBoundingClientRect();
+                                const pctX = ((e.clientX - rect.left) / rect.width) * 100;
+                                const pctY = ((e.clientY - rect.top) / rect.height) * 100;
+                                setDraggingEl(null);
+                                setResizingEl({ id: element.id, startX: pctX, startY: pctY, origW: element.width, origH: element.height });
+                              }}
+                              className="absolute bottom-0 right-0 w-3 h-3 bg-indigo-500 cursor-se-resize rounded-tl-sm"
+                              style={{ zIndex: 10 }}
+                            />
                           )}
                         </div>
                       );
@@ -333,6 +555,13 @@ function PptView() {
                   <button onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))} disabled={currentSlide === 0} className="p-2 rounded-full bg-gray-50 text-gray-400 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
                   <span className="text-xs font-black text-gray-900">{currentSlide + 1} / {slides.length}</span>
                   <button onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))} disabled={currentSlide === slides.length - 1} className="p-2 rounded-full bg-gray-50 text-gray-400 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-20"><ChevronRight className="w-4 h-4" /></button>
+                  <div className="w-px h-6 bg-gray-200 mx-1" />
+                  <button onClick={() => insertSlideAt(currentSlide + 1)} className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all" title="Insert slide after current">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <button onClick={handleImageUpload} disabled={uploading} className="p-2 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white transition-all disabled:opacity-50" title="Upload image to current slide">
+                    {uploading ? <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               {selectedElement && (
@@ -342,6 +571,21 @@ function PptView() {
                     <button onClick={() => setSelectedElementId(null)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-400"><XCircle className="w-4 h-4" /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2">
+                    {/* Content editing */}
+                    {selectedElement.type !== 'SHAPE_BOX' && (
+                      <div className="border-b pb-3">
+                        <div className="px-3 py-2 flex items-center gap-2 bg-gray-50/50 rounded-lg mb-2"><span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Content</span></div>
+                        <div className="px-3">
+                          <textarea
+                            value={selectedElement.content || ''}
+                            onChange={e => updateElement(selectedElementId!, { content: e.target.value })}
+                            rows={4}
+                            className="w-full p-2 bg-white border rounded-lg text-xs outline-none focus:border-indigo-500 resize-vertical leading-relaxed"
+                            placeholder="Enter text content..."
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="border-b pb-3">
                       <div className="px-3 py-2 flex items-center gap-2 bg-gray-50/50 rounded-lg mb-2"><span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Layout</span></div>
                       <div className="px-3 grid grid-cols-2 gap-3">
@@ -353,6 +597,7 @@ function PptView() {
                         ))}
                       </div>
                     </div>
+                    {selectedElement.type === 'TEXT_BOX' && (
                     <div className="border-b pb-3 pt-2">
                       <div className="px-3 py-2 flex items-center gap-2 bg-gray-50/50 rounded-lg mb-2"><span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Text</span></div>
                       <div className="px-3 space-y-3">
@@ -374,6 +619,7 @@ function PptView() {
                         </div>
                       </div>
                     </div>
+                    )}
                     <div className="pt-2">
                       <div className="px-3 py-2 flex items-center gap-2 bg-gray-50/50 rounded-lg mb-2"><span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Style</span></div>
                       <div className="px-3 space-y-3">
@@ -394,6 +640,20 @@ function PptView() {
                         </div>
                       </div>
                     </div>
+                    {/* Delete element */}
+                    <div className="px-3 pt-4 mt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => {
+                          const ns = [...slides];
+                          ns[currentSlide].elements = ns[currentSlide].elements.filter((el: any) => el.id !== selectedElementId);
+                          setPptResult({ ...pptResult, slides: ns });
+                          setSelectedElementId(null);
+                        }}
+                        className="w-full py-2 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1"
+                      >
+                        <XCircle className="w-3.5 h-3.5" /> Delete Element
+                      </button>
+                    </div>
                   </div>
                 </aside>
               )}
@@ -406,8 +666,13 @@ function PptView() {
                   <button onClick={() => insertSlideAt(slides.length)} className="flex items-center gap-1 px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-[11px] font-bold shadow hover:bg-indigo-700"><Plus className="w-3 h-3" /> Append Slide</button>
                 </div>
                 <div className="space-y-3">
-                  {slides.map((s: any, sIdx: number) => (
-                    <React.Fragment key={s.elements?.[0]?.id || sIdx}>
+                  {slides.map((s: any, sIdx: number) => {
+                    // Get all TEXT_BOX elements for editing
+                    const textElements = (s.elements || []).filter((el: any) => el.type === 'TEXT_BOX' && el.content);
+                    const titleEl = textElements[0];
+                    const bodyEls = textElements.slice(1);
+                    return (
+                    <React.Fragment key={titleEl?.id || sIdx}>
                       <div className="flex justify-center -my-1 opacity-0 hover:opacity-100 transition-opacity relative z-10">
                         <button onClick={() => insertSlideAt(sIdx)} className="bg-indigo-600 text-white p-0.5 rounded-full shadow hover:scale-125 transition-transform"><Plus className="w-3 h-3" /></button>
                       </div>
@@ -419,14 +684,27 @@ function PptView() {
                           <div className="text-[9px] font-black text-gray-400 w-5 h-5 rounded-full border border-gray-100 flex items-center justify-center">{sIdx + 1}</div>
                           <span className="text-gray-200 text-[10px]">⋮⋮</span>
                         </div>
-                        <div className="flex-1 space-y-3">
-                          {s.elements?.slice(0, 2).map((el: any, eIdx: number) => (
+                        <div className="flex-1 space-y-2">
+                          {/* Title */}
+                          {titleEl && (
+                            <textarea value={titleEl.content}
+                              onChange={e => { const ns = [...slides]; const elIdx = ns[sIdx].elements.findIndex((el: any) => el.id === titleEl.id); if (elIdx >= 0) ns[sIdx].elements[elIdx] = { ...ns[sIdx].elements[elIdx], content: e.target.value }; setPptResult({ ...pptResult, slides: ns }); }}
+                              className="w-full p-3 bg-gray-50/50 border border-gray-100 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all text-gray-800 resize-none font-bold text-sm h-12"
+                              placeholder="Slide title..."
+                            />
+                          )}
+                          {/* All body text elements */}
+                          {bodyEls.map((el: any) => (
                             <textarea key={el.id} value={el.content}
-                              onChange={e => { const ns = [...slides]; ns[sIdx].elements[eIdx] = { ...ns[sIdx].elements[eIdx], content: e.target.value }; setPptResult({ ...pptResult, slides: ns }); }}
-                              className={`w-full p-3 bg-gray-50/50 border border-gray-100 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all text-gray-800 resize-none ${eIdx === 0 ? 'font-bold text-sm h-12' : 'text-xs h-24 leading-relaxed'}`}
-                              placeholder={eIdx === 0 ? 'Slide title...' : 'Enter content points...'}
+                              onChange={e => { const ns = [...slides]; const elIdx = ns[sIdx].elements.findIndex((oel: any) => oel.id === el.id); if (elIdx >= 0) ns[sIdx].elements[elIdx] = { ...ns[sIdx].elements[elIdx], content: e.target.value }; setPptResult({ ...pptResult, slides: ns }); }}
+                              rows={Math.max(3, Math.ceil((el.content || '').length / 60))}
+                              className="w-full p-3 bg-gray-50/50 border border-gray-100 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all text-gray-800 resize-vertical text-xs leading-relaxed"
+                              placeholder="Content..."
                             />
                           ))}
+                          {bodyEls.length === 0 && !titleEl && (
+                            <p className="text-xs text-gray-300 italic">No text content (shape-only slide)</p>
+                          )}
                         </div>
                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => { const ns = [...slides]; ns.splice(sIdx, 1); setPptResult({ ...pptResult, slides: ns }); if (currentSlide >= ns.length) setCurrentSlide(Math.max(0, ns.length - 1)); }} className="p-1.5 text-gray-300 hover:text-red-500 transition-all rounded-lg hover:bg-red-50">
@@ -435,7 +713,8 @@ function PptView() {
                         </div>
                       </div>
                     </React.Fragment>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

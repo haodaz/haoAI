@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300">
+  <defs>
+    <pattern id="grid-banner_slim" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0E3018" stroke-width="0.3" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="300" fill="#f0f4f0" rx="6"/>
+  <rect width="1200" height="300" fill="url(#grid-banner_slim)" rx="6"/>
+  <rect x="3" y="3" width="1194" height="294" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="8,4" rx="4" opacity="0.5"/>
+  <g transform="translate(600, 130)">
+    <rect x="-20" y="-10" width="40" height="20" rx="3" fill="none" stroke="#0E3018" stroke-width="2" opacity="0.4"/>
+           <path d="M-14,-2 L-6,6 L0,0 L14,6" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  </g>
+  <text x="600" y="172" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700">Slim Banner</text>
+  <text x="600" y="190" text-anchor="middle" fill="#6b7280" font-family="Inter,system-ui,sans-serif" font-size="12" opacity="0.45">Upload a wide header image</text>
+</svg>
