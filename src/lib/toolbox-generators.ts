@@ -108,25 +108,25 @@ export async function generateProposal(
   const append = (text: string) => { fullText += text; };
 
   // ── BLOCK 1: KB retrieval ──
-  onProgress?.('[1/6] 正在检索 BEP 核心知识库与自定义文档...');
+  onProgress?.('[1/6] Retrieving BEP core knowledge and custom documents...');
   let kbContext = '';
   if (kbFileIds.length > 0) {
     const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
-    kbContext += kbFiles.map((f: any) => `【补充资料: ${f.title}】\n${f.content}`).join('\n\n') + '\n\n';
+    kbContext += kbFiles.map((f: any) => `【Supplementary: ${f.title}】\n${f.content}`).join('\n\n') + '\n\n';
   }
   const coreKbFiles = await prisma.knowledgeItem.findMany({ where: { title: { startsWith: 'BEP Introduction' } }, take: 2 });
-  kbContext += coreKbFiles.map((f: any) => `【BEP核心资料: ${f.title}】\n${f.content}`).join('\n\n');
-  if (background) kbContext += `\n\n【背景资料 (Kelly 解析)】\n${background}`;
-  onProgress?.('[1/6] ✅ 知识库检索完毕');
+  kbContext += coreKbFiles.map((f: any) => `【BEP Core: ${f.title}】\n${f.content}`).join('\n\n');
+  if (background) kbContext += `\n\n【Background (Kelly parsed)】\n${background}`;
+  onProgress?.('[1/6] ✅ Knowledge base retrieval complete');
 
   // ── BLOCK 2: Web Search for School Information ──
   // Priority: Gemini Search Grounding (Google) → Aliyun → Bocha → DuckDuckGo
-  onProgress?.('[2/6] 🌐 正在联网检索院校信息...');
+  onProgress?.('[2/6] 🌐 Searching the web for school information...');
   let schoolSearchDone = false;
   try {
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
-      onProgress?.('[2/6] 🚀 启动 Gemini Search Grounding (Google 搜索直连)...');
+      onProgress?.('[2/6] 🚀 Launching Gemini Search Grounding (Google direct search)...');
       const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', tools: [{ googleSearch: {} }] as any });
       const geminiQuery = `Please use Google Search to find comprehensive information about "${targetSchool}" — a UK independent school. Provide a detailed summary covering: location, founding year, student numbers (total and boarding), age range, curriculum offered (A-Levels, IB, GCSE), key strengths and USPs, notable facilities, recent developments, and international student provision. Output in English.`;
@@ -134,40 +134,40 @@ export async function generateProposal(
       const geminiText = geminiResult.response.text();
       if (geminiText && geminiText.length > 100) {
         kbContext += `\n\n【Gemini 联网检索: ${targetSchool} 院校信息】\n${geminiText}`;
-        onProgress?.(`[2/6] ✅ Gemini 搜索完成，获取 ${geminiText.length} 字院校资料`);
+        onProgress?.(`[2/6] ✅ Gemini search complete, retrieved ${geminiText.length} chars of school data`);
         schoolSearchDone = true;
       }
     }
 
     if (!schoolSearchDone) {
-      onProgress?.(`[2/6] ${geminiKey ? '⚠️ Gemini 结果不足，' : ''}降级使用 阿里云/Bocha 综合检索...`);
+      onProgress?.(`[2/6] ${geminiKey ? '⚠️ Gemini results insufficient, ' : ''}falling back to Aliyun/Bocha search...`);
       const searchExecutor = searchModule.executors.search_internet;
       const searchQuery = `"${targetSchool}" UK independent school boarding international students prospectus`;
       const searchResult = await searchExecutor({ query: searchQuery, num_results: '5' });
       if (searchResult && !searchResult.startsWith('未能检索到')) {
         kbContext += `\n\n【联网检索: ${targetSchool} 院校信息】\n${searchResult}`;
-        onProgress?.(`[2/6] ✅ 联网搜索完成，获取 ${searchResult.length} 字院校资料`);
+        onProgress?.(`[2/6] ✅ Web search complete, retrieved ${searchResult.length} chars of school data`);
         schoolSearchDone = true;
       }
     }
 
     if (!schoolSearchDone) {
-      onProgress?.('[2/6] ⚠️ 联网搜索未返回结果，将使用已有信息继续');
+      onProgress?.('[2/6] ⚠️ Web search returned no results, proceeding with available data');
     }
   } catch (searchErr: any) {
     console.error('[Proposal] Web search failed:', searchErr.message);
-    onProgress?.('[2/6] ⚠️ 联网搜索失败，将使用已有信息继续');
+    onProgress?.('[2/6] ⚠️ Web search failed, proceeding with available data');
   }
 
   // ── BLOCK 3: Document Header (hardcoded from template) ──
-  onProgress?.('[3/6] 正在组装文档头 (Proposal Template)...');
+  onProgress?.('[3/6] Assembling document header (Proposal Template)...');
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const header = `# British Enrolment Partners x ${targetSchool}\n\n**Prepared by** British Enrolment Partners\n**Prepared for** ${targetSchool}\n\n*Private & Confidential*\n*${dateStr}*\n\n## International Enrolment Strategy, Recruitment Coordination and Growth Partnership\n\n### 1. Initial Conversation\n\n`;
   append(header);
 
   // ── BLOCK 4: Initial Conversation (AI-generated, style-guided) ──
-  onProgress?.('[4/6] 正在生成 Initial Conversation (模板风格引导)...');
+  onProgress?.('[4/6] Generating Initial Conversation (template-guided style)...');
 
   const introStart = Date.now();
   const introRes = await client.chat.completions.create({
@@ -207,7 +207,7 @@ RULES:
   tracker?.track('proposal_initial_conversation', config.modelName, introUsage, Date.now() - introStart);
 
   // ── BLOCK 5: Commercial Model (hardcoded from template) ──
-  onProgress?.('[5/6] 拼接官方商业条款 (Commercial Model)...');
+  onProgress?.('[5/6] Assembling official commercial terms (Commercial Model)...');
   const modelFn = COMMERCIAL_MODELS[businessModel] || COMMERCIAL_MODELS['Fixed Retainer'];
   const modelDescription = modelFn(targetSchool);
 
@@ -229,7 +229,7 @@ RULES:
 
   // ── BLOCK 6: What School Gains (AI-personalised from template baseline) ──
   append(`\n\n### 3. What ${targetSchool} Gains\n\n`);
-  onProgress?.('[6/6] 正在生成定制化收益 (What School Gains)...');
+  onProgress?.('[6/6] Generating customised benefits (What School Gains)...');
 
   const benefitsStart = Date.now();
   const benefitsRes = await client.chat.completions.create({
@@ -261,10 +261,10 @@ RULES:
   tracker?.track('proposal_benefits', config.modelName, benefitsUsage, Date.now() - benefitsStart);
 
   // ── BLOCK 7: Next Steps (hardcoded from template) ──
-  onProgress?.('[完毕] 拼接推进步骤 (Next Steps)...');
+  onProgress?.('[Done] Assembling Next Steps...');
   append(`\n\n### 4. Recommendation and Next Steps\n\nShould ${targetSchool} wish to proceed, we suggest the following next steps:\n\n• Confirm the preferred partnership model.\n\n• Jointly agree recruitment/revenue targets & markets, implementation roadmap and reporting framework.\n\n• Deliver comprehensive training for the BEP recruitment team, including in-person sessions for our UK staff and online training for our overseas teams, ensuring everyone has a thorough understanding of the ${targetSchool} offering, culture and admissions process.\n\n• Work closely with your marketing team to obtain the necessary marketing materials and develop a coordinated recruitment and marketing plan for the agreed markets.\n\n• We are genuinely excited by the opportunity to work together and believe BEP can make a meaningful contribution to expanding ${targetSchool}'s international presence.`);
 
-  onProgress?.('[完毕] ✅ Proposal 生成完毕！');
+  onProgress?.('[Done] ✅ Proposal generation complete!');
 
   // Save to GeneratedAsset
   const asset = await prisma.generatedAsset.create({
@@ -299,15 +299,15 @@ export interface LegalResult {
 const DOC_TYPE_PROMPTS: Record<string, string> = {
   NDA: 'a Non-Disclosure Agreement (NDA) covering mutual confidentiality of business information, with provisions for permitted disclosures and remedies for breach',
   MOU: 'a Memorandum of Understanding (MOU) outlining the framework for cooperation between the parties, including scope, responsibilities and timeline',
-  '服务协议': 'an International Recruitment Management Service Agreement defining scope of recruitment services, fee structure, agent management responsibilities, data protection obligations and termination provisions',
-  '合作合同': 'a Partnership Contract covering service scope, revenue/commission sharing, exclusivity arrangements, governance structure, IP ownership and exit provisions',
-  '劳动合同': 'an Employment Contract covering role, compensation, benefits, restrictive covenants and termination provisions',
+  'Service Agreement': 'an International Recruitment Management Service Agreement defining scope of recruitment services, fee structure, agent management responsibilities, data protection obligations and termination provisions',
+  'Partnership Contract': 'a Partnership Contract covering service scope, revenue/commission sharing, exclusivity arrangements, governance structure, IP ownership and exit provisions',
+  'Employment Contract': 'an Employment Contract covering role, compensation, benefits, restrictive covenants and termination provisions',
 };
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
-  '标准英式': 'Use formal British legal English. Include numbered clauses and standard definitions. Follow the structure of English law commercial agreements.',
-  '中英双语': 'Draft in both English and Chinese. Each clause in English followed by its Chinese translation. Use formal legal terminology in both languages.',
-  '简约版': 'Use plain language. Keep clauses concise and avoid unnecessary legalese. Still include essential protective provisions.',
+  'Standard British': 'Use formal British legal English. Include numbered clauses and standard definitions. Follow the structure of English law commercial agreements.',
+  'Bilingual (EN/CN)': 'Draft in both English and Chinese. Each clause in English followed by its Chinese translation. Use formal legal terminology in both languages.',
+  'Plain Language': 'Use plain language. Keep clauses concise and avoid unnecessary legalese. Still include essential protective provisions.',
 };
 
 /**
@@ -351,7 +351,7 @@ This MOU shall remain in effect for a period of [INSERT TERM] from the date of e
 
 The parties agree to treat the contents and discussions arising from this MOU as confidential and shall not disclose them to third parties without the prior written consent of the other party, except as required by law or regulation.`,
 
-  '服务协议': `\n\n## Standard Protective Provisions
+  'Service Agreement': `\n\n## Standard Protective Provisions
 
 **Termination and Exit**
 
@@ -387,7 +387,7 @@ This Agreement shall be governed by and construed in accordance with the law of 
 
 This Agreement constitutes the entire agreement between the parties. No amendment shall be valid unless in writing signed by authorised representatives. No waiver of any right shall constitute a waiver of any subsequent right. If any provision is found invalid, the remaining provisions continue in full force. The Service Provider is an independent contractor; nothing creates a partnership, joint venture or employment relationship.`,
 
-  '合作合同': `\n\n## Standard Protective Provisions
+  'Partnership Contract': `\n\n## Standard Protective Provisions
 
 **Termination and Exit**
 
@@ -419,7 +419,7 @@ Governed by the law of England and Wales. Courts of England and Wales have exclu
 
 Entire agreement. Amendments in writing only. Independent contractor relationship. Severability applies.`,
 
-  '劳动合同': `\n\n## Standard Provisions
+  'Employment Contract': `\n\n## Standard Provisions
 
 **Governing Law**
 
@@ -463,27 +463,27 @@ export async function generateLegal(
   onProgress?: (msg: string) => void,
   tracker?: TokenTracker
 ): Promise<LegalResult> {
-  const { docType, partyA, partyB = '', keyTerms = '', background = '', templateStyle = '标准英式', kbFileIds = [] } = params;
+  const { docType, partyA, partyB = '', keyTerms = '', background = '', templateStyle = 'Standard British', kbFileIds = [] } = params;
   const { client, config } = await getModelClient();
 
   let fullText = '';
   const append = (text: string) => { fullText += text; };
 
   // ── BLOCK 1: KB retrieval ──
-  onProgress?.('[1/4] 初始化参数，加载文书类型配置...');
+  onProgress?.('[1/4] Initialising parameters, loading document type config...');
   let kbContext = '';
   if (kbFileIds.length > 0) {
     const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
-    kbContext = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || ''}`).join('\n\n');
+    kbContext = kbFiles.map((f: any) => `【Reference: ${f.title}】\n${f.content || ''}`).join('\n\n');
   }
-  if (background) kbContext += `\n\n【背景资料 (Kelly 解析)】\n${background}`;
+  if (background) kbContext += `\n\n【Background (Kelly parsed)】\n${background}`;
 
   // ── BLOCK 2: AI generates main body ──
-  onProgress?.(`[2/4] AI 生成主体条款 (${docType})...`);
-  const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['标准英式'];
+  onProgress?.(`[2/4] AI generating main body clauses (${docType})...`);
+  const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['Standard British'];
   const docInstruction = DOC_TYPE_PROMPTS[docType] || docType;
 
-  const isServiceAgreement = docType === '服务协议' || docType === '合作合同';
+  const isServiceAgreement = docType === 'Service Agreement' || docType === 'Partnership Contract';
 
   const legalStart = Date.now();
   const aiRes = await client.chat.completions.create({
@@ -524,11 +524,11 @@ RULES:
   tracker?.track('legal_main_body', config.modelName, legalUsage, Date.now() - legalStart);
 
   // ── BLOCK 3: Hardcoded standard clauses from real BEP agreements ──
-  onProgress?.('[3/4] 拼接标准保护性条款 (来自 BEP 真实协议模板)...');
-  const standardBlock = STANDARD_CLAUSES[docType] || STANDARD_CLAUSES['服务协议'];
+  onProgress?.('[3/4] Appending standard protective clauses (from real BEP agreement templates)...');
+  const standardBlock = STANDARD_CLAUSES[docType] || STANDARD_CLAUSES['Service Agreement'];
   append(standardBlock);
 
-  onProgress?.('[4/4] ✅ 法律文书生成完成！');
+  onProgress?.('[4/4] ✅ Legal document generation complete!');
 
   // Save to GeneratedAsset
   const asset = await prisma.generatedAsset.create({

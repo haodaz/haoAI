@@ -241,6 +241,23 @@ export default function LegalPage() {
                       </div>
                     </div>
                   ))}
+                  {/* Quick action bubbles */}
+                  {copilotHistory.length > 0 && copilotHistory.length <= 2 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {[
+                        'Add a data privacy clause',
+                        'Extend the term to 3 years',
+                        'Add a non-compete clause',
+                        'Change governing law to Hong Kong',
+                        'Translate to bilingual EN/CN format',
+                        'Add an indemnification clause',
+                      ].map((q, qi) => (
+                        <button key={qi} onClick={() => { setCopilotInput(q); }} className="px-3 py-1.5 text-[11px] bg-violet-50 text-violet-600 border border-violet-100 rounded-full hover:bg-violet-100 transition-all">
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {copilotLoading && (
                     <div className="flex items-center gap-2 text-sm text-gray-500 p-2">
                       <Spin size="small" /> AI is revising...

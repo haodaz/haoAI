@@ -36,7 +36,7 @@ Each party shall keep confidential all information received from the other party
 **5.4 Termination**
 Either party may terminate this MOU upon thirty (30) days' written notice to the other party.`,
 
-  '服务协议': `
+  'Service Agreement': `
 ### 6. Standard Protective Clauses (Hardcoded)
 
 **6.1 Governing Law**
@@ -51,7 +51,7 @@ Any dispute shall first be resolved by good-faith negotiation. If unresolved wit
 **6.4 Intellectual Property**
 All deliverables created under this Agreement shall be owned by the Client upon full payment of fees.`,
 
-  '合作合同': `
+  'Partnership Contract': `
 ### 7. Standard Protective Clauses (Hardcoded)
 
 **7.1 Governing Law**
@@ -63,7 +63,7 @@ Either party may exit the partnership with ninety (90) days' written notice. Upo
 **7.3 Non-Compete**
 During the term of this Agreement, neither party shall engage in activities that directly compete with the partnership's core business.`,
 
-  '劳动合同': `
+  'Employment Contract': `
 ### 8. Standard Protective Clauses (Hardcoded)
 
 **8.1 Governing Law**
@@ -77,17 +77,17 @@ A probation period of [INSERT PERIOD] shall apply, during which either party may
 };
 
 const DOC_TYPE_PROMPTS: Record<string, string> = {
-  NDA: 'a Non-Disclosure Agreement (保密协议). Cover definitions of confidential information, scope, obligations, permitted disclosures, and recitals.',
-  MOU: 'a Memorandum of Understanding (谅解备忘录). Cover purpose, scope of cooperation, responsibilities, timeline, and intent of partnership.',
-  '服务协议': 'a Service Agreement (服务协议). Cover scope of services, fees and payment schedule, deliverables, SLA, termination conditions.',
-  '合作合同': 'a Partnership Agreement (合作合同). Cover purpose, profit sharing, management structure, decision making, and exit mechanism.',
-  '劳动合同': 'an Employment Contract (劳动合同). Cover position, duties, compensation, benefits, working hours, non-compete, and termination.',
+  NDA: 'a Non-Disclosure Agreement. Cover definitions of confidential information, scope, obligations, permitted disclosures, and recitals.',
+  MOU: 'a Memorandum of Understanding. Cover purpose, scope of cooperation, responsibilities, timeline, and intent of partnership.',
+  'Service Agreement': 'a Service Agreement. Cover scope of services, fees and payment schedule, deliverables, SLA, termination conditions.',
+  'Partnership Contract': 'a Partnership Agreement. Cover purpose, profit sharing, management structure, decision making, and exit mechanism.',
+  'Employment Contract': 'an Employment Contract. Cover position, duties, compensation, benefits, working hours, non-compete, and termination.',
 };
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
-  '标准英式': 'Use formal British legal English. Include "WHEREAS" recitals, numbered clauses, and "IN WITNESS WHEREOF" execution block.',
-  '中英双语': 'Write each clause in Chinese first, then the English translation immediately below. Use formal legal language in both.',
-  '简约版': 'Use plain, modern plain-English. Keep clauses short and clear. Avoid excessive jargon. Target clarity over formality.',
+  'Standard British': 'Use formal British legal English. Include "WHEREAS" recitals, numbered clauses, and "IN WITNESS WHEREOF" execution block.',
+  'Bilingual (EN/CN)': 'Write each clause in Chinese first, then the English translation immediately below. Use formal legal language in both.',
+  'Plain Language': 'Use plain, modern plain-English. Keep clauses short and clear. Avoid excessive jargon. Target clarity over formality.',
 };
 
 export async function POST(req: Request) {
@@ -131,13 +131,13 @@ export async function POST(req: Request) {
           let kbContext = '';
           if (kbFileIds?.length > 0) {
             const kbFiles = await prisma.knowledgeItem.findMany({ where: { id: { in: kbFileIds } } });
-            kbContext = kbFiles.map((f: any) => `【参考资料: ${f.title}】\n${f.content || ''}`).join('\n\n');
+            kbContext = kbFiles.map((f: any) => `【Reference: ${f.title}】\n${f.content || ''}`).join('\n\n');
           }
-          sendLog('[2/4]', `✅ 知识库加载完毕。开始 AI 生成主体条款 (${docType})...`);
+          sendLog('[2/4]', `✅ KB loaded. Generating main body clauses (${docType})...`);
 
           // --- BLOCK 2: AI generates the variable clauses ---
           const { client, config } = await getModelClient();
-          const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['标准英式'];
+          const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['Standard British'];
           const docInstruction = DOC_TYPE_PROMPTS[docType] || docType;
 
           const systemPrompt = `You are an expert legal document drafter. Draft the MAIN BODY of ${docInstruction}.
@@ -175,14 +175,14 @@ Use [INSERT ...] placeholders for any missing specific values. Output ONLY raw M
           }, Date.now() - streamStart);
 
           // --- BLOCK 3: Hardcoded standard clauses ---
-          sendLog('[3/4]', '✅ 主体条款生成完毕。正在拼接硬编码标准保护性条款...');
+          sendLog('[3/4]', '✅ Main body clauses generated. Appending standard protective clauses...');
           const standardBlock = STANDARD_CLAUSES[docType] || '';
           if (standardBlock) {
             sendChunk(standardBlock);
           }
 
           // --- BLOCK 4: Footer ---
-          sendLog('[4/4]', '✅ 标准条款已拼装完毕。法律文书生成完成！');
+          sendLog('[4/4]', '✅ Standard clauses assembled. Legal document generation complete!');
 
           // Save to GeneratedAsset for history
           const asset = await prisma.generatedAsset.create({
@@ -236,7 +236,7 @@ export async function PUT(req: Request) {
 
         try {
           const { client, config } = await getModelClient();
-          const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['标准英式'];
+          const styleInstruction = STYLE_INSTRUCTIONS[templateStyle] || STYLE_INSTRUCTIONS['Standard British'];
 
           const systemPrompt = `You are an expert legal document editor.
 The user has a draft legal document (${docType || 'legal document'}) and wants to make specific modifications.

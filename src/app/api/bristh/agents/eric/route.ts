@@ -58,11 +58,11 @@ User instruction: "${task.instruction}"
 
 Output format:
 {
-  "docType": "NDA | MOU | 服务协议 | 合作合同 | 劳动合同",
+  "docType": "NDA | MOU | Service Agreement | Partnership Contract | Employment Contract",
   "partyA": "Party A name (or empty string if unknown)",
   "partyB": "Party B name (or empty string if unknown)",
   "keyTerms": "key business terms mentioned (fees, duration, etc.)",
-  "templateStyle": "标准英式 | 中英双语 | 简约版"
+  "templateStyle": "Standard British | Bilingual (EN/CN) | Plain Language"
 }`;
 
     const extractRes = await trackableCompletion(
@@ -74,7 +74,7 @@ Output format:
     try {
       params = JSON.parse(extractRes.choices[0].message.content || '{}');
     } catch {
-      params = { docType: 'NDA', partyA: '', partyB: '', keyTerms: task.instruction, templateStyle: '标准英式' };
+      params = { docType: 'NDA', partyA: '', partyB: '', keyTerms: task.instruction, templateStyle: 'Standard British' };
     }
 
     // ── Step 3: Call the legal generator and wait for full result ──
@@ -87,7 +87,7 @@ Output format:
       } catch { /* non-blocking */ }
     };
 
-    await writeProgress('[1/4] 初始化参数，加载文书类型配置...');
+    await writeProgress('[1/4] Initialising parameters, loading document type config...');
 
     const result = await generateLegal(
       {
@@ -96,14 +96,14 @@ Output format:
         partyB: params.partyB,
         keyTerms: params.keyTerms,
         background: finalBackground || '',
-        templateStyle: params.templateStyle || '标准英式',
+        templateStyle: params.templateStyle || 'Standard British',
       },
       writeProgress
     );
 
     // ── Step 4: Bring result back to task pipeline ──
     const toolboxUrl = `/toolbox/legal?assetId=${result.assetId}`;
-    const summary = `⚖️ ${result.title} 已生成完毕`;
+    const summary = `⚖️ ${result.title} generated successfully`;
 
     const resultPayload = JSON.stringify({
       summary,
