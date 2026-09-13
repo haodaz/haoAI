@@ -128,10 +128,13 @@ async function parseDOC(buffer: Buffer, fileName: string): Promise<ParsedFile> {
     // Expected to fail for true .doc format
   }
 
-  // Attempt 2: Extract readable text from the binary DOC file
+  // Attempt 2: Extract using word-extractor for true .doc format
   try {
-    const text = extractTextFromDOC(buffer);
-    if (text && text.length > 50) {
+    const WordExtractor = (await import('word-extractor')).default;
+    const extractor = new WordExtractor();
+    const extracted = await extractor.extract(buffer);
+    const text = extracted.getBody();
+    if (text && text.trim().length > 0) {
       return { extractedText: text };
     }
   } catch (err: any) {
@@ -139,7 +142,7 @@ async function parseDOC(buffer: Buffer, fileName: string): Promise<ParsedFile> {
   }
 
   return {
-    extractedText: `[.doc 格式支持有限] 文件名: ${fileName}。建议将文件另存为 .docx 格式后重新上传，以获得完整的文本提取。`
+    extractedText: `[.doc 格式提取失败] 文件名: ${fileName}。建议将文件另存为 .docx 格式后重新上传。`
   };
 }
 
