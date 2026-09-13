@@ -23,6 +23,7 @@ const TOOLS = [
   { id: 'webpage', path: '/toolbox/webpage', label: 'Website Builder', desc: 'Responsive website with brand design', icon: Globe, color: 'teal' },
   { id: 'brochure', path: '/toolbox/brochure', label: 'Brochure Design', desc: 'Flyers, tri-folds & booklets', icon: BookOpen, color: 'emerald' },
   { id: 'finance', path: '/toolbox/finance', label: 'Finance Tool', desc: 'Invoices, reports & commissions', icon: DollarSign, color: 'cyan' },
+  { id: 'email', path: '/toolbox/email', label: 'AI Email', desc: 'Compose and send AI-generated emails', icon: Mail, color: 'rose' },
   { id: 'signature', path: '/toolbox/signature', label: 'Email Signature', desc: 'Global HTML signature editor', icon: Mail, color: 'orange' },
 ];
 
@@ -34,6 +35,7 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; icon
   emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', icon: 'text-emerald-500' },
   cyan:    { bg: 'bg-cyan-50',    border: 'border-cyan-100',    text: 'text-cyan-700',    icon: 'text-cyan-500' },
   orange:  { bg: 'bg-orange-50',  border: 'border-orange-100',  text: 'text-orange-700',  icon: 'text-orange-500' },
+  rose:    { bg: 'bg-rose-50',    border: 'border-rose-100',    text: 'text-rose-700',    icon: 'text-rose-500' },
 };
 
 const TYPE_ICON: Record<string, { icon: any; color: string }> = {
