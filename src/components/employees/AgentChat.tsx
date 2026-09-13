@@ -349,16 +349,6 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
 
                   {/* Bubble */}
                   <div className={`max-w-[75%] group/bubble ${msg.role === 'user' ? 'text-right flex flex-col items-end' : ''}`}>
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2 justify-end">
-                        {msg.attachments.map(att => (
-                          <div key={att.id} className="flex items-center gap-1.5 bg-white/20 border border-white/30 px-3 py-2 rounded-xl text-xs text-white shadow-sm backdrop-blur-sm">
-                            <FileText className="w-4 h-4 opacity-80" />
-                            <span className="truncate max-w-[150px] font-medium">{att.originalName}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                     <div
                       className={`inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user'
@@ -377,6 +367,16 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                         msg.content
                       )}
                     </div>
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2 justify-end">
+                        {msg.attachments.map(att => (
+                          <div key={att.id} className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs text-gray-700 shadow-sm">
+                            <FileText className="w-4 h-4 text-indigo-500" />
+                            <span className="truncate max-w-[150px] font-medium">{att.originalName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Bubble action bar */}
                     {msg.role === 'assistant' && msg.content && msg.content !== '⏳' && (
