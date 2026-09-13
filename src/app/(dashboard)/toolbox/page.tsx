@@ -117,8 +117,8 @@ export default function ToolboxDashboard() {
           <div className="absolute inset-0">
             <img src="/images/placeholders/hero_campus.png" alt="" className="w-full h-full object-cover" />
           </div>
-          {/* Dark green overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/88 via-emerald-800/82 to-emerald-900/75" />
+          {/* Dark green overlay — heavier left, lighter right */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a3d24]/95 via-[#0f5132]/90 to-[#145a38]/60" />
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.04]">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
