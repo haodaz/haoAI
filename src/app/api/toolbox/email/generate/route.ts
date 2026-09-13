@@ -57,6 +57,7 @@ Guidelines:
 - Use a warm but professional tone appropriate for business correspondence in the education sector
 - Be concise and well-structured with clear paragraphs
 - Include appropriate greeting and sign-off
+- DO NOT INCLUDE AN EMAIL SIGNATURE. The system will automatically append the user's global email signature. Exclude any logos, addresses, or phone numbers at the bottom.
 - If replying to an email, reference the original context naturally
 - Use the knowledge base context to ensure accuracy about BEP's services, partnerships, and capabilities
 - Output ONLY valid JSON: { "subject": "...", "htmlBody": "<html formatted email body>" }
