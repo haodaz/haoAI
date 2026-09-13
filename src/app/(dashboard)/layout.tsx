@@ -138,7 +138,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             { id: 'office', path: '/office', label: t('bristh.nav.office'), icon: Layout },
             { id: 'toolbox', path: '/toolbox', label: 'AI Native Tools', icon: Wrench },
             { id: 'AImployee', path: '/AImployee', label: t('bristh.nav.employees'), icon: Users },
-            { id: 'groupchat', path: '/groupchat', label: t('bristh.nav.group_chat', 'AI Group Chat'), icon: MessageSquare },
             { id: 'history', path: '/history', label: t('bristh.nav.history'), icon: History },
             { id: 'kb', label: t('bristh.nav.kb'), icon: BookOpen, children: [
                 { id: 'AIkb/business', path: '/AIkb/business', label: t('bristh.nav.kb_business', 'Business KB'), icon: BookOpen },
