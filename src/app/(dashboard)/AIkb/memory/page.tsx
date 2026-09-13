@@ -764,12 +764,6 @@ export default function Page() {
   return (
     <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-hidden">
       <div className="px-8 pt-7 pb-2 shrink-0">
-
-// ── Main Page ──────────────────────────────────────────────────────
-export default function Page() {
-  return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-hidden">
-      <div className="px-8 pt-7 pb-2 shrink-0">
         <h1 className="text-xl font-black text-gray-900 tracking-tight">AI Personal Memory</h1>
         <p className="text-xs text-gray-400 mt-1">Experience, lessons, and soul files for each AI agent</p>
       </div>
