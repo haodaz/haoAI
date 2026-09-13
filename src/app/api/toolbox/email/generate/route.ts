@@ -89,7 +89,7 @@ ${replyToBody ? `\n── Original Email Being Replied To ──\n${replyToBody}
     }
 
     // Track token usage
-    await tracker.flush('email_generate');
+    await tracker.persist('toolbox_email_generate');
 
     return NextResponse.json(result);
   } catch (error: any) {

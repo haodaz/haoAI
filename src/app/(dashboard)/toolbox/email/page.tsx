@@ -55,7 +55,7 @@ function getInitials(name: string) {
 }
 
 const AVATAR_COLORS = [
-  'from-rose-400 to-pink-500',
+  'from-emerald-400 to-teal-500',
   'from-violet-400 to-purple-500',
   'from-blue-400 to-indigo-500',
   'from-teal-400 to-emerald-500',
@@ -199,9 +199,9 @@ export default function AIEmailPage() {
     <div className="h-full flex flex-col bg-[#f8f9fc] overflow-hidden">
       {/* ── Top Bar: Account Info ── */}
       <div className="shrink-0 px-6 py-4 bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <Mail className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -220,7 +220,7 @@ export default function AIEmailPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setView('compose'); setSelectedEmail(null); setComposeForm({ to: '', cc: '', subject: '', prompt: '' }); setGeneratedHtml(''); }}
-              className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all"
+              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all"
             >
               <Zap className="w-3.5 h-3.5" /> Compose with AI
             </button>
@@ -237,7 +237,7 @@ export default function AIEmailPage() {
 
       {/* ── Main Content ── */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-[1400px] mx-auto h-full flex">
+        <div className="w-full h-full flex">
 
           {/* ── LEFT: Inbox List ── */}
           <div className={`${view === 'inbox' ? 'w-full md:w-[400px]' : 'hidden md:block md:w-[400px]'} border-r border-gray-100 bg-white flex flex-col shrink-0`}>
@@ -264,7 +264,7 @@ export default function AIEmailPage() {
                   <button
                     key={email.uid}
                     onClick={() => { setSelectedEmail(email); setView('read'); }}
-                    className={`w-full text-left px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50/80 transition-colors ${selectedEmail?.uid === email.uid ? 'bg-rose-50/40 border-l-2 border-l-rose-400' : ''}`}
+                    className={`w-full text-left px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50/80 transition-colors ${selectedEmail?.uid === email.uid ? 'bg-emerald-50/40 border-l-2 border-l-emerald-400' : ''}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getAvatarColor(email.from)} flex items-center justify-center shrink-0 mt-0.5`}>
@@ -310,7 +310,7 @@ export default function AIEmailPage() {
                       </div>
                       <button
                         onClick={() => handleReply(selectedEmail)}
-                        className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:shadow-lg transition-all"
+                        className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 hover:shadow-lg transition-all"
                       >
                         <Send className="w-3.5 h-3.5" /> Reply with AI
                       </button>
@@ -318,7 +318,7 @@ export default function AIEmailPage() {
                   </div>
                   <div className="p-6">
                     {selectedEmail.htmlBody ? (
-                      <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.htmlBody }} />
+                      <div className="pemerald pemerald-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.htmlBody }} />
                     ) : (
                       <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{selectedEmail.body}</pre>
                     )}
@@ -382,8 +382,8 @@ export default function AIEmailPage() {
 
                   {/* AI Prompt */}
                   <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-5 py-3 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-gray-100 flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
+                    <div className="px-5 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-gray-100 flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" /> AI Instructions
                       </h3>
                     </div>
@@ -391,7 +391,7 @@ export default function AIEmailPage() {
                       <textarea
                         value={composeForm.prompt}
                         onChange={e => setComposeForm(prev => ({ ...prev, prompt: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-rose-300 resize-none"
+                        className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-emerald-300 resize-none"
                         rows={4}
                         placeholder='e.g. "Write a partnership introduction email to Oxford Brookes, highlighting our agent network in China and Southeast Asia"'
                       />
@@ -405,7 +405,7 @@ export default function AIEmailPage() {
                         <h3 className="text-xs font-bold text-gray-600">Knowledge Base</h3>
                         <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">BEP Core auto-injected</span>
                       </div>
-                      <button onClick={() => setKbSelectorOpen(true)} className="text-[11px] font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded hover:bg-rose-100 flex items-center gap-1">
+                      <button onClick={() => setKbSelectorOpen(true)} className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 flex items-center gap-1">
                         <Database className="w-3 h-3" /> Select from KB
                       </button>
                     </div>
@@ -413,7 +413,7 @@ export default function AIEmailPage() {
                       {kbFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-3">
                           {kbFiles.map(f => (
-                            <div key={f.id} className="flex items-center gap-1 bg-rose-50 border border-rose-100 text-rose-700 px-2 py-1 rounded-md text-[11px]">
+                            <div key={f.id} className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[11px]">
                               <FileText className="w-3 h-3" /> <span className="truncate max-w-[150px]">{f.title}</span>
                               <X className="w-3 h-3 cursor-pointer hover:text-red-500 ml-1" onClick={() => setKbFiles(kbFiles.filter(kf => kf.id !== f.id))} />
                             </div>
@@ -431,7 +431,7 @@ export default function AIEmailPage() {
                     <button
                       onClick={handleGenerate}
                       disabled={!composeForm.prompt.trim() || generating}
-                      className="px-10 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-full shadow-lg shadow-rose-500/20 hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                      className="px-10 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-full shadow-lg shadow-emerald-500/20 hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2"
                     >
                       {generating ? <><Spin size="small" /> Generating draft...</> : <><Sparkles className="w-4 h-4" /> Generate Email Draft</>}
                     </button>
@@ -467,7 +467,7 @@ export default function AIEmailPage() {
                         </div>
                       )}
                       <div className="p-5">
-                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: generatedHtml }} />
+                        <div className="pemerald pemerald-sm max-w-none" dangerouslySetInnerHTML={{ __html: generatedHtml }} />
                       </div>
                     </div>
                   )}
