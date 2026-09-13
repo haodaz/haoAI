@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap, PlusCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap, PlusCircle, Clock, BarChart, PieChart, Shield, Search, Users, Briefcase, Calculator, Megaphone } from 'lucide-react';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
@@ -429,16 +429,19 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
 
       {/* Right Sidebar — Agent Info (desktop only) */}
       <div className="hidden lg:flex w-72 border-l border-gray-100 bg-white flex-col shrink-0 overflow-y-auto">
-        <div className="p-5 text-center border-b border-gray-50">
-          <div className="w-20 h-20 mx-auto rounded-2xl shadow-lg mb-3 overflow-hidden">
+        <div className="border-b border-gray-50">
+          <div className="w-full aspect-[4/5] overflow-hidden relative">
             <img src={sidebarAvatar} alt={agent.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-5 left-0 right-0 px-4 text-center">
+              <h3 className="text-[22px] font-black text-white tracking-wide drop-shadow-lg">{agent.name}</h3>
+              <p className="text-[12px] text-white/90 font-medium mt-1 drop-shadow-md">{agent.title}</p>
+            </div>
           </div>
-          <h3 className="text-sm font-black text-gray-900">{agent.name}</h3>
-          <p className="text-[11px] text-gray-400 font-medium mt-0.5">{agent.title}</p>
         </div>
 
-        <div className="p-4 border-b border-gray-50">
-          <p className="text-xs text-gray-500 leading-relaxed">{agentDesc}</p>
+        <div className="p-5 border-b border-gray-50">
+          <p className="text-[16px] text-gray-600 leading-relaxed font-medium">{agentDesc}</p>
         </div>
 
         <div className="p-4 border-b border-gray-50">
@@ -596,6 +599,23 @@ function getToolsForDisplay(agentId: string) {
     edda: [{ name: 'ppt', icon: FileText, label: 'PPT 幻灯片生成' }],
     bob: [{ name: 'cal', icon: Calendar, label: '日历事件创建' }],
     grace: [{ name: 'email', icon: Mail, label: '邮件草稿撰写' }],
+    hugo: [
+      { name: 'fin_analysis', icon: BarChart, label: '财务报表分析' },
+      { name: 'budget_calc', icon: Calculator, label: '预算与ROI测算' }
+    ],
+    alice: [
+      { name: 'proposal', icon: Briefcase, label: '商业方案生成' }
+    ],
+    david: [
+      { name: 'audit', icon: Shield, label: '合规与风险审查' }
+    ],
+    kelly: [
+      { name: 'talent_search', icon: Users, label: '人才深度检索' },
+      { name: 'background_check', icon: Search, label: '背景交叉比对' }
+    ],
+    fiona: [
+      { name: 'pr', icon: Megaphone, label: 'PR与宣发生成' }
+    ]
   };
 
   return [...base, ...(toolMap[agentId.toLowerCase()] || [])];
