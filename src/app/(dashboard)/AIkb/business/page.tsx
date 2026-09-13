@@ -117,13 +117,14 @@ export default function BusinessKnowledgePage() {
       
       if (!uploadRes.ok) throw new Error('Upload failed');
       
-      const { url, fileName, fileType, fileSize } = await uploadRes.json();
+      const { url, fileName, fileType, fileSize, extractedText } = await uploadRes.json();
       
       const kbRes = await fetch('/api/kb/knowledge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title: fileName,
+          content: extractedText,
           type: 'FILE',
           parentId: currentFolderId || 'root',
           fileUrl: url,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { uploadToCloud, isCloudStorageEnabled } from '@/lib/file-storage';
+import { parseFileContent } from '@/lib/file-parser';
 
 const LOCAL_UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
 
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
     
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    const parsed = await parseFileContent(buffer, file.type || ext, file.name);
 
     const safeFileName = `kb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
     
@@ -53,7 +56,8 @@ export async function POST(req: NextRequest) {
       url: storagePath, 
       fileName: file.name, 
       fileType: file.type || ext,
-      fileSize: file.size
+      fileSize: file.size,
+      extractedText: parsed.extractedText
     });
   } catch (error: any) {
     console.error('KB Upload error:', error);
