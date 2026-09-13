@@ -120,7 +120,7 @@ export async function POST() {
           interactions: {
             create: {
               type: 'EMAIL',
-              summary: `收到主题为 "${subject}" 的邮件咨询。`,
+              summary: `Received an inquiry email with subject "${subject}".`,
               messages: JSON.stringify([
                 { role: 'user', content: emailContent, timestamp: parsedMail.date?.toISOString() || new Date().toISOString() }
               ])

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
-import { Mail, UploadCloud, Link2, Send, ChevronLeft, Type, ChevronRight, AlertTriangle, Shield, ShieldCheck, ShieldAlert, AtSign, Loader2, Info, CheckCircle2, Zap, UserCheck, X, Paperclip, FileText } from 'lucide-react';
+import { Mail, UploadCloud, Link2, Send, ChevronLeft, Type, ChevronRight, AlertTriangle, Shield, ShieldCheck, ShieldAlert, AtSign, Loader2, Info, CheckCircle2, Zap, UserCheck, X, Paperclip, FileText, RefreshCw } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Tooltip } from 'antd';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
@@ -624,7 +624,23 @@ export default function NewTaskPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-800">{t('bristh.newTask.selectEmailTitle')}</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-bold text-gray-800">{t('bristh.newTask.selectEmailTitle')}</h2>
+                <button 
+                  onClick={async () => {
+                    try {
+                      setLoadingEmails(true);
+                      await fetch('/api/inbox/sync', { method: 'POST' });
+                    } catch(e){}
+                    fetchEmails();
+                  }}
+                  disabled={loadingEmails}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[11px] font-bold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingEmails ? 'animate-spin' : ''}`} />
+                  {i18n.language?.startsWith('en') ? 'Sync Inbox' : '同步最新邮件'}
+                </button>
+              </div>
               <button onClick={() => setEmailSelectorOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
                 <X className="w-5 h-5" />
               </button>
