@@ -129,7 +129,7 @@ export default function DesktopAudiencePanel({
                 {m.isCreator && (
                   <span style={{ background: '#f97316', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4 }}>房主</span>
                 )}
-                <span style={{ fontSize: 11, fontWeight: 600, color: m.isCreator ? '#f97316' : '#5b40e8' }}>{m.username}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: m.isCreator ? '#f97316' : '#10b981' }}>{m.username}</span>
               </div>
               {/* 气泡：半透明蒙版感 */}
               <div style={{
@@ -163,7 +163,7 @@ export default function DesktopAudiencePanel({
         {/* 冷却提示 */}
         {cooldown > 0 && (
           <div style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginBottom: 6 }}>
-            下次发言还需等待 <b style={{ color: '#5b40e8' }}>{cooldown}</b> 秒
+            下次发言还需等待 <b style={{ color: '#10b981' }}>{cooldown}</b> 秒
           </div>
         )}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -175,7 +175,7 @@ export default function DesktopAudiencePanel({
             style={{
               flex: 1, padding: '8px 12px', fontSize: 13,
               background: 'rgba(255,255,255,0.8)',
-              border: `1px solid ${input ? '#5b40e8' : 'rgba(91,64,232,0.2)'}`,
+              border: `1px solid ${input ? '#10b981' : 'rgba(16,185,129,0.2)'}`,
               borderRadius: 20, outline: 'none', color: '#14151f',
               backdropFilter: 'blur(4px)',
               transition: 'border-color 0.15s',
@@ -188,7 +188,7 @@ export default function DesktopAudiencePanel({
               width: 34, height: 34, borderRadius: '50%', border: 'none', flexShrink: 0,
               background: cooldown > 0 || !input.trim()
                 ? 'rgba(156,163,175,0.3)'
-                : 'linear-gradient(135deg,#786cff,#5b40e8)',
+                : 'linear-gradient(135deg,#34d399,#10b981)',
               color: cooldown > 0 || !input.trim() ? '#9ca3af' : '#fff',
               cursor: cooldown > 0 || !input.trim() ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -4,7 +4,7 @@ import { CloseOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/i
 import { message, Modal } from 'antd';
 import { Character, Room } from '@/lib/characters/types';
 
-const PRIMARY = '#5b40e8';
+const PRIMARY = '#10b981';
 
 const LENGTH_OPTIONS = [
   { val: 'short',     label: '简洁',  sub: '200字内' },

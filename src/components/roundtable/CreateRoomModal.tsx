@@ -23,7 +23,7 @@ const REPLY_LENGTHS = [
   { key: 'unlimited',label: '不限', sub: '' },
 ];
 
-const PRIMARY = '#5b40e8';
+const PRIMARY = '#10b981';
 
 // 获取头像 URL
 function getAvatarUrl(char: Character): string | null {
@@ -208,7 +208,7 @@ export default function CreateRoomModal({ open, characters, themes, isAdmin, onC
                         cursor: 'pointer', transition: 'all 0.15s',
                         flexShrink: 0, whiteSpace: 'nowrap',
                       }}
-                      onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#f0eeff'; (e.currentTarget as HTMLElement).style.borderColor = '#c4b5fd'; (e.currentTarget as HTMLElement).style.color = PRIMARY; } }}
+                      onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#ecfdf5'; (e.currentTarget as HTMLElement).style.borderColor = '#6ee7b7'; (e.currentTarget as HTMLElement).style.color = PRIMARY; } }}
                       onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#f9f9fb'; (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLElement).style.color = '#6b7280'; } }}>
                       {t === '全部' ? '全部' : (themeNames[t] || t)}
                     </button>
@@ -232,12 +232,12 @@ export default function CreateRoomModal({ open, characters, themes, isAdmin, onC
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '10px 12px', borderRadius: 10, cursor: isDisabled ? 'not-allowed' : 'pointer',
-                        border: `1.5px solid ${isSelected ? '#c4b5fd' : 'transparent'}`,
-                        background: isSelected ? '#f5f3ff' : 'transparent',
+                        border: `1.5px solid ${isSelected ? '#6ee7b7' : 'transparent'}`,
+                        background: isSelected ? '#ecfdf5' : 'transparent',
                         opacity: isDisabled ? 0.4 : 1,
                         transition: 'all 0.15s',
                       }}
-                      onMouseEnter={e => { if (!isDisabled && !isSelected) { (e.currentTarget as HTMLElement).style.background = '#f9f7ff'; (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; } }}
+                      onMouseEnter={e => { if (!isDisabled && !isSelected) { (e.currentTarget as HTMLElement).style.background = '#f0fdf4'; (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; } }}
                       onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = 'transparent'; } }}>
                       {/* 头像 */}
                       <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#f3f4f6' }}>
@@ -249,7 +249,7 @@ export default function CreateRoomModal({ open, characters, themes, isAdmin, onC
                       {/* 文字 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#14151f' }}>{char.name}</div>
-                        {char.tagline && <div style={{ fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.tagline}</div>}
+                        {char.tagline && <div style={{ fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.tagline.split('/').pop()?.trim()}</div>}
                       </div>
                       {/* 勾选圆圈 */}
                       <div style={{
@@ -351,7 +351,7 @@ export default function CreateRoomModal({ open, characters, themes, isAdmin, onC
                           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                           transition: 'all 0.15s',
                         }}
-                        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = PRIMARY; (e.currentTarget as HTMLElement).style.background = '#f0eeff'; } }}
+                        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = PRIMARY; (e.currentTarget as HTMLElement).style.background = '#ecfdf5'; } }}
                         onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLElement).style.background = '#fff'; } }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#fff' : '#374151' }}>{opt.label}</span>
                         {opt.sub && <span style={{ fontSize: 10, color: active ? 'rgba(255,255,255,0.75)' : '#9ca3af' }}>{opt.sub}</span>}

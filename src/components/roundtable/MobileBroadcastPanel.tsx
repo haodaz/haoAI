@@ -154,7 +154,7 @@ export default function MobileBroadcastPanel({
               width: 36, height: 36, borderRadius: '50%', border: 'none',
               background: cooldown > 0
                 ? 'rgba(100,100,100,0.6)'
-                : 'linear-gradient(135deg,#786cff,#5b40e8)',
+                : 'linear-gradient(135deg,#34d399,#10b981)',
               color: '#fff', cursor: cooldown > 0 ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 700, flexShrink: 0,

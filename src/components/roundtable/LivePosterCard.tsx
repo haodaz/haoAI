@@ -490,7 +490,7 @@ export default function LivePosterCard({ roomId, roomName, presenceCount = 0, se
         {TEMPLATES.map(t => (
           <button key={t.id} onClick={() => setTemplate(t.id)} style={{
             padding: '6px 14px', borderRadius: 20, border: 'none',
-            background: template === t.id ? '#5b40e8' : 'rgba(255,255,255,0.12)',
+            background: template === t.id ? '#10b981' : 'rgba(255,255,255,0.12)',
             color: template === t.id ? '#fff' : 'rgba(255,255,255,0.6)',
             fontSize: 12, fontWeight: 600, cursor: 'pointer',
             transition: 'all 0.15s', fontFamily: 'inherit',
@@ -518,10 +518,10 @@ export default function LivePosterCard({ roomId, roomName, presenceCount = 0, se
       {/* ── Action buttons ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
         position: 'relative', zIndex: 10 }}>
-        <button onClick={handleSave} disabled={!ready || saving} style={btnStyle(ready, '#5b40e8')}>
+        <button onClick={handleSave} disabled={!ready || saving} style={btnStyle(ready, '#10b981')}>
           {saving ? '保存中…' : '保存海报'}
         </button>
-        <button onClick={handleUpload} disabled={!ready || uploading} style={btnStyle(ready, '#5b40e8')}>
+        <button onClick={handleUpload} disabled={!ready || uploading} style={btnStyle(ready, '#10b981')}>
           {uploading ? '上传中…' : '上传到服务器'}
         </button>
         <button onClick={onClose} style={{
