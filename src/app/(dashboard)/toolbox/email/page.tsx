@@ -158,12 +158,7 @@ export default function AIEmailPage() {
         message.error(data.error);
       } else {
         setGeneratedSubject(data.subject || composeForm.subject || '');
-        
-        let newHtml = data.htmlBody || '';
-        if (globalSignature) {
-          newHtml += `<br><br>${globalSignature}`;
-        }
-        setGeneratedHtml(newHtml);
+        setGeneratedHtml(data.htmlBody || '');
         
         if (data.subject && !composeForm.subject) {
           setComposeForm(prev => ({ ...prev, subject: data.subject }));
@@ -190,7 +185,7 @@ export default function AIEmailPage() {
           to: composeForm.to,
           cc: composeForm.cc || undefined,
           subject: composeForm.subject || generatedSubject,
-          htmlBody: generatedHtml,
+          htmlBody: generatedHtml + (globalSignature ? `<br><br>${globalSignature}` : ''),
           requestAttachments: attachments,
         }),
       });
@@ -222,7 +217,7 @@ export default function AIEmailPage() {
       prompt: '',
     });
     setSelectedEmail(email);
-    setGeneratedHtml(globalSignature ? `<br><br>${globalSignature}` : '');
+    setGeneratedHtml('');
     setGeneratedSubject('');
     setView('compose');
   };
@@ -251,7 +246,7 @@ export default function AIEmailPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setView('compose'); setSelectedEmail(null); setComposeForm({ to: '', cc: '', subject: '', prompt: '' }); setGeneratedHtml(globalSignature ? `<br><br>${globalSignature}` : ''); }}
+              onClick={() => { setView('compose'); setSelectedEmail(null); setComposeForm({ to: '', cc: '', subject: '', prompt: '' }); setGeneratedHtml(''); }}
               className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all"
             >
               <Zap className="w-3.5 h-3.5" /> Compose with AI
@@ -499,6 +494,11 @@ export default function AIEmailPage() {
                       )}
                       <div className="p-5">
                         <ReactQuill theme="snow" value={generatedHtml} onChange={setGeneratedHtml} className="bg-white" />
+                        
+                        {/* Read-only Signature Preview */}
+                        {globalSignature && (
+                          <div className="mt-2 p-4 bg-gray-50 border border-gray-100 rounded-lg pointer-events-none opacity-80" dangerouslySetInnerHTML={{ __html: globalSignature }} />
+                        )}
                         
                         {/* Attachments Section */}
                         <div className="mt-4 border-t border-gray-100 pt-4">
