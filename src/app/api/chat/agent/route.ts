@@ -220,7 +220,7 @@ async function streamRawFetch(
   };
 
   // Gemini: disable thinking when tools are used to avoid thought_signature issues
-  if (provider === 'Google' && tools.length > 0) {
+  if (provider === 'Google' && tools.length > 0 && model.toLowerCase().includes('thinking')) {
     body.thinking = { thinking_budget: 0 };
   }
 

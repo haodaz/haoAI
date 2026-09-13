@@ -30,7 +30,7 @@
   border-radius: 22px 22px 6px 22px;
   background: linear-gradient(135deg, #5b40e8, #427759);
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.65;
   box-shadow: 0 2px 12px rgba(91, 64, 232, 0.28);
   max-width: 72vw;
@@ -90,7 +90,7 @@
 }
 
 .assistantName {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.7);
 }
@@ -102,7 +102,7 @@
 
 .assistantContent {
   padding-left: 46px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.8;
   color: rgba(0, 0, 0, 0.82);
   word-break: break-word;
