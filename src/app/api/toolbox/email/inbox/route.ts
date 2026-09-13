@@ -3,6 +3,7 @@ import imaps from 'imap-simple';
 import { simpleParser } from 'mailparser';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 const IMAP_CONFIG = {
   imap: {
