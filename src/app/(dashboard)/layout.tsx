@@ -378,14 +378,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* Language Toggle */}
-          <button
-            onClick={() => { const next = i18n.language === 'zh' ? 'en' : 'zh'; i18n.changeLanguage(next); localStorage.setItem('bristh_lang', next); }}
-            className={`w-full flex items-center justify-center ${desktopSidebarCollapsed ? 'px-0 py-2.5' : 'px-3 py-2'} bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all text-xs font-bold text-gray-500`}
-            title={desktopSidebarCollapsed ? t('bristh.lang.toggle') : undefined}
-          >
-            {desktopSidebarCollapsed ? '🌐' : `🌐 ${t('bristh.lang.toggle')}`}
-          </button>
+
         </div>
       </div>
 

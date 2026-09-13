@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap, PlusCircle, Clock, BarChart, PieChart, Shield, Search, Users, Briefcase, Calculator, Megaphone } from 'lucide-react';
+import { ArrowLeft, Send, Download, FileText, Calendar, Mail, Sparkles, Bot, User, ChevronRight, Loader2, Copy, Zap, PlusCircle, Clock, BarChart, PieChart, Shield, Search, Users, Briefcase, Calculator, Megaphone, Paperclip, X } from 'lucide-react';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
@@ -39,6 +39,7 @@ interface ChatMessage {
   content: string;
   toolCalls?: Record<string, ToolCall>;
   isWorking?: boolean;
+  attachments?: any[];
 }
 
 const COLOR_MAP: Record<string, { accent: string; light: string; gradient: string }> = {
@@ -63,6 +64,8 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
   const { pendingAgentTask, setPendingAgentTask } = useWorkspace();
   const pendingTaskHandled = useRef(false);
   const [chatHistory, setChatHistory] = useState<{ id: string; title: string; date: string; preview: string }[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -103,13 +106,18 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
   const colors = COLOR_MAP[agent.color] || COLOR_MAP.blue;
 
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || loading) return;
+    if ((!content.trim() && pendingAttachments.length === 0) || loading) return;
     setInput('');
+    
+    let finalContent = content;
+    const currentAttachments = [...pendingAttachments];
+    setPendingAttachments([]);
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content,
+      content: content.trim() || '（发送了附件）',
+      attachments: currentAttachments,
     };
 
     const assistantMsgId = `assistant-${Date.now() + 1}`;
@@ -125,8 +133,15 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     try {
       // Build message history for API (exclude greeting, only user/assistant content)
       const historyForApi = [...messagesRef.current, userMsg]
-        .filter(m => m.content && m.content !== '⏳')
-        .map(m => ({ role: m.role, content: m.content }));
+        .filter(m => (m.content || (m.attachments && m.attachments.length > 0)) && m.content !== '⏳')
+        .map(m => {
+          let text = m.content || '';
+          if (m.attachments && m.attachments.length > 0) {
+            const attText = m.attachments.map(a => `[附件: ${a.originalName}]\n${a.extractedText}`).join('\n\n');
+            text = `${attText}\n\n${text}`;
+          }
+          return { role: m.role, content: text };
+        });
 
       const response = await fetch('/api/chat/agent', {
         method: 'POST',
@@ -247,6 +262,38 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    message.loading({ content: '上传中...', key: 'upload' });
+    
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append('files', f));
+      
+      const res = await fetch('/api/bristh/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      setPendingAttachments(prev => [...prev, ...data.attachments]);
+      message.success({ content: '上传成功', key: 'upload' });
+    } catch (e: any) {
+      message.error({ content: e.message || '上传失败', key: 'upload' });
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
   return (
     <div className="h-full flex">
       {/* Main Chat Area — aurora gradient bg extends behind everything */}
@@ -297,7 +344,17 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                   )}
 
                   {/* Bubble */}
-                  <div className={`max-w-[75%] group/bubble ${msg.role === 'user' ? 'text-right' : ''}`}>
+                  <div className={`max-w-[75%] group/bubble ${msg.role === 'user' ? 'text-right flex flex-col items-end' : ''}`}>
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-2 justify-end">
+                        {msg.attachments.map(att => (
+                          <div key={att.id} className="flex items-center gap-1.5 bg-white/20 border border-white/30 px-3 py-2 rounded-xl text-xs text-white shadow-sm backdrop-blur-sm">
+                            <FileText className="w-4 h-4 opacity-80" />
+                            <span className="truncate max-w-[150px] font-medium">{att.originalName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div
                       className={`inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user'
@@ -386,9 +443,30 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
           {/* Input Area — transparent bg, same max-w-3xl as messages */}
           <div className="px-4 md:px-6 py-3 shrink-0">
             <div className="max-w-3xl mx-auto">
+              
+              {/* Display pending attachments here */}
+              {pendingAttachments.length > 0 && (
+                 <div className="flex flex-wrap gap-2 mb-2 ml-12">
+                    {pendingAttachments.map(att => (
+                       <div key={att.id} className="flex items-center gap-1 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs shadow-sm">
+                          <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="truncate max-w-[150px] font-medium">{att.originalName}</span>
+                          <button onClick={() => removeAttachment(att.id)} className="ml-1 text-gray-400 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                       </div>
+                    ))}
+                 </div>
+              )}
+
               <div className="relative flex items-end bg-white/90 backdrop-blur-sm border border-gray-200/80 rounded-xl shadow-sm focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                {/* Upload button */}
+                <div className="flex items-center pl-2 pb-2 shrink-0">
+                  <input type="file" id="agent-chat-upload" className="hidden" multiple onChange={handleFileUpload} />
+                  <label htmlFor="agent-chat-upload" className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
+                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                  </label>
+                </div>
                 {/* Mic button — inside left */}
-                <div className="flex items-center pl-3 pb-3 shrink-0">
+                <div className="flex items-center pb-2 shrink-0">
                   <VoiceInputButton
                     onTranscript={(text) => setInput(prev => prev + text)}
                     lang={i18n.language === 'zh' ? 'zh-CN' : 'en-US'}

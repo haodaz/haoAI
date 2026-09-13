@@ -9,15 +9,9 @@ export default function I18nProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     setMounted(true);
-    // Priority: localStorage > browser language > fallback 'en'
-    const stored = localStorage.getItem('bristh_lang');
-    if (stored && (stored === 'zh' || stored === 'en')) {
-      i18n.changeLanguage(stored);
-    } else {
-      const browserLang = navigator.language?.startsWith('zh') ? 'zh' : 'en';
-      i18n.changeLanguage(browserLang);
-      localStorage.setItem('bristh_lang', browserLang);
-    }
+    // Force English language
+    i18n.changeLanguage('en');
+    localStorage.setItem('bristh_lang', 'en');
   }, []);
 
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
