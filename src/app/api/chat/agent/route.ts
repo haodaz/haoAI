@@ -202,6 +202,11 @@ async function streamRawFetch(
   onToken: (token: string) => void,
   provider?: string,
 ): Promise<{ content: string; tool_calls?: any[] }> {
+  // OpenAI reasoning models: must use /v1/responses API for function tools
+  if (provider === 'OpenAI' && tools.length > 0) {
+    return streamOpenAIResponses(baseURL, apiKey, model, messages, tools, onToken);
+  }
+
   // Sanitize messages for the API — preserve tool-related fields
   const apiMessages = messages.map((m: any) => {
     const msg: any = { role: m.role, content: m.content };
@@ -236,13 +241,92 @@ async function streamRawFetch(
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`[chat/agent] LLM API Error (${response.status}):`, errorText);
-    throw new Error(`LLM API Error ${response.status}: ${errorText.slice(0, 200)}`);
+    throw new Error(`LLM API Error ${response.status}: ${errorText.slice(0, 300)}`);
   }
 
   if (!response.body) {
     throw new Error('No response body from LLM');
   }
 
+  return parseChatCompletionsStream(response.body, onToken);
+}
+
+// ── OpenAI Responses API streaming ──────────────────────────────────────────
+
+async function streamOpenAIResponses(
+  baseURL: string,
+  apiKey: string,
+  model: string,
+  messages: any[],
+  tools: ToolDefinition[],
+  onToken: (token: string) => void,
+): Promise<{ content: string; tool_calls?: any[] }> {
+  // Convert chat messages to Responses API input format
+  const input = messages.map((m: any) => {
+    // Tool result messages → use special format
+    if (m.role === 'tool') {
+      return {
+        type: 'function_call_output',
+        call_id: m.tool_call_id,
+        output: m.content,
+      };
+    }
+    // Assistant message with tool_calls → convert to function_call items
+    if (m.role === 'assistant' && m.tool_calls?.length) {
+      const items: any[] = [];
+      if (m.content) {
+        items.push({ type: 'message', role: 'assistant', content: m.content });
+      }
+      for (const tc of m.tool_calls) {
+        items.push({
+          type: 'function_call',
+          id: tc.id,
+          call_id: tc.id,
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+        });
+      }
+      return items;
+    }
+    // Regular messages (system/user/assistant)
+    return { role: m.role, content: m.content };
+  }).flat();
+
+  // Convert tools to Responses API format
+  const responsesTools = tools.map((t: any) => ({
+    type: 'function',
+    name: t.function.name,
+    description: t.function.description,
+    parameters: t.function.parameters,
+  }));
+
+  const body = {
+    model,
+    input,
+    tools: responsesTools,
+    stream: true,
+  };
+
+  const response = await fetch(`${baseURL.replace(/\/$/, '')}/responses`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[chat/agent] OpenAI Responses API Error (${response.status}):`, errorText);
+    throw new Error(`LLM API Error ${response.status}: ${errorText.slice(0, 300)}`);
+  }
+
+  if (!response.body) {
+    throw new Error('No response body from OpenAI Responses API');
+  }
+
+  // Parse Responses API SSE stream
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let assistantMessage = '';
@@ -255,7 +339,73 @@ async function streamRawFetch(
 
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split('\n');
-    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
+
+      try {
+        const event = JSON.parse(trimmed.slice(6));
+        const type = event.type;
+
+        // Text content delta
+        if (type === 'response.output_text.delta') {
+          const delta = event.delta || '';
+          assistantMessage += delta;
+          onToken(delta);
+        }
+
+        // Function call: capture name + arguments
+        if (type === 'response.function_call_arguments.delta') {
+          const idx = toolCalls.findIndex(tc => tc.id === event.item_id);
+          if (idx >= 0) {
+            toolCalls[idx].function.arguments += event.delta || '';
+          }
+        }
+
+        // New output item (could be message or function_call)
+        if (type === 'response.output_item.added' && event.item?.type === 'function_call') {
+          toolCalls.push({
+            id: event.item.call_id || event.item.id,
+            type: 'function',
+            function: {
+              name: event.item.name || '',
+              arguments: '',
+            },
+          });
+        }
+      } catch {
+        // ignore parse errors on partial chunks
+      }
+    }
+  }
+
+  return {
+    content: assistantMessage,
+    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+  };
+}
+
+// ── Chat Completions stream parser (Google, DashScope, etc.) ────────────────
+
+async function parseChatCompletionsStream(
+  body: ReadableStream<Uint8Array>,
+  onToken: (token: string) => void,
+): Promise<{ content: string; tool_calls?: any[] }> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let assistantMessage = '';
+  let toolCalls: any[] = [];
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -310,3 +460,4 @@ async function streamRawFetch(
     tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
   };
 }
+

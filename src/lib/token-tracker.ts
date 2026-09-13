@@ -28,8 +28,9 @@ const PRICING_PER_1M: Record<string, { input: number; output: number }> = {
   // Anthropic Claude
   'claude-sonnet-4':          { input: 3.00, output: 15.0 },
   // OpenAI
-  'gpt-4o':                   { input: 2.50, output: 10.0 },
-  'gpt-4o-mini':              { input: 0.15, output: 0.60 },
+  'gpt-6-astra':              { input: 10.0, output: 30.0 },
+  'gpt-5.6-terra':            { input: 2.50, output: 10.0 },
+  'gpt-5.6-luna':             { input: 0.50, output: 2.00 },
   // Qwen Plus
   'qwen-plus':                { input: 0.80, output: 2.00 },
 };

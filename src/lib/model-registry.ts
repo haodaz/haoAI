@@ -56,11 +56,29 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     supportsJsonMode: true,
   },
-  'gpt-4o': {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
+  'gpt-6-astra': {
+    id: 'gpt-6-astra',
+    name: 'GPT-6 Astra',
     provider: 'OpenAI',
-    modelName: 'gpt-4o',
+    modelName: 'gpt-6-astra',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    baseURL: 'https://api.openai.com/v1',
+    supportsJsonMode: true,
+  },
+  'gpt-56-terra': {
+    id: 'gpt-56-terra',
+    name: 'GPT-5.6 Terra',
+    provider: 'OpenAI',
+    modelName: 'gpt-5.6-terra',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    baseURL: 'https://api.openai.com/v1',
+    supportsJsonMode: true,
+  },
+  'gpt-56-luna': {
+    id: 'gpt-56-luna',
+    name: 'GPT-5.6 Luna',
+    provider: 'OpenAI',
+    modelName: 'gpt-5.6-luna',
     apiKeyEnv: 'OPENAI_API_KEY',
     baseURL: 'https://api.openai.com/v1',
     supportsJsonMode: true,
@@ -82,9 +100,9 @@ export async function getSelectedModelId(): Promise<string> {
     if (data.modelId && MODEL_REGISTRY[data.modelId]) {
       return data.modelId;
     }
-    return 'gemini-38-flash';
+    return 'gpt-56-luna';
   } catch {
-    return 'gemini-38-flash';
+    return 'gpt-56-luna';
   }
 }
 
@@ -100,7 +118,7 @@ export async function setSelectedModelId(modelId: string): Promise<void> {
  */
 export async function getActiveModelConfig(): Promise<ModelConfig> {
   const modelId = await getSelectedModelId();
-  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY['gemini-38-flash'];
+  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY['gpt-56-luna'];
 }
 
 /**

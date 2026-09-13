@@ -46,8 +46,9 @@ const MODEL_COLORS: Record<string, string> = {
   'deepseek-v3': '#7c3aed',
   'deepseek-chat': '#8b5cf6',
   'claude-sonnet-4': '#f59e0b',
-  'gpt-4o': '#10a37f',
-  'gpt-4o-mini': '#6ee7b7',
+  'gpt-6-astra': '#10a37f',
+  'gpt-5.6-terra': '#34d399',
+  'gpt-5.6-luna': '#6ee7b7',
   'qwen-plus': '#ff6a00',
 };
 
@@ -56,7 +57,9 @@ const MODEL_PRICING_REF = [
   { name: 'Gemini 3.6 Flash', input: '$0.75', output: '$3.75' },
   { name: 'Gemini 3.5 Flash', input: '$0.75', output: '$3.75' },
   { name: 'Gemini 3.1 Pro', tag: 'Pro', tagColor: '#ea4335', input: '$7.00', output: '$12.00' },
-  { name: 'GPT-4o', input: '$2.50', output: '$10.00' },
+  { name: 'GPT-6 Astra', tag: 'Flagship', tagColor: '#10a37f', input: '$10.00', output: '$30.00' },
+  { name: 'GPT-5.6 Terra', input: '$2.50', output: '$10.00' },
+  { name: 'GPT-5.6 Luna', input: '$0.50', output: '$2.00' },
 ];
 
 const AGENT_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {

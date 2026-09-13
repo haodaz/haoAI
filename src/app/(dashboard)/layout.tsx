@@ -15,6 +15,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   DashScope: 'bg-blue-100 text-blue-600',
   Anthropic: 'bg-violet-100 text-violet-600',
   Google: 'bg-emerald-100 text-emerald-600',
+  OpenAI: 'bg-teal-100 text-teal-600',
 };
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
