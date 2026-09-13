@@ -106,6 +106,12 @@ export default function AIEmailPage() {
     fetchInbox();
   }, []);
 
+  const previewSignature = globalSignature 
+    ? globalSignature
+        .replace(/src="cid:bep_signature"/g, 'src="/images/BEP_logo.png"')
+        .replace(/src="cid:icon_([a-zA-Z0-9_-]+)"/g, 'src="/images/social/$1.png"')
+    : '';
+
   const fetchInbox = async () => {
     setInboxLoading(true);
     try {
@@ -496,8 +502,8 @@ export default function AIEmailPage() {
                         <ReactQuill theme="snow" value={generatedHtml} onChange={setGeneratedHtml} className="bg-white" />
                         
                         {/* Read-only Signature Preview */}
-                        {globalSignature && (
-                          <div className="mt-2 p-4 bg-gray-50 border border-gray-100 rounded-lg pointer-events-none opacity-80" dangerouslySetInnerHTML={{ __html: globalSignature }} />
+                        {previewSignature && (
+                          <div className="mt-2 p-4 bg-gray-50 border border-gray-100 rounded-lg pointer-events-none opacity-80" dangerouslySetInnerHTML={{ __html: previewSignature }} />
                         )}
                         
                         {/* Attachments Section */}
