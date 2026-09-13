@@ -133,6 +133,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </Link>
           )}
 
+          {/* ── Main Navigation ── */}
           {[
             { id: 'office', path: '/office', label: t('bristh.nav.office'), icon: Layout },
             { id: 'toolbox', path: '/toolbox', label: 'AI Native Tools', icon: Wrench },
@@ -144,11 +145,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 { id: 'AIkb/tasks', path: '/AIkb/tasks', label: t('bristh.nav.kb_tasks', 'Task Memory'), icon: ClipboardList },
                 { id: 'AIkb/memory', path: '/AIkb/memory', label: t('bristh.nav.kb_memory', 'AI Memory'), icon: Brain },
             ] },
-            { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
-            { id: 'token-usage', path: '/token-usage', label: 'Token Ledger', icon: BarChart3 },
-            // { id: 'skills', path: '/skills', label: t('bristh.nav.skills'), icon: PenTool },
-            { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
-            { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
             { id: 'external_ai', path: '/chat/bep', label: 'BEP Client AI', icon: MessageSquare, target: '_blank' },
           ].filter(tab => canAccessTab(tab.id === 'AImployee' ? 'employees' : tab.id === 'groupchat' ? 'group_chat' : tab.id, user?.role || 'user')).map(tab => {
             if (tab.children) {
@@ -212,6 +208,51 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {/* ── Admin Section ── */}
+          {user?.role === 'admin' && (
+            <>
+              {/* Divider with admin label */}
+              {!desktopSidebarCollapsed ? (
+                <div className="pt-4 pb-2 px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-gradient-to-r from-amber-200/80 via-amber-300/50 to-transparent" />
+                    <span className="text-[10px] font-bold text-amber-500/80 tracking-widest uppercase whitespace-nowrap flex items-center gap-1">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Admin
+                    </span>
+                    <div className="h-px flex-1 bg-gradient-to-l from-amber-200/80 via-amber-300/50 to-transparent" />
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-3 pb-1 flex justify-center">
+                  <div className="w-6 h-px bg-amber-300/60 rounded-full" />
+                </div>
+              )}
+
+              {[
+                { id: 'settings', path: '/AIsettings', label: t('bristh.nav.settings'), icon: Settings },
+                { id: 'token-usage', path: '/token-usage', label: 'Token Ledger', icon: BarChart3 },
+                { id: 'logic', path: '/logic', label: t('bristh.nav.logic'), icon: BookOpen },
+                { id: 'users', path: '/users', label: t('bristh.nav.users'), icon: Users },
+              ].map(tab => (
+                <Link
+                  key={tab.id}
+                  href={tab.path}
+                  onClick={() => setSidebarOpen(false)}
+                  title={desktopSidebarCollapsed ? tab.label : undefined}
+                  className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'px-4'} py-2 rounded-xl transition-all duration-200 mb-0.5 ${
+                    activeTab === tab.id
+                      ? 'bg-amber-50 text-amber-700 font-bold shadow-sm border border-amber-100/80'
+                      : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                  }`}
+                >
+                  <tab.icon className={`w-[16px] h-[16px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-amber-500' : 'text-gray-300'}`} />
+                  {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="p-3 border-t border-gray-200/80 space-y-2">
