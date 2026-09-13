@@ -253,7 +253,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     } finally {
       setLoading(false);
     }
-  }, [agent.id, loading]);
+  }, [agent.id, loading, pendingAttachments, i18n.language]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

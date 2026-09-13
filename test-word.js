@@ -1,6 +1,3 @@
-async function run() {
-  const mod = await import('word-extractor');
-  console.log(Object.keys(mod));
-  console.log(typeof mod.default);
-}
-run();
+const WordExtractor = require('word-extractor');
+const extractor = new WordExtractor();
+console.log(extractor.extract.toString());
