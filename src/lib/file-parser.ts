@@ -144,6 +144,16 @@ async function parseDOC(buffer: Buffer, fileName: string): Promise<ParsedFile> {
     console.error('DOC binary parse error:', errorMsg);
   }
 
+  // Attempt 3: Fallback to binary/RTF text extraction if word-extractor fails
+  try {
+    const fallbackText = extractTextFromDOC(buffer);
+    if (fallbackText && fallbackText.length > 20) {
+      return { extractedText: fallbackText };
+    }
+  } catch (err: any) {
+    console.error('DOC fallback parse error:', err.message);
+  }
+
   return {
     extractedText: `[.doc 格式提取失败: ${errorMsg}] 文件名: ${fileName}。建议将文件另存为 .docx 格式后重新上传。`
   };

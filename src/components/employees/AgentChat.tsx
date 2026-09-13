@@ -258,6 +258,10 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (isUploading) {
+        message.warning('请等待附件上传完成');
+        return;
+      }
       sendMessage(input);
     }
   };
@@ -492,7 +496,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                 <div className="flex items-center pr-2 pb-2 shrink-0">
                   <button
                     onClick={() => sendMessage(input)}
-                    disabled={!input.trim() || loading}
+                    disabled={(!input.trim() && pendingAttachments.length === 0) || loading || isUploading}
                     className="p-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Send className="w-4 h-4" />
