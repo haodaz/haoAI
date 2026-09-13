@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { to, cc, subject, htmlBody } = await req.json();
+    const { to, cc, subject, htmlBody, requestAttachments = [] } = await req.json();
 
     if (!to || !subject || !htmlBody) {
       return NextResponse.json({ error: 'Missing required fields: to, subject, htmlBody' }, { status: 400 });
@@ -17,16 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email credentials not configured' }, { status: 500 });
     }
 
-    // Fetch global signature
-    const sigMeta = await prisma.systemMeta.findUnique({
-      where: { key: 'global_email_signature' }
-    });
-
-    const signatureHtml = sigMeta?.value
-      ? `<br><br>${sigMeta.value}`
-      : '';
-
-    const fullHtml = htmlBody + signatureHtml;
+    const fullHtml = htmlBody;
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -44,6 +35,17 @@ export async function POST(req: Request) {
         filename: 'BEP_logo.png',
         path: logoPath,
         cid: 'bep_signature',
+      });
+    }
+
+    // Add user uploaded attachments
+    for (const att of requestAttachments) {
+      // att: { filename, content: 'base64 string...', contentType }
+      attachments.push({
+        filename: att.filename,
+        content: att.content,
+        encoding: 'base64',
+        contentType: att.contentType
       });
     }
 

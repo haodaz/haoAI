@@ -7,7 +7,11 @@ import {
   ChevronRight, ArrowLeft, Database, FileText, X, Clock, CheckCircle, AlertCircle,
   Zap
 } from 'lucide-react';
-import KbFileSelector from '@/components/shared/KbFileSelector';
+import { KbFileSelector } from '@/components/shared/KbFileSelector';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 // ── Types ──────────────────────────────────────────────────────────
 interface EmailItem {
@@ -87,6 +91,10 @@ export default function AIEmailPage() {
   const [generatedHtml, setGeneratedHtml] = useState('');
   const [generatedSubject, setGeneratedSubject] = useState('');
   const [sending, setSending] = useState(false);
+  
+  // Signature & Attachments
+  const [globalSignature, setGlobalSignature] = useState('');
+  const [attachments, setAttachments] = useState<{ filename: string; content: string; contentType: string }[]>([]);
 
   // View mode: 'inbox' | 'compose' | 'read'
   const [view, setView] = useState<'inbox' | 'compose' | 'read'>('inbox');
@@ -94,6 +102,7 @@ export default function AIEmailPage() {
   // ── Init ──
   useEffect(() => {
     fetch('/api/toolbox/email/account').then(r => r.json()).then(setAccount).catch(() => {});
+    fetch('/api/toolbox/signature').then(r => r.json()).then(data => setGlobalSignature(data.signature || '')).catch(() => {});
     fetchInbox();
   }, []);
 
@@ -109,6 +118,21 @@ export default function AIEmailPage() {
     } finally {
       setInboxLoading(false);
     }
+  };
+
+  // ── Attachments ──
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    Array.from(e.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = (event.target?.result as string).split(',')[1];
+        if (base64) {
+          setAttachments(prev => [...prev, { filename: file.name, content: base64, contentType: file.type }]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   // ── Generate ──
@@ -134,7 +158,13 @@ export default function AIEmailPage() {
         message.error(data.error);
       } else {
         setGeneratedSubject(data.subject || composeForm.subject || '');
-        setGeneratedHtml(data.htmlBody || '');
+        
+        let newHtml = data.htmlBody || '';
+        if (globalSignature) {
+          newHtml += `<br><br>${globalSignature}`;
+        }
+        setGeneratedHtml(newHtml);
+        
         if (data.subject && !composeForm.subject) {
           setComposeForm(prev => ({ ...prev, subject: data.subject }));
         }
@@ -161,6 +191,7 @@ export default function AIEmailPage() {
           cc: composeForm.cc || undefined,
           subject: composeForm.subject || generatedSubject,
           htmlBody: generatedHtml,
+          requestAttachments: attachments,
         }),
       });
       const data = await res.json();
@@ -170,6 +201,7 @@ export default function AIEmailPage() {
         setGeneratedHtml('');
         setGeneratedSubject('');
         setKbFiles([]);
+        setAttachments([]);
         setView('inbox');
       } else {
         message.error(data.error || 'Send failed');
@@ -467,7 +499,27 @@ export default function AIEmailPage() {
                         </div>
                       )}
                       <div className="p-5">
-                        <div className="pemerald pemerald-sm max-w-none" dangerouslySetInnerHTML={{ __html: generatedHtml }} />
+                        <ReactQuill theme="snow" value={generatedHtml} onChange={setGeneratedHtml} className="bg-white" />
+                        
+                        {/* Attachments Section */}
+                        <div className="mt-4 border-t border-gray-100 pt-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-[11px] font-bold text-gray-500 cursor-pointer flex items-center gap-1 hover:text-emerald-600">
+                              <Paperclip className="w-3.5 h-3.5" /> Attach Files
+                              <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+                            </label>
+                          </div>
+                          {attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {attachments.map((att, i) => (
+                                <div key={i} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-[11px] text-gray-600">
+                                  <span className="truncate max-w-[150px]">{att.filename}</span>
+                                  <X className="w-3 h-3 cursor-pointer hover:text-red-500 ml-1" onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
