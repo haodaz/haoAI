@@ -222,7 +222,7 @@ export default function AIEmailPage() {
       prompt: '',
     });
     setSelectedEmail(email);
-    setGeneratedHtml('');
+    setGeneratedHtml(globalSignature ? `<br><br>${globalSignature}` : '');
     setGeneratedSubject('');
     setView('compose');
   };
@@ -251,7 +251,7 @@ export default function AIEmailPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setView('compose'); setSelectedEmail(null); setComposeForm({ to: '', cc: '', subject: '', prompt: '' }); setGeneratedHtml(''); }}
+              onClick={() => { setView('compose'); setSelectedEmail(null); setComposeForm({ to: '', cc: '', subject: '', prompt: '' }); setGeneratedHtml(globalSignature ? `<br><br>${globalSignature}` : ''); }}
               className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all"
             >
               <Zap className="w-3.5 h-3.5" /> Compose with AI
@@ -469,13 +469,12 @@ export default function AIEmailPage() {
                     </button>
                   </div>
 
-                  {/* Generated Preview */}
-                  {generatedHtml && (
-                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="px-5 py-3 bg-emerald-50/50 border-b border-gray-100 flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5" /> Generated Draft
-                        </h3>
+                  {/* Email Draft Editor */}
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-5 py-3 bg-emerald-50/50 border-b border-gray-100 flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" /> Email Draft
+                      </h3>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={handleGenerate}
@@ -522,8 +521,7 @@ export default function AIEmailPage() {
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
               </div>
             )}
 
