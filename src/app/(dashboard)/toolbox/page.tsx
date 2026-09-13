@@ -56,6 +56,14 @@ const TOOLS = [
     shadowHover: 'hover:shadow-cyan-100',
   },
   {
+    id: 'email', path: '/toolbox/email', label: 'AI Email',
+    desc: 'View inbox, compose and send AI-generated emails powered by your knowledge base',
+    icon: Mail,
+    gradient: 'from-rose-500 to-pink-600',
+    borderHover: 'hover:border-rose-200',
+    shadowHover: 'hover:shadow-rose-100',
+  },
+  {
     id: 'signature', path: '/toolbox/signature', label: 'Email Signature',
     desc: 'Design and manage global HTML email signatures for the team',
     icon: Mail,
