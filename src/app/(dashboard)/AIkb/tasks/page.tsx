@@ -56,16 +56,16 @@ function BusinessTab() {
     e.stopPropagation();
     try {
       await fetch(`/api/kb/knowledge?id=${id}`, { method: 'DELETE' });
-      message.success('已删除');
+      message.success('Deleted');
       fetchItems();
     } catch {
-      message.error('删除失败');
+      message.error('Delete failed');
     }
   };
 
   const handleAddSubmit = async () => {
     if (!addForm.title || !addForm.content) {
-      message.error('标题和内容不能为空');
+      message.error('Title and content are required');
       return;
     }
     setIsSubmitting(true);
@@ -73,14 +73,14 @@ function BusinessTab() {
       await fetch('/api/kb/knowledge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...addForm, category: '业务知识', audience: '全体成员' })
+        body: JSON.stringify({ ...addForm, category: 'Business Knowledge', audience: 'All Staff' })
       });
-      message.success('添加成功');
+      message.success('Added successfully');
       setIsAddModalVisible(false);
       setAddForm({ title: '', content: '' });
       fetchItems();
     } catch {
-      message.error('添加失败');
+      message.error('Failed to add');
     } finally {
       setIsSubmitting(false);
     }
@@ -99,13 +99,13 @@ function BusinessTab() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <p className="text-sm text-gray-400">主动维护关于公司、客户和行业的知识数据</p>
+        <p className="text-sm text-gray-400">Actively maintain knowledge about company, clients, and industry</p>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsAddModalVisible(true)} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-100 shadow-sm transition-colors border border-emerald-100">
-            <Upload className="w-3.5 h-3.5" /> 上传单条知识
+            <Upload className="w-3.5 h-3.5" /> Upload Entry
           </button>
           <button onClick={() => router.push('/kb')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-md">
-            <Plus className="w-3.5 h-3.5" /> 管理知识库项目
+            <Plus className="w-3.5 h-3.5" /> Manage Libraries
           </button>
         </div>
       </div>
@@ -113,13 +113,13 @@ function BusinessTab() {
       {/* 知识数据条目 */}
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-          <Database className="w-4 h-4 text-emerald-600" /> 知识数据条目
+          <Database className="w-4 h-4 text-emerald-600" /> Knowledge Entries
         </h3>
         {items.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-200">
             <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-3xl">🗂️</div>
-            <p className="text-gray-500 font-bold mb-1">暂无知识数据</p>
-            <p className="text-gray-400 text-sm">点击「上传单条知识」添加公司知识、客户信息等</p>
+            <p className="text-gray-500 font-bold mb-1">No knowledge entries yet</p>
+            <p className="text-gray-400 text-sm">Click "Upload Entry" to add company knowledge, client info, etc.</p>
           </div>
         ) : (
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
@@ -138,7 +138,7 @@ function BusinessTab() {
                     </div>
                     <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.content}</p>
                     <div className="text-[10px] text-gray-300 mt-2">
-                      存储于 Supabase · 更新时间: {new Date(item.updatedAt).toLocaleString('zh-CN')}
+                      Stored in Supabase · Updated: {new Date(item.updatedAt).toLocaleString('en-US')}
                     </div>
                   </div>
                   <button onClick={(e) => handleDeleteItem(item.id, e)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0">
@@ -155,7 +155,7 @@ function BusinessTab() {
       {libs.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-emerald-600" /> 知识库项目
+            <BookOpen className="w-4 h-4 text-emerald-600" /> Libraries
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {libs.map(lib => (
@@ -164,7 +164,7 @@ function BusinessTab() {
                 <div className="text-3xl mb-3">{lib.emoji || '📚'}</div>
                 <h3 className="font-bold text-gray-900 mb-1">{lib.name}</h3>
                 {lib.desc && <p className="text-xs text-gray-400 mb-3">{lib.desc}</p>}
-                <div className="text-[10px] text-gray-300">{lib.fileCount || 0} 个文档</div>
+                <div className="text-[10px] text-gray-300">{lib.fileCount || 0} documents</div>
               </div>
             ))}
           </div>
@@ -198,15 +198,15 @@ function BusinessTab() {
 
       {/* Add Knowledge Modal */}
       <Modal
-        title="添加知识数据"
+        title="Add Knowledge Entry"
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
-            取消
+            Cancel
           </Button>,
           <Button key="submit" type="primary" loading={isSubmitting} onClick={handleAddSubmit} className="bg-emerald-600 hover:bg-emerald-700">
-            保存至数据库
+            Save to Database
           </Button>,
         ]}
         width={600}
@@ -214,28 +214,28 @@ function BusinessTab() {
         <div className="space-y-4 mt-4">
           <div className="flex items-center gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50">
             <div className="flex-1">
-              <h4 className="text-xs font-bold text-emerald-700 mb-1">快捷导入</h4>
-              <p className="text-[10px] text-gray-500">支持上传 .txt 或 .md 文件，自动提取标题和内容</p>
+              <h4 className="text-xs font-bold text-emerald-700 mb-1">Quick Import</h4>
+              <p className="text-[10px] text-gray-500">Upload .txt or .md files — title and content auto-extracted</p>
             </div>
             <label className="px-4 py-2 bg-white text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold cursor-pointer hover:bg-emerald-50 transition-colors">
-              选择文件
+              Choose File
               <input type="file" accept=".txt,.md" className="hidden" onChange={handleFileUpload} />
             </label>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">知识标题</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Title</label>
             <Input 
-              placeholder="例如：公司愿景与价值观" 
+              placeholder="e.g. Company Vision & Values" 
               value={addForm.title}
               onChange={e => setAddForm(prev => ({ ...prev, title: e.target.value }))}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">知识内容 (支持 Markdown)</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Content (Markdown supported)</label>
             <Input.TextArea 
-              placeholder="粘贴或输入知识内容..." 
+              placeholder="Paste or type content..." 
               value={addForm.content}
               onChange={e => setAddForm(prev => ({ ...prev, content: e.target.value }))}
               rows={8}
@@ -266,11 +266,11 @@ function TaskMemoryTab() {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     Modal.confirm({
-      title: '确认删除',
-      content: '删除后该任务的所有子任务结果也会被清除，不可恢复。',
-      okText: '删除',
+      title: 'Confirm Delete',
+      content: 'This will permanently remove the task and all sub-task results.',
+      okText: 'Delete',
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
           await fetch('/api/bristh/kb', {
@@ -278,13 +278,13 @@ function TaskMemoryTab() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id }),
           });
-          message.success('已删除');
+          message.success('Deleted');
           if (selectedCtx?.id === id) {
             setSelectedCtx(null);
           }
           fetchContexts();
         } catch {
-          message.error('删除失败');
+          message.error('Delete failed');
         }
       }
     });
@@ -321,8 +321,8 @@ function TaskMemoryTab() {
             ←
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 truncate">{selectedCtx.title || '任务详情'}</h3>
-            <p className="text-[10px] text-gray-400">{new Date(selectedCtx.createdAt).toLocaleString('zh-CN')} · {selectedCtx.tasks?.length || 0} 个子任务</p>
+            <h3 className="font-bold text-gray-900 truncate">{selectedCtx.title || 'Task Details'}</h3>
+            <p className="text-[10px] text-gray-400">{new Date(selectedCtx.createdAt).toLocaleString('en-US')} · {selectedCtx.tasks?.length || 0} sub-tasks</p>
           </div>
           <button onClick={(e) => handleDelete(selectedCtx.id, e)}
             className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center hover:bg-red-100 text-red-400 hover:text-red-600 transition-all">
@@ -334,11 +334,11 @@ function TaskMemoryTab() {
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
             <h4 className="text-xs font-bold text-gray-600 flex items-center gap-2">
-              <FileText className="w-3.5 h-3.5" /> 原始输入内容
+              <FileText className="w-3.5 h-3.5" /> Original Input
             </h4>
           </div>
           <div className="p-4 max-h-48 overflow-y-auto">
-            <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{selectedCtx.rawContent || '无内容'}</pre>
+            <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{selectedCtx.rawContent || 'No content'}</pre>
           </div>
         </div>
 
@@ -346,7 +346,7 @@ function TaskMemoryTab() {
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
           <div className="px-4 py-3 bg-emerald-50/50 border-b border-gray-100">
             <h4 className="text-xs font-bold text-emerald-700 flex items-center gap-2">
-              <ClipboardList className="w-3.5 h-3.5" /> 子任务执行结果
+              <ClipboardList className="w-3.5 h-3.5" /> Sub-task Results
             </h4>
           </div>
           <div className="divide-y divide-gray-50">
@@ -378,7 +378,7 @@ function TaskMemoryTab() {
                           {/* Summary */}
                           {result.summary && (
                             <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-                              <div className="text-[10px] font-bold text-green-700 mb-1">📋 摘要</div>
+                              <div className="text-[10px] font-bold text-green-700 mb-1">📋 Summary</div>
                               <p className="text-xs text-green-800">{result.summary}</p>
                             </div>
                           )}
@@ -387,12 +387,12 @@ function TaskMemoryTab() {
                           {result.content && (
                             <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
                               <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-                                <span className="text-[10px] font-bold text-gray-500">完整输出</span>
+                                <span className="text-[10px] font-bold text-gray-500">Full Output</span>
                               </div>
                               <div className="p-3 max-h-64 overflow-y-auto">
                                 <pre className="text-[11px] text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{
                                   typeof result.content === 'string' 
-                                    ? result.content.slice(0, 3000) + (result.content.length > 3000 ? '\n\n... (内容过长，已截断)' : '')
+                                    ? result.content.slice(0, 3000) + (result.content.length > 3000 ? '\n\n... (truncated)' : '')
                                     : JSON.stringify(result.content, null, 2).slice(0, 3000)
                                 }</pre>
                               </div>
@@ -402,7 +402,7 @@ function TaskMemoryTab() {
                           {/* Published URL (for Iris) */}
                           {result.publishedUrl && (
                             <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                              <span className="text-[10px] font-bold text-blue-700">🌐 发布链接：</span>
+                              <span className="text-[10px] font-bold text-blue-700">🌐 Published URL:</span>
                               <a href={result.publishedUrl} target="_blank" className="text-xs text-emerald-600 underline ml-1">{result.publishedUrl}</a>
                             </div>
                           )}
@@ -415,11 +415,11 @@ function TaskMemoryTab() {
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-gray-300 py-4 text-center">暂无结果 — 任务尚未完成</div>
+                        <div className="text-xs text-gray-300 py-4 text-center">No results yet — task not completed</div>
                       )}
 
                       <div className="mt-2 text-[9px] text-gray-300">
-                        创建: {new Date(task.createdAt).toLocaleString('zh-CN')} · 更新: {new Date(task.updatedAt).toLocaleString('zh-CN')}
+                        Created: {new Date(task.createdAt).toLocaleString('en-US')} · Updated: {new Date(task.updatedAt).toLocaleString('en-US')}
                       </div>
                     </div>
                   )}
@@ -435,12 +435,12 @@ function TaskMemoryTab() {
   // List view
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-400">从 Office 管线任务执行中自动积累的记录，点击查看详情</p>
+      <p className="text-sm text-gray-400">Automatically accumulated records from Office pipeline task execution</p>
       {contexts.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-3xl">📝</div>
-          <p className="text-gray-500 font-bold mb-1">暂无任务记忆</p>
-          <p className="text-gray-400 text-sm">在 Office 页面执行任务后，记忆会自动存入</p>
+          <p className="text-gray-500 font-bold mb-1">No task memory yet</p>
+          <p className="text-gray-400 text-sm">Memories are automatically stored after tasks are executed in Office</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -453,7 +453,7 @@ function TaskMemoryTab() {
                 className="bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md hover:border-emerald-100 transition-all cursor-pointer group">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-sm text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{ctx.title || '未命名任务'}</h3>
+                    <h3 className="font-bold text-sm text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{ctx.title || 'Untitled Task'}</h3>
                     <p className="text-xs text-gray-400 mt-1 line-clamp-2">{ctx.rawContent?.slice(0, 150)}</p>
                     {uniqueAgents.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -464,8 +464,8 @@ function TaskMemoryTab() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-3 shrink-0">
-                    <span className="text-[10px] text-gray-300 bg-gray-50 px-2 py-1 rounded-lg">{ctx._count?.tasks || 0} 个子任务</span>
-                    <span className="text-[10px] text-gray-300">{new Date(ctx.createdAt).toLocaleDateString('zh-CN')}</span>
+                    <span className="text-[10px] text-gray-300 bg-gray-50 px-2 py-1 rounded-lg">{ctx._count?.tasks || 0} sub-tasks</span>
+                    <span className="text-[10px] text-gray-300">{new Date(ctx.createdAt).toLocaleDateString('en-US')}</span>
                     <button onClick={(e) => handleDelete(ctx.id, e)}
                       className="w-6 h-6 rounded-md bg-transparent flex items-center justify-center hover:bg-red-50 text-gray-200 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">
                       <Trash2 className="w-3 h-3" />
@@ -518,14 +518,14 @@ function AIMemoryTab() {
       const res = await fetch(`/api/cron/dreaming${force ? '?force=true' : ''}`);
       const data = await res.json();
       setDreamResult(data);
-      message.success(`🧠 做梦完成！处理了 ${data.agentsProcessed} 个 Agent`);
+      message.success(`🧠 Dreaming complete! Processed ${data.agentsProcessed} agents`);
       // Refresh stats and reload expanded agent
       refreshStats(agents);
       if (expandedAgent) {
         loadAgentMemories(expandedAgent);
       }
     } catch {
-      message.error('做梦失败');
+      message.error('Dreaming failed');
     } finally {
       setDreaming(false);
     }
@@ -563,8 +563,8 @@ function AIMemoryTab() {
       });
       setSouls(prev => ({ ...prev, [agentId]: soulDraft }));
       setEditingSoul(null);
-      message.success('灵魂文件已保存');
-    } catch { message.error('保存失败'); }
+      message.success('Soul file saved');
+    } catch { message.error('Save failed'); }
   };
 
   const deleteMemory = async (agentId: string, memoryId: string) => {
@@ -578,17 +578,17 @@ function AIMemoryTab() {
         ...prev,
         [agentId]: (prev[agentId] || []).filter(m => m.id !== memoryId),
       }));
-      message.success('已删除');
-    } catch { message.error('删除失败'); }
+      message.success('Deleted');
+    } catch { message.error('Delete failed'); }
   };
 
   const typeLabels: Record<string, { label: string; color: string }> = {
-    task_feedback: { label: '用户反馈', color: 'bg-amber-100 text-amber-700' },
-    lesson_learned: { label: '经验教训', color: 'bg-blue-100 text-blue-700' },
-    user_preference: { label: '用户偏好', color: 'bg-purple-100 text-purple-700' },
-    task_summary: { label: '任务摘要', color: 'bg-emerald-100 text-emerald-700' },
+    task_feedback: { label: 'User Feedback', color: 'bg-amber-100 text-amber-700' },
+    lesson_learned: { label: 'Lesson Learned', color: 'bg-blue-100 text-blue-700' },
+    user_preference: { label: 'User Preference', color: 'bg-purple-100 text-purple-700' },
+    task_summary: { label: 'Task Summary', color: 'bg-emerald-100 text-emerald-700' },
     copilot_feedback: { label: 'Copilot', color: 'bg-cyan-100 text-cyan-700' },
-    dreaming_insight: { label: '梦境洞察', color: 'bg-rose-100 text-rose-700' },
+    dreaming_insight: { label: 'Dream Insight', color: 'bg-rose-100 text-rose-700' },
   };
 
   if (loading) return (<div className="flex items-center justify-center h-64"><Spin size="large" /></div>);
@@ -596,19 +596,19 @@ function AIMemoryTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-gray-400">每个 AI 从任务和交互中积累的经验、教训和灵魂文件</p>
+        <p className="text-sm text-gray-400">Experience, lessons, and soul files accumulated by each AI agent</p>
         <div className="flex items-center gap-2">
           <button onClick={() => triggerDreaming(false)} disabled={dreaming}
             className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:shadow-lg disabled:opacity-50 transition-all">
             {dreaming ? (
-              <><span className="animate-spin">🌀</span> 做梦中…</>
+              <><span className="animate-spin">🌀</span> Dreaming…</>
             ) : (
-              <><Brain className="w-3.5 h-3.5" /> 🌙 触发做梦（新记忆）</>
+              <><Brain className="w-3.5 h-3.5" /> 🌙 Dream (New Memories)</>
             )}
           </button>
           <button onClick={() => triggerDreaming(true)} disabled={dreaming}
             className="px-3 py-2 bg-white text-purple-600 border border-purple-200 rounded-lg text-xs font-bold hover:bg-purple-50 disabled:opacity-50 transition-all">
-            ♾️ 全量整理
+            ♾️ Full Consolidation
           </button>
         </div>
       </div>
@@ -618,7 +618,7 @@ function AIMemoryTab() {
         <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-rose-50 rounded-xl p-4 border border-purple-100">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm">🧠</span>
-            <span className="text-xs font-bold text-purple-700">做梦报告</span>
+            <span className="text-xs font-bold text-purple-700">Dream Report</span>
             <span className="text-[10px] text-gray-400">{dreamResult.timestamp?.split('T')[0]}</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -629,9 +629,9 @@ function AIMemoryTab() {
                 'bg-red-50 text-red-600'
               }`}>
                 <span className="font-bold">{agentId}</span>
-                {r.status === 'success' && <span className="block">{r.memoriesProcessed} 条 · {r.insights?.slice(0, 40)}</span>}
-                {r.status === 'skipped' && <span className="block">跳过</span>}
-                {r.status === 'error' && <span className="block">出错</span>}
+                {r.status === 'success' && <span className="block">{r.memoriesProcessed} entries · {r.insights?.slice(0, 40)}</span>}
+                {r.status === 'skipped' && <span className="block">Skipped</span>}
+                {r.status === 'error' && <span className="block">Error</span>}
               </div>
             ))}
           </div>
@@ -666,9 +666,9 @@ function AIMemoryTab() {
                 <div className="flex items-center gap-3">
                   {agentStats && (
                     <div className="flex items-center gap-2 text-[10px] text-gray-300">
-                      {agentStats.hasSoul && <span className="bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">🧠 灵魂</span>}
-                      <span>{agentStats.totalCount} 条记忆</span>
-                      {agentStats.todayCount > 0 && <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">今日 +{agentStats.todayCount}</span>}
+                      {agentStats.hasSoul && <span className="bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">🧠 Soul</span>}
+                      <span>{agentStats.totalCount} memories</span>
+                      {agentStats.todayCount > 0 && <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">Today +{agentStats.todayCount}</span>}
                     </div>
                   )}
                   {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-300" /> : <ChevronRight className="w-4 h-4 text-gray-300" />}
@@ -682,18 +682,18 @@ function AIMemoryTab() {
                   <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                     <div className="px-4 py-3 bg-rose-50/50 border-b border-gray-100 flex items-center justify-between">
                       <h4 className="text-xs font-bold text-rose-700 flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5" /> 灵魂文件 (Soul File)
+                        <Sparkles className="w-3.5 h-3.5" /> Soul File
                       </h4>
                       {editingSoul === agent.id ? (
                         <div className="flex gap-2">
                           <button onClick={() => saveSoul(agent.id)} className="text-[10px] px-3 py-1 bg-rose-600 text-white rounded-lg font-bold flex items-center gap-1">
-                            <Save className="w-3 h-3" /> 保存
+                            <Save className="w-3 h-3" /> Save
                           </button>
-                          <button onClick={() => setEditingSoul(null)} className="text-[10px] px-3 py-1 bg-gray-100 text-gray-500 rounded-lg font-bold">取消</button>
+                          <button onClick={() => setEditingSoul(null)} className="text-[10px] px-3 py-1 bg-gray-100 text-gray-500 rounded-lg font-bold">Cancel</button>
                         </div>
                       ) : (
                         <button onClick={() => { setEditingSoul(agent.id); setSoulDraft(soulContent); }} className="text-[10px] px-3 py-1 bg-white text-rose-600 border border-rose-200 rounded-lg font-bold flex items-center gap-1 hover:bg-rose-50">
-                          <Edit3 className="w-3 h-3" /> 编辑
+                          <Edit3 className="w-3 h-3" /> Edit
                         </button>
                       )}
                     </div>
@@ -701,12 +701,12 @@ function AIMemoryTab() {
                       {editingSoul === agent.id ? (
                         <textarea value={soulDraft} onChange={e => setSoulDraft(e.target.value)}
                           className="w-full h-48 text-xs leading-relaxed p-3 border border-gray-200 rounded-lg outline-none focus:border-rose-400 resize-none font-mono"
-                          placeholder={`# ${agent.name} 的灵魂文件\n\n## 核心能力认知\n- ...\n\n## 已学教训\n- ...\n\n## 用户偏好\n- ...`} />
+                          placeholder={`# ${agent.name}'s Soul File\n\n## Core Capabilities\n- ...\n\n## Lessons Learned\n- ...\n\n## User Preferences\n- ...`} />
                       ) : soulContent ? (
                         <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">{soulContent}</div>
                       ) : (
                         <div className="text-xs text-gray-300 text-center py-6">
-                          暂无灵魂文件 — Dreaming Agent 会在每日总结时自动生成，你也可以手动编辑
+                          No soul file yet — Dreaming Agent generates it during daily consolidation, or edit manually
                         </div>
                       )}
                     </div>
@@ -716,12 +716,12 @@ function AIMemoryTab() {
                   <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                     <div className="px-4 py-3 bg-blue-50/50 border-b border-gray-100">
                       <h4 className="text-xs font-bold text-blue-700 flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5" /> 记忆条目 ({agentMemories.length})
+                        <Clock className="w-3.5 h-3.5" /> Memory Entries ({agentMemories.length})
                       </h4>
                     </div>
                     <div className="max-h-72 overflow-y-auto">
                       {agentMemories.length === 0 ? (
-                        <div className="text-xs text-gray-300 text-center py-8">暂无记忆 — 任务执行和用户反馈会自动写入</div>
+                        <div className="text-xs text-gray-300 text-center py-8">No memories yet — automatically recorded from task execution and user feedback</div>
                       ) : (
                         <div className="divide-y divide-gray-50">
                           {agentMemories.map(mem => {
@@ -732,8 +732,8 @@ function AIMemoryTab() {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
                                       <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${typeInfo.color}`}>{typeInfo.label}</span>
-                                      <span className="text-[9px] text-gray-300">{new Date(mem.ts).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                      <span className="text-[9px] text-gray-200">重要性: {(mem.importance * 100).toFixed(0)}%</span>
+                                      <span className="text-[9px] text-gray-300">{new Date(mem.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                      <span className="text-[9px] text-gray-200">Importance: {(mem.importance * 100).toFixed(0)}%</span>
                                     </div>
                                     <p className="text-xs text-gray-700 leading-relaxed">{mem.content}</p>
                                   </div>
@@ -764,8 +764,8 @@ export default function Page() {
   return (
     <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-hidden">
       <div className="px-8 pt-7 pb-2 shrink-0">
-        <h1 className="text-xl font-black text-gray-900 tracking-tight">任务记忆</h1>
-        <p className="text-xs text-gray-400 mt-1">从任务执行中积累的记录</p>
+        <h1 className="text-xl font-black text-gray-900 tracking-tight">Task Memory</h1>
+        <p className="text-xs text-gray-400 mt-1">Records accumulated from task execution</p>
       </div>
       <div className="flex-1 overflow-y-auto px-8 py-5">
         <TaskMemoryTab />

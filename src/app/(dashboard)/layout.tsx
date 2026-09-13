@@ -261,14 +261,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   href={tab.path}
                   onClick={() => setSidebarOpen(false)}
                   title={desktopSidebarCollapsed ? tab.label : undefined}
-                  className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'px-4'} py-2 rounded-xl transition-all duration-200 mb-0.5 ${
+                  className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center px-0' : 'px-4'} py-2.5 rounded-xl transition-all duration-200 mb-1 ${
                     activeTab === tab.id
                       ? 'bg-amber-50 text-amber-700 font-bold shadow-sm border border-amber-100/80'
                       : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
                   }`}
                 >
-                  <tab.icon className={`w-[16px] h-[16px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-amber-500' : 'text-gray-300'}`} />
-                  {!desktopSidebarCollapsed && <span className="text-[13px] font-semibold">{tab.label}</span>}
+                  <tab.icon className={`w-[18px] h-[18px] ${desktopSidebarCollapsed ? '' : 'mr-3'} ${activeTab === tab.id ? 'text-amber-500' : 'text-gray-300'}`} />
+                  {!desktopSidebarCollapsed && <span className="text-[15px] font-semibold">{tab.label}</span>}
                 </Link>
               ))}
             </>
