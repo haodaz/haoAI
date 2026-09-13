@@ -128,21 +128,24 @@ async function parseDOC(buffer: Buffer, fileName: string): Promise<ParsedFile> {
     // Expected to fail for true .doc format
   }
 
+  let errorMsg = '';
   // Attempt 2: Extract using word-extractor for true .doc format
   try {
-    const WordExtractor = (await import('word-extractor')).default;
+    const WordExtractor = require('word-extractor');
     const extractor = new WordExtractor();
     const extracted = await extractor.extract(buffer);
     const text = extracted.getBody();
     if (text && text.trim().length > 0) {
       return { extractedText: text };
     }
+    errorMsg = 'Extracted text was empty';
   } catch (err: any) {
-    console.error('DOC binary parse error:', err.message);
+    errorMsg = err.message || String(err);
+    console.error('DOC binary parse error:', errorMsg);
   }
 
   return {
-    extractedText: `[.doc 格式提取失败] 文件名: ${fileName}。建议将文件另存为 .docx 格式后重新上传。`
+    extractedText: `[.doc 格式提取失败: ${errorMsg}] 文件名: ${fileName}。建议将文件另存为 .docx 格式后重新上传。`
   };
 }
 
