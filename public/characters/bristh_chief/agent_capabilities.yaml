@@ -155,6 +155,19 @@ agents:
     trigger_keywords: ["翻译", "填写", "提取", "表格", "转换", "汇总", "translate", "fill", "extract", "template", "form", "convert", "整理", "摘要"]
     notes: "Kelly 是文件型任务的专属处理者。当 Chief 判断某个附件需要被「处理」（fileRole=target）而非「参考」时，必须分配给 Kelly。她接收附件的 extractedText 并直接产出处理结果。\n【多文件规则 — 极其重要】当有多个需要「处理」的附件时，你必须为每个附件创建一个独立的 Kelly 任务（每个任务的 attachmentIds 只包含一个文件ID）。Kelly 不是真人，而是 AI token 窗口——多个 Kelly 任务会并行执行，效率更高、质量更好。只有当任务明确要求「跨文件对比/整合」时，才可以将多个附件放进同一个 Kelly 任务（此时设置 fileRole='cross-reference'）。"
 
+  - name: "Scout"
+    title: "调研情报官 / Research & Intelligence Specialist"
+    capabilities:
+      - 联网信息搜索 (Web Search & Information Gathering)
+      - 学校背景调研 (School Profile Research)
+      - 招生信息收集 (Admissions Intelligence)
+      - 竞争对手分析 (Competitor Analysis)
+      - 市场趋势调研 (Market Trend Research)
+      - 结构化调研报告 (Structured Research Reports)
+    output_format: "markdown (research report with sources)"
+    trigger_keywords: ["调研", "搜索", "查一下", "了解", "研究", "背景", "情况", "信息", "search", "research", "investigate", "find out", "look up", "school profile", "admissions", "competitor", "market", "趋势", "对比"]
+    notes: "Scout 是信息调研的第一入口。当用户需要了解某个学校、机构、市场或竞争对手的情况时，Chief 应优先安排 Scout 进行调研。Scout 的产出可被 Alice（提案）、Fiona（宣传册）等后续 Agent 作为输入参考。在多阶段 Pipeline 中，Scout 通常被分配到 Phase 1（Information Prep），为后续 Agent 提供调研基础。"
+
   - name: "Grace"
     title: "邮件分发专员 / Email Dispatch Specialist"
     capabilities:

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Shield, User, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
+import { Users, Plus, Trash2, Shield, User, RefreshCw, X, Eye, EyeOff, Edit2 } from 'lucide-react';
 import { Modal } from 'antd';
 
 interface UserRecord {
@@ -23,6 +23,10 @@ export default function UserManagementView() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [editUser, setEditUser] = useState<UserRecord | null>(null);
+  const [editForm, setEditForm] = useState({ displayName: '', role: '', phone: '', email: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -76,6 +80,39 @@ export default function UserManagementView() {
       if (res.ok) fetchUsers();
     } catch {
       // ignore
+    }
+  };
+
+  const openEdit = (user: UserRecord) => {
+    setEditUser(user);
+    setEditForm({
+      displayName: user.displayName || '',
+      role: user.role,
+      phone: user.phone || '',
+      email: user.email || '',
+    });
+    setEditError('');
+  };
+
+  const handleEdit = async () => {
+    if (!editUser) return;
+    setEditLoading(true);
+    setEditError('');
+    try {
+      const res = await fetch('/api/auth/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: editUser.id, ...editForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEditError(data.error || '更新失败');
+        return;
+      }
+      setEditUser(null);
+      fetchUsers();
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -195,7 +232,14 @@ export default function UserManagementView() {
                 </div>
 
                 {/* Actions */}
-                <div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(u)}
+                    className="p-1.5 rounded-lg hover:bg-indigo-50 text-gray-300 hover:text-indigo-500 transition-all"
+                    title="编辑用户"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
                   {u.role !== 'admin' && (
                     <button
                       onClick={() => handleDelete(u)}
@@ -316,6 +360,88 @@ export default function UserManagementView() {
               <>
                 <Plus className="w-4 h-4" />
                 创建账号
+              </>
+            )}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal
+        open={!!editUser}
+        onCancel={() => setEditUser(null)}
+        footer={null}
+        title={null}
+        width={440}
+        centered
+        destroyOnClose
+      >
+        <div className="pt-2">
+          <h3 className="text-lg font-black text-gray-900 mb-1">编辑用户</h3>
+          <p className="text-xs text-gray-400 mb-6">@{editUser?.username}</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">显示名称</label>
+              <input
+                type="text"
+                value={editForm.displayName}
+                onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                placeholder="显示名称"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">角色</label>
+              <select
+                value={editForm.role}
+                onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+              >
+                <option value="user">User（普通用户）</option>
+                <option value="admin">Admin（管理员）</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">手机</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  placeholder="可选"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">邮箱</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  placeholder="可选"
+                />
+              </div>
+            </div>
+          </div>
+
+          {editError && (
+            <div className="mt-4 flex items-center text-red-600 text-sm font-medium bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+              {editError}
+            </div>
+          )}
+
+          <button
+            onClick={handleEdit}
+            disabled={editLoading}
+            className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+          >
+            {editLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Edit2 className="w-4 h-4" />
+                保存修改
               </>
             )}
           </button>

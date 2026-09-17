@@ -113,6 +113,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [copilotMessage, setCopilotMessage] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [idlePanelOpen, setIdlePanelOpen] = useState(true);
 
   // Live progress ticker: maps taskId -> current status message
   const [nodeProgress, setNodeProgress] = useState<Record<string, string>>({});
@@ -125,6 +126,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     Iris:  ['[1/4] Parsing page requirements...', '[2/4] Generating HTML template...', '[3/4] Applying design elements...', '[4/4] Publishing landing page...'],
     Fiona: ['[1/4] Detecting task type...', '[2/4] Loading KB content...', '[3/4] Generating brochure layout...', '[4/4] Saving asset...'],
     Grace: ['[1/4] Collecting attachments...', '[2/4] Composing email...', '[3/4] Building HTML body...', '[4/4] Sending via SMTP...'],
+    Scout: ['[1/4] 正在联网搜索...', '[2/4] 检索内部知识库...', '[3/4] 分析与交叉验证...', '[4/4] 生成调研报告...'],
   };
   const tickerTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const tickerCounters = useRef<Record<string, number>>({});
@@ -1290,10 +1292,25 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         })()}
       </div>
 
-      {/* 右侧闲置区 (Idle Agents) */}
-      <div className="hidden md:flex w-[520px] bg-white/80 backdrop-blur-xl border-l border-gray-200/80 flex-col p-6 z-20 shadow-sm shrink-0">
-        <h2 className="text-base font-black text-gray-600 text-center mb-4">{t('bristh.office.idleAiTitle')}</h2>
+      {/* 右侧闲置区 (Idle Agents) — collapsible */}
+      <div className={`hidden md:flex bg-white/80 backdrop-blur-xl border-l border-gray-200/80 flex-col z-20 shadow-sm shrink-0 transition-all duration-300 ${idlePanelOpen ? 'w-[520px] p-6' : 'w-[40px] p-0'}`}>
+        {/* Toggle button */}
+        <button
+          onClick={() => setIdlePanelOpen(v => !v)}
+          className="shrink-0 flex items-center justify-center gap-1 py-2 hover:bg-gray-100 transition-colors rounded-lg"
+          title={idlePanelOpen ? 'Collapse' : 'Expand'}
+        >
+          {idlePanelOpen ? (
+            <>
+              <h2 className="text-base font-black text-gray-600 text-center flex-1">{t('bristh.office.idleAiTitle')}</h2>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </>
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-gray-400 mx-auto" />
+          )}
+        </button>
         
+        {idlePanelOpen && (
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
           {/* 通用能力 AI */}
           {idleAIs.filter(ai => ai.category !== 'pingfang').length > 0 && (
@@ -1329,7 +1346,8 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
           )}
 
           {/* 平方专业能力 AI — 隐藏显示，功能仍可通过 Chief 调度 */}
-        </div>
+        </div>)
+        }
       </div>
 
       

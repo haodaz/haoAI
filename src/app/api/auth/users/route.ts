@@ -100,3 +100,30 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: '删除失败' }, { status: 500 });
   }
 }
+
+// PUT: update a user (admin only)
+export async function PUT(req: Request) {
+  const check = await requireAdmin();
+  if (check instanceof Response) return check;
+
+  try {
+    const { userId, displayName, role, phone, email } = await req.json();
+    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(displayName !== undefined && { displayName }),
+        ...(role !== undefined && { role }),
+        ...(phone !== undefined && { phone: phone || null }),
+        ...(email !== undefined && { email: email || null }),
+      },
+      select: { id: true, username: true, role: true, displayName: true, phone: true, email: true },
+    });
+
+    return NextResponse.json({ success: true, user });
+  } catch (err: any) {
+    console.error('[auth/users] Update error:', err);
+    return NextResponse.json({ error: '更新失败' }, { status: 500 });
+  }
+}

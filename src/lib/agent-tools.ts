@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { renderPPTX, SlideData } from '@/lib/pptx-renderer';
 import * as ics from 'ics';
+import { searchWeb } from '@/lib/search';
 
 // ============================================
 // Agent Tool Registry
@@ -101,6 +102,21 @@ const TOOL_DRAFT_EMAIL: ToolDefinition = {
   },
 };
 
+const TOOL_SEARCH_WEB: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'searchWeb',
+    description: 'Search the internet for real-time information about schools, institutions, admissions, market trends, competitors, etc. Use this when the user asks about specific schools, current events, or needs up-to-date information that may not be in the knowledge base.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query in the most relevant language for results' },
+      },
+      required: ['query'],
+    },
+  },
+};
+
 // ── Per-Agent Tool Mapping ──────────────────────────────────────────────────
 
 const AGENT_TOOLS: Record<string, ToolDefinition[]> = {
@@ -111,6 +127,7 @@ const AGENT_TOOLS: Record<string, ToolDefinition[]> = {
   eric:   [TOOL_SEARCH_KB],
   fiona:  [TOOL_SEARCH_KB],
   grace:  [TOOL_SEARCH_KB, TOOL_DRAFT_EMAIL],
+  scout:  [TOOL_SEARCH_KB, TOOL_SEARCH_WEB],
 };
 
 /**
@@ -138,6 +155,9 @@ export async function executeAgentTool(
 
     case 'draft_email':
       return executeDraftEmail(args);
+
+    case 'searchWeb':
+      return executeSearchWebTool(args.query);
 
     default:
       return { result: { error: `Unknown tool: ${toolName}` } };
@@ -233,4 +253,26 @@ async function executeDraftEmail(args: any) {
       htmlBody: args.htmlBody,
     },
   };
+}
+
+async function executeSearchWebTool(query: string) {
+  try {
+    const data = await searchWeb(query);
+    const summary = data.AbstractText || '未找到相关信息。';
+    const sources = data.RelatedTopics?.slice(0, 5).map(t => ({
+      text: t.Text || '',
+      url: t.FirstURL || '',
+    })) || [];
+    return {
+      result: {
+        summary,
+        heading: data.Heading || '',
+        url: data.AbstractURL || '',
+        sources,
+        searchEngine: data.source,
+      },
+    };
+  } catch (err: any) {
+    return { result: { error: `搜索失败: ${err.message}` } };
+  }
 }

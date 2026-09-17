@@ -91,17 +91,17 @@ export default function AIEmployeesView() {
             <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-fit mx-auto pb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-fit mx-auto pb-8">
             {agents.map(agent => {
               const colors = COLOR_MAP[agent.color] || COLOR_MAP.blue;
               return (
                 <div
                   key={agent.id}
-                  className="w-[350px] flex flex-col group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                  className="w-[350px] sm:w-auto flex flex-col group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                   onClick={() => setSelectedAgent(agent)}
                 >
                   {/* Large Image Header */}
-                  <div className="relative aspect-video w-full overflow-hidden bg-gray-100 shrink-0">
+                  <div className="relative w-full overflow-hidden bg-gray-100 shrink-0" style={{ height: 220 }}>
                     <img
                       src={agent.realistic_avatar || agent.avatar}
                       alt={agent.name}
