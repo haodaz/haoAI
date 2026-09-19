@@ -413,14 +413,14 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
               {/* Quick prompts — only show if there's just the greeting */}
               {messages.length <= 1 && quickPrompts && quickPrompts.length > 0 && (
                 <div className="flex flex-col items-start gap-2 pt-2">
-                  <p className="text-xs font-bold text-gray-400 ml-11">💡 You might ask</p>
+                  <p className="text-[14px] font-bold text-gray-400 ml-11">💡 You might ask</p>
                   {quickPrompts.map((prompt, idx) => (
                     <button
                       key={idx}
                       onClick={() => sendMessage(prompt)}
-                      className="ml-11 text-left text-xs text-indigo-600 font-medium px-3 py-2 bg-white/70 backdrop-blur-sm hover:bg-indigo-50 rounded-xl border border-indigo-100/80 transition-colors flex items-center gap-2 shadow-sm"
+                      className="ml-11 text-left text-[16px] leading-relaxed text-indigo-600 font-medium px-4 py-2.5 bg-white/70 backdrop-blur-sm hover:bg-indigo-50 rounded-xl border border-indigo-100/80 transition-colors flex items-center gap-2 shadow-sm"
                     >
-                      <ChevronRight className="w-3 h-3 shrink-0" />
+                      <ChevronRight className="w-4 h-4 shrink-0" />
                       {prompt}
                     </button>
                   ))}
