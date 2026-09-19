@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
+import { agentTitleEn } from '@/lib/agent-display';
 
 interface AgentConfig {
   id: string;
@@ -74,11 +75,11 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const isEn = i18n.language?.startsWith('en');
-  const greeting = isEn ? (agent.greeting_en || agent.greeting) : agent.greeting;
-  const quickPrompts = isEn ? (agent.quick_prompts_en || agent.quick_prompts) : agent.quick_prompts;
-  const agentDesc = isEn ? (agent.description_en || agent.description) : agent.description;
-  const agentSkills = isEn ? (agent.skills_preview_en || agent.skills_preview) : agent.skills_preview;
+  const greeting = agent.greeting_en || agent.greeting;
+  const quickPrompts = agent.quick_prompts_en || agent.quick_prompts;
+  const agentDesc = agent.description_en || agent.description;
+  const agentSkills = agent.skills_preview_en || agent.skills_preview;
+  const agentTitle = agentTitleEn(agent.title);
   const sidebarAvatar = agent.realistic_avatar || agent.avatar;
 
   // Initialize with greeting
@@ -90,13 +91,13 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
         content: greeting,
       }]);
     }
-  }, [agent.id, isEn]);
+  }, [agent.id]);
 
   // Handle pending agent task from group chat navigation
   useEffect(() => {
     if (pendingAgentTask && pendingAgentTask.agentId === agent.id && !pendingTaskHandled.current) {
       pendingTaskHandled.current = true;
-      const taskMsg = `以下是之前在群聊中的讨论记录：\n\n${pendingAgentTask.context}\n\n---\n\n请你分析上面的讨论内容，明确说明你接到了什么任务、你将要做什么。等我确认后再执行。`;
+      const taskMsg = `Here is the discussion from the group chat:\n\n${pendingAgentTask.context}\n\n---\n\nAnalyse the discussion above and state clearly what task you have been given and what you are going to do. Wait for my confirmation before you execute.`;
       setPendingAgentTask(null);
       // Delay slightly so greeting renders first
       setTimeout(() => sendMessage(taskMsg), 500);
@@ -116,7 +117,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: content.trim() || '（发送了附件）',
+      content: content.trim() || '(Attachment sent)',
       attachments: currentAttachments,
     };
 
@@ -137,7 +138,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
         .map(m => {
           let text = m.content || '';
           if (m.attachments && m.attachments.length > 0) {
-            const attText = m.attachments.map(a => `[附件: ${a.originalName}]\n${a.extractedText}`).join('\n\n');
+            const attText = m.attachments.map(a => `[Attachment: ${a.originalName}]\n${a.extractedText}`).join('\n\n');
             text = `${attText}\n\n${text}`;
           }
           return { role: m.role, content: text };
@@ -197,7 +198,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
               setMessages(prev =>
                 prev.map(msg =>
                   msg.id === assistantMsgId
-                    ? { ...msg, content: `（出错：${data.error || '请刷新后重试'}）` }
+                    ? { ...msg, content: `(Error: ${data.error || 'please refresh and try again'})` }
                     : msg
                 )
               );
@@ -247,7 +248,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     } catch (err) {
       setMessages(prev =>
         prev.map(msg =>
-          msg.id === assistantMsgId ? { ...msg, content: '（网络异常，请稍后重试）' } : msg
+          msg.id === assistantMsgId ? { ...msg, content: '(Network error, please try again later)' } : msg
         )
       );
     } finally {
@@ -259,7 +260,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (isUploading) {
-        message.warning('请等待附件上传完成');
+        message.warning('Please wait for the upload to finish');
         return;
       }
       sendMessage(input);
@@ -271,7 +272,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
     if (!files || files.length === 0) return;
     
     setIsUploading(true);
-    message.loading({ content: '上传中...', key: 'upload' });
+    message.loading({ content: 'Uploading...', key: 'upload' });
     
     try {
       const formData = new FormData();
@@ -285,9 +286,9 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
       if (!res.ok) throw new Error(data.error);
       
       setPendingAttachments(prev => [...prev, ...data.attachments]);
-      message.success({ content: '上传成功', key: 'upload' });
+      message.success({ content: 'Uploaded', key: 'upload' });
     } catch (e: any) {
-      message.error({ content: e.message || '上传失败', key: 'upload' });
+      message.error({ content: e.message || 'Upload failed', key: 'upload' });
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -317,7 +318,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
           <img src={agent.avatar} alt={agent.name} className="w-8 h-8 rounded-full object-cover bg-gray-100" />
           <div className="min-w-0">
             <h2 className="text-sm font-black text-gray-900 truncate">{agent.name}</h2>
-            <p className="text-[10px] text-gray-400 font-medium truncate">{agent.title}</p>
+            <p className="text-[10px] text-gray-400 font-medium truncate">{agentTitle}</p>
           </div>
           <button
             onClick={() => {
@@ -327,7 +328,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
             className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-bold">{isEn ? 'New Chat' : '新对话'}</span>
+            <span className="text-[10px] font-bold">New Chat</span>
           </button>
         </div>
 
@@ -382,19 +383,19 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                     {msg.role === 'assistant' && msg.content && msg.content !== '⏳' && (
                       <div className="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
                         <button
-                          onClick={() => { navigator.clipboard.writeText(msg.content); message.success('已复制'); }}
+                          onClick={() => { navigator.clipboard.writeText(msg.content); message.success('Copied'); }}
                           className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                          title="复制内容"
+                          title="Copy"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => {
-                            const taskMsg = `请你基于我们的对话，立刻执行任务。分析上下文，明确说明你接到了什么任务、你将要做什么。等我确认后再执行。`;
+                            const taskMsg = `Based on our conversation, take on the task now. Analyse the context and state clearly what task you have been given and what you are going to do. Wait for my confirmation before you execute.`;
                             sendMessage(taskMsg);
                           }}
                           className="p-1 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
-                          title="让 AI 执行任务"
+                          title="Ask the AI to run this task"
                         >
                           <Zap className="w-3 h-3" />
                         </button>
@@ -412,7 +413,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
               {/* Quick prompts — only show if there's just the greeting */}
               {messages.length <= 1 && quickPrompts && quickPrompts.length > 0 && (
                 <div className="flex flex-col items-start gap-2 pt-2">
-                  <p className="text-xs font-bold text-gray-400 ml-11">{isEn ? '💡 You might ask' : '💡 你可能想问'}</p>
+                  <p className="text-xs font-bold text-gray-400 ml-11">💡 You might ask</p>
                   {quickPrompts.map((prompt, idx) => (
                     <button
                       key={idx}
@@ -482,7 +483,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isEn ? `Tell ${agent.name} what you need...` : `告诉 ${agent.name} 你的需求...`}
+                  placeholder={`Tell ${agent.name} what you need...`}
                   rows={1}
                   className="flex-1 resize-none px-2 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
                   style={{ maxHeight: '120px' }}
@@ -503,7 +504,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                   </button>
                 </div>
               </div>
-              <p className="text-center text-[10px] text-gray-300 mt-2">{isEn ? 'Shift+Enter new line · Enter send' : 'Shift+Enter 换行 · Enter 发送'}</p>
+              <p className="text-center text-[10px] text-gray-300 mt-2">Shift+Enter new line · Enter send</p>
             </div>
           </div>
         </div>
@@ -517,7 +518,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
             <div className="absolute bottom-5 left-0 right-0 px-4 text-center">
               <h3 className="text-[22px] font-black text-white tracking-wide drop-shadow-lg">{agent.name}</h3>
-              <p className="text-[12px] text-white/90 font-medium mt-1 drop-shadow-md">{agent.title}</p>
+              <p className="text-[12px] text-white/90 font-medium mt-1 drop-shadow-md">{agentTitle}</p>
             </div>
           </div>
         </div>
@@ -527,7 +528,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
         </div>
 
         <div className="p-4 border-b border-gray-50">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{isEn ? 'Skills' : '技能'}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Skills</p>
           <div className="flex flex-wrap gap-1.5">
             {agentSkills.map(skill => (
               <span key={skill} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${colors.light} ${colors.accent}`}>
@@ -538,7 +539,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
         </div>
 
         <div className="p-4 border-b border-gray-50">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{isEn ? 'Tools' : '可用工具'}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tools</p>
           <div className="space-y-2">
             {getToolsForDisplay(agent.id).map(tool => (
               <div key={tool.name} className="flex items-center gap-2 text-xs text-gray-600">
@@ -551,9 +552,9 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
 
         {/* Conversation History */}
         <div className="p-4 flex-1">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{isEn ? 'Chat History' : '对话历史'}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Chat History</p>
           {chatHistory.length === 0 ? (
-            <p className="text-[11px] text-gray-300 italic">{isEn ? 'No previous chats' : '暂无历史对话'}</p>
+            <p className="text-[11px] text-gray-300 italic">No previous chats</p>
           ) : (
             <div className="space-y-1.5">
               {chatHistory.map(h => (
@@ -581,10 +582,10 @@ function ToolCallCard({ toolCall, colors }: { toolCall: ToolCall; colors: any })
   const isSuccess = toolCall.status === 'success';
 
   const TOOL_LABELS: Record<string, string> = {
-    generate_ppt: '🎨 PPT 生成',
-    create_calendar_event: '📅 日历事件',
-    draft_email: '✉️ 邮件草稿',
-    searchKnowledgeBase: '🔍 知识库检索',
+    generate_ppt: '🎨 Slide Generation',
+    create_calendar_event: '📅 Calendar Event',
+    draft_email: '✉️ Email Draft',
+    searchKnowledgeBase: '🔍 Knowledge Base Search',
   };
 
   return (
@@ -603,7 +604,7 @@ function ToolCallCard({ toolCall, colors }: { toolCall: ToolCall; colors: any })
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
           isRunning ? 'bg-indigo-50 text-indigo-500' : isSuccess ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
         }`}>
-          {isRunning ? '执行中' : isSuccess ? '完成' : '失败'}
+          {isRunning ? 'Running' : isSuccess ? 'Done' : 'Failed'}
         </span>
       </div>
 
@@ -633,7 +634,7 @@ function ToolPayloadUI({ payload }: { payload: any }) {
         className="flex items-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-xs font-bold text-indigo-600 transition-colors"
       >
         <Download className="w-3.5 h-3.5" />
-        下载 {payload.fileName} ({payload.slideCount} 页)
+        {`Download ${payload.fileName} (${payload.slideCount} slides)`}
       </a>
     );
   }
@@ -642,7 +643,7 @@ function ToolPayloadUI({ payload }: { payload: any }) {
     return (
       <div>
         <p className="text-[11px] text-gray-500 mb-1.5">
-          📅 {payload.subject} · {payload.start?.join('/')} · {payload.duration}分钟
+          📅 {payload.subject} · {payload.start?.join('/')} · {payload.duration} min
         </p>
         <a
           href={payload.fileUrl}
@@ -650,7 +651,7 @@ function ToolPayloadUI({ payload }: { payload: any }) {
           className="flex items-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold text-emerald-600 transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
-          下载日历文件 (.ics)
+          Download calendar file (.ics)
         </a>
       </div>
     );
@@ -659,8 +660,8 @@ function ToolPayloadUI({ payload }: { payload: any }) {
   if (payload.type === 'email_draft') {
     return (
       <div className="space-y-1.5">
-        <p className="text-[11px] font-bold text-gray-600">收件人: {payload.to}</p>
-        <p className="text-[11px] font-bold text-gray-600">主题: {payload.subject}</p>
+        <p className="text-[11px] font-bold text-gray-600">To: {payload.to}</p>
+        <p className="text-[11px] font-bold text-gray-600">Subject: {payload.subject}</p>
         <div
           className="text-[11px] text-gray-500 bg-gray-50 rounded-lg p-2 max-h-32 overflow-y-auto"
           dangerouslySetInnerHTML={{ __html: payload.htmlBody }}
@@ -675,28 +676,28 @@ function ToolPayloadUI({ payload }: { payload: any }) {
 // ── Helper: display tool list for sidebar ───────────────────────────────────
 
 function getToolsForDisplay(agentId: string) {
-  const base = [{ name: 'kb', icon: FileText, label: '知识库检索' }];
+  const base = [{ name: 'kb', icon: FileText, label: 'Knowledge Base Search' }];
 
   const toolMap: Record<string, { name: string; icon: any; label: string }[]> = {
-    edda: [{ name: 'ppt', icon: FileText, label: 'PPT 幻灯片生成' }],
-    bob: [{ name: 'cal', icon: Calendar, label: '日历事件创建' }],
-    grace: [{ name: 'email', icon: Mail, label: '邮件草稿撰写' }],
+    edda: [{ name: 'ppt', icon: FileText, label: 'Slide Generation' }],
+    bob: [{ name: 'cal', icon: Calendar, label: 'Calendar Event Creation' }],
+    grace: [{ name: 'email', icon: Mail, label: 'Email Drafting' }],
     hugo: [
-      { name: 'fin_analysis', icon: BarChart, label: '财务报表分析' },
-      { name: 'budget_calc', icon: Calculator, label: '预算与ROI测算' }
+      { name: 'fin_analysis', icon: BarChart, label: 'Financial Statement Analysis' },
+      { name: 'budget_calc', icon: Calculator, label: 'Budget & ROI Modelling' }
     ],
     alice: [
-      { name: 'proposal', icon: Briefcase, label: '商业方案生成' }
+      { name: 'proposal', icon: Briefcase, label: 'Business Proposal Generation' }
     ],
     david: [
-      { name: 'audit', icon: Shield, label: '合规与风险审查' }
+      { name: 'audit', icon: Shield, label: 'Compliance & Risk Review' }
     ],
     kelly: [
-      { name: 'talent_search', icon: Users, label: '人才深度检索' },
-      { name: 'background_check', icon: Search, label: '背景交叉比对' }
+      { name: 'talent_search', icon: Users, label: 'Deep Talent Search' },
+      { name: 'background_check', icon: Search, label: 'Background Cross-check' }
     ],
     fiona: [
-      { name: 'pr', icon: Megaphone, label: 'PR与宣发生成' }
+      { name: 'pr', icon: Megaphone, label: 'PR & Announcements' }
     ]
   };
 

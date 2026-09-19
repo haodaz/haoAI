@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, MessageSquare, Sparkles } from 'lucide-react';
 import AgentChat from './AgentChat';
-import { useTranslation } from 'react-i18next';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
+import { agentTitleEn } from '@/lib/agent-display';
 
 interface AgentConfig {
   id: string;
@@ -38,8 +38,6 @@ export default function AIEmployeesView() {
   const [agents, setAgents] = useState<AgentConfig[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const { i18n } = useTranslation();
-  const isEn = i18n.language?.startsWith('en');
   const { pendingAgentTask } = useWorkspace();
 
   useEffect(() => {
@@ -78,8 +76,8 @@ export default function AIEmployeesView() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight">{isEn ? 'AI Employees' : 'AI 员工'}</h1>
-            <p className="text-xs text-gray-400 font-medium">{isEn ? 'Select an AI employee to start chatting' : '选择一位 AI 员工开始对话'}</p>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight">AI Employees</h1>
+            <p className="text-xs text-gray-400 font-medium">Select an AI employee to start chatting</p>
           </div>
         </div>
       </div>
@@ -110,7 +108,7 @@ export default function AIEmployeesView() {
                     />
                     <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur rounded-full shadow-sm">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-bold text-gray-700">{isEn ? 'Online' : '在线'}</span>
+                      <span className="text-[10px] font-bold text-gray-700">Online</span>
                     </div>
                   </div>
 
@@ -118,14 +116,14 @@ export default function AIEmployeesView() {
                   <div className="p-5 flex-1 flex flex-col">
                     {/* Name & Title */}
                     <h3 className="text-lg font-black text-gray-900 mb-1">{agent.name}</h3>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{agent.title}</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{agentTitleEn(agent.title)}</p>
 
                     {/* Description */}
-                    <p className="text-[13px] text-gray-500 leading-relaxed line-clamp-2 mb-4">{isEn ? ((agent as any).description_en || agent.description) : agent.description}</p>
+                    <p className="text-[13px] text-gray-500 leading-relaxed line-clamp-2 mb-4">{(agent as any).description_en || agent.description}</p>
 
                     {/* Skills tags (mt-auto pushes it to bottom) */}
                     <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
-                      {(isEn ? ((agent as any).skills_preview_en || agent.skills_preview) : agent.skills_preview).map((skill: string) => (
+                      {((agent as any).skills_preview_en || agent.skills_preview).map((skill: string) => (
                         <span key={skill} className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 border border-gray-100">
                           {skill}
                         </span>
@@ -135,7 +133,7 @@ export default function AIEmployeesView() {
                     {/* CTA Button */}
                     <button className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0">
                       <MessageSquare className="w-3.5 h-3.5" />
-                      {isEn ? 'Start Chat' : '开始对话'}
+                      Start Chat
                     </button>
                   </div>
                 </div>
