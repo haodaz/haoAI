@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams, trackableCompletion, getInternalBaseUrl } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { internalFetch } from '@/lib/internal-api';
 import { TokenTracker } from '@/lib/token-tracker';
 import { buildAgentPrompt } from '@/lib/bristh-config';
 import { recordTaskCompletion } from '@/lib/memory-hooks';
@@ -120,11 +121,8 @@ Style options: "bep" (BEP corporate green+gold), "education", "modern-tech", "bu
     }
 
     // ── Phase 2: Delegate — Call the Webpage Tool pipeline ──
-    const baseUrl = getInternalBaseUrl();
-
-    const webRes = await fetch(`${baseUrl}/api/toolbox/webpage`, {
+    const webRes = await internalFetch('/api/toolbox/webpage', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         topic: params.topic || task.instruction,
         pageCount: params.pageCount || 3,

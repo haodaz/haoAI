@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth-server';
 
-// Extract session from cookie
 async function getSession(): Promise<{ userId: string; role: string } | null> {
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    if (!raw) return null;
-    const session = JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
-    return { userId: session.userId, role: session.role };
-  } catch {
-    return null;
-  }
+  const user = await getSessionUser();
+  return user ? { userId: user.id, role: user.role } : null;
 }
 
 export async function GET(req: Request) {

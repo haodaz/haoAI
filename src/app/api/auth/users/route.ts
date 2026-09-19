@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { getSessionUser } from '@/lib/auth-server';
 
-// Check admin session
-async function requireAdmin(): Promise<{ ok: true } | Response> {
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    if (!raw) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    const session = JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
-    if (session.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
-    return { ok: true };
-  } catch {
-    return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-  }
+// Check admin session (role re-checked against the DB so demotions apply immediately)
+async function requireAdmin(): Promise<{ userId: string } | Response> {
+  const session = await getSessionUser();
+  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  const dbUser = await prisma.user.findUnique({ where: { id: session.id }, select: { role: true } });
+  if (dbUser?.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  return { userId: session.id };
 }
 
 // GET: list all users (admin only)
@@ -86,10 +81,7 @@ export async function DELETE(req: Request) {
     if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
 
     // Prevent admin from deleting themselves
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    const session = JSON.parse(Buffer.from(raw!, 'base64').toString('utf-8'));
-    if (session.userId === userId) {
+    if (check.userId === userId) {
       return NextResponse.json({ error: '不能删除自己的账号' }, { status: 400 });
     }
 

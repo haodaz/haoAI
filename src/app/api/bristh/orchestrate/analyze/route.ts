@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import fs from 'fs/promises';
 import path from 'path';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth-server';
 import { loadAgentConfig } from '@/lib/bristh-config';
 import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
@@ -32,19 +32,6 @@ async function loadCapabilityDict(): Promise<string> {
   }
 }
 
-// Extract userId from session cookie
-async function getSessionUserId(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    if (!raw) return null;
-    const session = JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
-    return session.userId || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const { source, rawContent, locale, attachments } = await req.json();
@@ -54,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const { config: modelConfig } = await getModelClient();
-    let userId = await getSessionUserId();
+    let userId = (await getSessionUser())?.id ?? null;
 
     // Validate userId exists in DB to avoid FK constraint violation
     if (userId) {

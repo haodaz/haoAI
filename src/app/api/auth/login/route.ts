@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from '@/lib/session';
 
 export async function POST(req: Request) {
   try {
@@ -22,13 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '用户名或密码不正确' }, { status: 401 });
     }
 
-    // Set session cookie
-    const session = Buffer.from(JSON.stringify({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      displayName: user.displayName,
-    })).toString('base64');
+    const session = await createSessionToken(user);
 
     const response = NextResponse.json({
       success: true,
@@ -40,13 +35,7 @@ export async function POST(req: Request) {
       },
     });
 
-    response.cookies.set('autoffice_session', session, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
+    response.cookies.set(SESSION_COOKIE, session, sessionCookieOptions);
 
     return response;
   } catch (err: any) {

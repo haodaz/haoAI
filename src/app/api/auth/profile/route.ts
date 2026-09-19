@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
+import { getSessionUser } from '@/lib/auth-server';
+import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from '@/lib/session';
 
 // GET: fetch current user's full profile
 export async function GET() {
   try {
-    const session = await getSession();
+    const session = await getSessionUser();
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: session.id },
       select: { id: true, username: true, role: true, displayName: true, phone: true, email: true, avatarUrl: true },
     });
 
@@ -23,14 +24,14 @@ export async function GET() {
 // PUT: update profile fields
 export async function PUT(req: Request) {
   try {
-    const session = await getSession();
+    const session = await getSessionUser();
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const body = await req.json();
     const { displayName, phone, email, avatarUrl } = body;
 
     const user = await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: session.id },
       data: {
         ...(displayName !== undefined && { displayName }),
         ...(phone !== undefined && { phone }),
@@ -41,21 +42,10 @@ export async function PUT(req: Request) {
     });
 
     // Update session cookie with new displayName
-    const newSession = Buffer.from(JSON.stringify({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      displayName: user.displayName,
-    })).toString('base64');
+    const newSession = await createSessionToken(user);
 
     const response = NextResponse.json({ success: true, user });
-    response.cookies.set('autoffice_session', newSession, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    response.cookies.set(SESSION_COOKIE, newSession, sessionCookieOptions);
 
     return response;
   } catch (err: any) {
@@ -64,13 +54,3 @@ export async function PUT(req: Request) {
   }
 }
 
-async function getSession() {
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    if (!raw) return null;
-    return JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
-  } catch {
-    return null;
-  }
-}
