@@ -12,8 +12,8 @@ export default function SkillsView() {
   const { t } = useTranslation();
   const [selectedSkill, setSelectedSkill] = useState<number | null>(null);
   const skillDetails = [
-    { icon: '🎓', title: '留学咨询标准流', desc: '串联 Alice(方案) -> Edda(宣讲PPT) -> Grace(发送邮件)', pipeline: ['Alice – 方案架构', 'Edda – PPT制作', 'Grace – 邮件分发'] },
-    { icon: '🏢', title: '企业内控流', desc: '串联 David(审查) -> Fiona(通报Memo)', pipeline: ['David – 内控审查', 'Fiona – 通报宣发'] },
+    { icon: '🎓', title: '留学咨询标准流', desc: '串联 Alice(方案) → Edda(宣讲PPT) → Grace(发送邮件)', pipeline: ['Alice – 方案架构', 'Edda – PPT制作', 'Grace – 邮件分发'] },
+    { icon: '🏢', title: '企业内控流', desc: '串联 David(审查) → Fiona(通报Memo)', pipeline: ['David – 内控审查', 'Fiona – 通报宣发'] },
   ];
   if (selectedSkill !== null) {
     const s = skillDetails[selectedSkill];
@@ -52,11 +52,11 @@ export default function SkillsView() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full text-left">
         <div className="border border-gray-200 p-5 rounded-xl hover:border-purple-500 transition-colors cursor-pointer" onClick={() => setSelectedSkill(0)}>
            <h3 className="font-bold text-gray-800 mb-1">🎓 留学咨询标准流</h3>
-           <p className="text-xs text-gray-500">串联 Alice(方案) -> Edda(宣讲PPT) -> Grace(发送邮件)</p>
+           <p className="text-xs text-gray-500">串联 Alice(方案) → Edda(宣讲PPT) → Grace(发送邮件)</p>
         </div>
         <div className="border border-gray-200 p-5 rounded-xl hover:border-purple-500 transition-colors cursor-pointer" onClick={() => setSelectedSkill(1)}>
            <h3 className="font-bold text-gray-800 mb-1">🏢 企业内控流</h3>
-           <p className="text-xs text-gray-500">串联 David(审查) -> Fiona(通报Memo)</p>
+           <p className="text-xs text-gray-500">串联 David(审查) → Fiona(通报Memo)</p>
         </div>
       </div>
     </div>
