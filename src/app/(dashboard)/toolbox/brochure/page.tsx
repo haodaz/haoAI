@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 import { BookOpen, FileText, Send, Database, X, Loader2, Wand2, MessageSquare, ChevronLeft, ChevronRight, Edit3, Download, ImagePlus, UserCircle } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { useToolbox } from '../layout';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 interface BrochurePage { id: string; label: string; html: string; }
 interface BrochureResult { title: string; pages: BrochurePage[]; }
@@ -237,7 +238,7 @@ function BrochureView() {
                 </div>
               )}
               <p className="text-xs text-gray-400 mb-2 italic">💡 Leave empty — AI auto-searches your KB for relevant content.</p>
-              <textarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })} placeholder="Paste extra content or notes here..." rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-emerald-400 resize-none" />
+              <VoiceTextarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })} placeholder="Paste extra content or notes here..." rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-emerald-400 resize-none" />
             </div>
           </div>
           {/* Generate */}

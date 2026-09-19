@@ -8,6 +8,7 @@ import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { useToolbox } from '../layout';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -393,7 +394,7 @@ export default function LegalPage() {
             <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Key Terms</h3>
           </div>
           <div className="p-5">
-            <textarea value={form.keyTerms} onChange={e => setForm({ ...form, keyTerms: e.target.value })}
+            <VoiceTextarea value={form.keyTerms} onChange={e => setForm({ ...form, keyTerms: e.target.value })}
               placeholder="Key business terms (e.g. 60:40 revenue split, 3-year term, £3,000/month service fee)" rows={4}
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
           </div>
@@ -436,7 +437,7 @@ export default function LegalPage() {
                 ))}
               </div>
             )}
-            <textarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })}
+            <VoiceTextarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })}
               placeholder="Supplementary business context, negotiation points, historical correspondence..." rows={4}
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
           </div>

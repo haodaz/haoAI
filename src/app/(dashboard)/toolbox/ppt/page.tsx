@@ -6,6 +6,7 @@ import { Presentation, FileText, Send, Download, ChevronLeft, ChevronRight, Plus
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { useToolbox } from '../layout';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 const SLIDE_SCALES = [
   { id: '5', name: '~5 pages', desc: 'Quick overview, executive summary' },
@@ -212,7 +213,7 @@ function PptView() {
                   </button>
                 ))}
               </div>
-              <textarea value={pptForm.preferences} onChange={e => setPptForm({ ...pptForm, preferences: e.target.value })} placeholder="Preferences (tone, style, target audience...)" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
+              <VoiceTextarea value={pptForm.preferences} onChange={e => setPptForm({ ...pptForm, preferences: e.target.value })} placeholder="Preferences (tone, style, target audience...)" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -255,7 +256,7 @@ function PptView() {
                   ))}
                 </div>
               )}
-              <textarea value={pptForm.background} onChange={e => setPptForm({ ...pptForm, background: e.target.value })} placeholder="Paste background material, meeting notes, project descriptions..." rows={6} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
+              <VoiceTextarea value={pptForm.background} onChange={e => setPptForm({ ...pptForm, background: e.target.value })} placeholder="Paste background material, meeting notes, project descriptions..." rows={6} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
             </div>
           </div>
           <div className="flex justify-center pt-4">

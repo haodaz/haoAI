@@ -8,6 +8,7 @@ import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { useToolbox } from '../layout';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -368,7 +369,7 @@ export default function ProposalPage() {
               placeholder="School name (e.g. Queen's College) *" 
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" 
             />
-            <textarea 
+            <VoiceTextarea 
               value={proposalForm.schoolProfile} 
               onChange={e => setProposalForm({ ...proposalForm, schoolProfile: e.target.value })} 
               placeholder="School context & challenges (e.g. 50 vacant beds, looking to expand in Asian markets but lacking local marketing team)" 
@@ -438,7 +439,7 @@ export default function ProposalPage() {
                 ))}
               </div>
             )}
-            <textarea 
+            <VoiceTextarea 
               value={proposalForm.additionalNotes} 
               onChange={e => setProposalForm({ ...proposalForm, additionalNotes: e.target.value })} 
               placeholder="Additional requirements, or paste historical email correspondence..." 

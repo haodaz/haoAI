@@ -327,9 +327,9 @@ export default function NewTaskPage() {
                     />
                     <div className="absolute bottom-4 left-4">
                       <VoiceInputButton
-                        onTranscript={(text) => setInput(prev => prev + text)}
-                        lang={i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'}
-                      />
+                    onTranscript={(text) => setInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                    prompt={input.slice(-400)}
+                  />
                     </div>
                     <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
                       {t('bristh.newTask.charCount', { count: input.length })}

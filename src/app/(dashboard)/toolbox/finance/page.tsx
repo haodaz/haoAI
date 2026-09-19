@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 import { DollarSign, FileText, PieChart, Calculator, Database, Send, X, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { useToolbox } from '../layout';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 const DOC_TYPES = [
   { id: 'invoice', label: 'Invoice', desc: 'Professional invoices for clients', icon: FileText, color: 'bg-blue-600', light: 'bg-blue-50 text-blue-700 border-blue-100' },
@@ -437,7 +438,7 @@ export default function FinancePage() {
             <h3 className="text-xs font-bold text-gray-600">Description *</h3>
           </div>
           <div className="p-5">
-            <textarea
+            <VoiceTextarea
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder={PLACEHOLDERS[docType]}
@@ -469,7 +470,7 @@ export default function FinancePage() {
                 ))}
               </div>
             )}
-            <textarea
+            <VoiceTextarea
               value={additionalNotes}
               onChange={e => setAdditionalNotes(e.target.value)}
               placeholder="Additional context, numbers, or paste financial data..."

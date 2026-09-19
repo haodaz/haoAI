@@ -10,6 +10,7 @@ import {
 import { KbFileSelector } from '@/components/shared/KbFileSelector';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -421,7 +422,7 @@ export default function AIEmailPage() {
                       </h3>
                     </div>
                     <div className="p-5">
-                      <textarea
+                      <VoiceTextarea
                         value={composeForm.prompt}
                         onChange={e => setComposeForm(prev => ({ ...prev, prompt: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-emerald-300 resize-none"

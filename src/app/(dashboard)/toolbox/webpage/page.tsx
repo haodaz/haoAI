@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 import { Globe, FileText, Send, Plus, XCircle, MessageSquare, Database, X, Edit3, Layout, ExternalLink, UserCircle, Loader2, Wand2, ArrowRight, ImagePlus, Trash2 } from 'lucide-react';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { useToolbox } from '../layout';
+import VoiceTextarea from '@/components/ui/VoiceTextarea';
 
 interface WebPage { id: string; title: string; html: string; inNav: boolean; }
 interface WebSite { name: string; themeColor: string; pages: WebPage[]; }
@@ -184,13 +185,13 @@ function WebpageView() {
                 </div>
               )}
               <p className="text-xs text-gray-400 mb-2 italic">💡 If no KB files selected, AI will auto-search your knowledge base for relevant content.</p>
-              <textarea value={webForm.background} onChange={e => setWebForm({ ...webForm, background: e.target.value })} placeholder="Paste background info, course details, school USPs etc." rows={5} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
+              <VoiceTextarea value={webForm.background} onChange={e => setWebForm({ ...webForm, background: e.target.value })} placeholder="Paste background info, course details, school USPs etc." rows={5} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100"><h3 className="text-sm font-bold text-gray-600">Extra Requirements (Optional)</h3></div>
             <div className="p-5">
-              <textarea value={webForm.preferences} onChange={e => setWebForm({ ...webForm, preferences: e.target.value })} placeholder="e.g. Bilingual EN/CN, highlight scholarships, include application flow" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
+              <VoiceTextarea value={webForm.preferences} onChange={e => setWebForm({ ...webForm, preferences: e.target.value })} placeholder="e.g. Bilingual EN/CN, highlight scholarships, include application flow" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
             </div>
           </div>
           <div className="flex justify-center pt-4">

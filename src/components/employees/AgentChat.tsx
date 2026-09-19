@@ -473,8 +473,8 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                 {/* Mic button — inside left */}
                 <div className="flex items-center pb-2 shrink-0">
                   <VoiceInputButton
-                    onTranscript={(text) => setInput(prev => prev + text)}
-                    lang={i18n.language === 'zh' ? 'zh-CN' : 'en-US'}
+                    onTranscript={(text) => setInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                    prompt={input.slice(-400)}
                   />
                 </div>
                 {/* Textarea */}
