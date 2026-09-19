@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { useToolbox } from '../layout';
 import VoiceTextarea from '@/components/ui/VoiceTextarea';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -268,7 +269,12 @@ export default function LegalPage() {
                 <div className="p-3 border-t bg-white">
                   <div className="relative">
                     <textarea value={copilotInput} onChange={e => setCopilotInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilot()}
-                      placeholder="Enter edit instruction..." rows={3} className="w-full p-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-violet-500/20" />
+                      placeholder="Enter edit instruction..." rows={3} className="w-full p-3 pr-24 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-violet-500/20" />
+                    <VoiceInputButton
+                      onTranscript={(text) => setCopilotInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                      prompt={copilotInput.slice(-400)}
+                      className="absolute bottom-3 right-14 h-8 w-8 rounded-lg bg-white border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm"
+                    />
                     <button onClick={handleCopilot} className="absolute right-3 bottom-3 p-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors">
                       <Send className="w-4 h-4" />
                     </button>

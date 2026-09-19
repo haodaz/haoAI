@@ -196,7 +196,7 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
       type="button"
       onClick={() => (state === 'recording' ? stopRecording() : state === 'idle' ? startRecording() : undefined)}
       disabled={state === 'transcribing'}
-      className={`relative flex items-center gap-1.5 justify-center transition-all duration-200 shrink-0 ${
+      className={`flex items-center gap-1.5 justify-center transition-all duration-200 shrink-0 ${
         state === 'recording' ? 'text-red-600' : state === 'transcribing' ? 'text-indigo-500' : 'text-gray-500 hover:text-indigo-600'
       } ${className}`}
       title={state === 'recording' ? 'Stop and transcribe' : state === 'transcribing' ? 'Transcribing…' : 'Voice input'}

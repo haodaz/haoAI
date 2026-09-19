@@ -7,6 +7,7 @@ import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { useToolbox } from '../layout';
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import VoiceTextarea from '@/components/ui/VoiceTextarea';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 
 const SLIDE_SCALES = [
   { id: '5', name: '~5 pages', desc: 'Quick overview, executive summary' },
@@ -420,7 +421,12 @@ function PptView() {
           </div>
           <div className="p-3 border-t bg-white">
             <div className="relative">
-              <textarea value={pptChatInput} onChange={e => setPptChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilotSend()} placeholder="Enter instruction..." rows={2} className="w-full p-3 pr-10 bg-gray-50 border rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-indigo-500/20" />
+              <textarea value={pptChatInput} onChange={e => setPptChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && handleCopilotSend()} placeholder="Enter instruction..." rows={2} className="w-full p-3 pr-20 bg-gray-50 border rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-indigo-500/20" />
+              <VoiceInputButton
+                onTranscript={(text) => setPptChatInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                prompt={pptChatInput.slice(-400)}
+                className="absolute bottom-2 right-11 h-8 w-8 rounded-lg bg-white border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm"
+              />
               <button onClick={handleCopilotSend} className="absolute right-2 bottom-2 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"><Send className="w-3 h-3" /></button>
             </div>
             <p className="text-[9px] text-gray-300 mt-1 px-1">Cmd + Enter to send</p>

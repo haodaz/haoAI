@@ -6,6 +6,7 @@ import { BookOpen, FileText, Send, Database, X, Loader2, Wand2, MessageSquare, C
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { useToolbox } from '../layout';
 import VoiceTextarea from '@/components/ui/VoiceTextarea';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 
 interface BrochurePage { id: string; label: string; html: string; }
 interface BrochureResult { title: string; pages: BrochurePage[]; }
@@ -383,7 +384,12 @@ document.querySelectorAll('img[data-slot]').forEach(img=>{
               <textarea value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); /* TODO: copilot send */ } }}
                 placeholder="Describe changes..." rows={2}
-                className="w-full p-3 pr-12 border border-gray-200 rounded-2xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none bg-white" />
+                className="w-full p-3 pr-20 border border-gray-200 rounded-2xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none bg-white" />
+              <VoiceInputButton
+                onTranscript={(text) => setChatInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                prompt={chatInput.slice(-400)}
+                className="absolute bottom-2 right-12 h-8 w-8 rounded-lg bg-white border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm"
+              />
               <button disabled={!chatInput.trim()} className="absolute bottom-2 right-2 p-2 bg-emerald-600 text-white rounded-xl disabled:opacity-30 hover:bg-emerald-700 shadow-md">
                 <Send className="h-3.5 w-3.5" />
               </button>

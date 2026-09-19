@@ -6,6 +6,7 @@ import { Globe, FileText, Send, Plus, XCircle, MessageSquare, Database, X, Edit3
 import { KbFileSelector, KbFile } from '@/components/shared/KbFileSelector';
 import { useToolbox } from '../layout';
 import VoiceTextarea from '@/components/ui/VoiceTextarea';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 
 interface WebPage { id: string; title: string; html: string; inNav: boolean; }
 interface WebSite { name: string; themeColor: string; pages: WebPage[]; }
@@ -412,7 +413,12 @@ document.querySelectorAll('img[data-slot]').forEach(img=>{
                 <textarea value={webChatInput} onChange={e => setWebChatInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendWebChat(webChatInput); } }}
                   placeholder="Enter edit instruction..." rows={2}
-                  className="w-full p-3 pr-12 border border-gray-200 rounded-2xl text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none resize-none bg-white" />
+                  className="w-full p-3 pr-20 border border-gray-200 rounded-2xl text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none resize-none bg-white" />
+                <VoiceInputButton
+                  onTranscript={(text) => setWebChatInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                  prompt={webChatInput.slice(-400)}
+                  className="absolute bottom-2 right-12 h-8 w-8 rounded-lg bg-white border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm"
+                />
                 <button onClick={() => sendWebChat(webChatInput)} disabled={webChatLoading || !webChatInput.trim()}
                   className="absolute bottom-2 right-2 p-2 bg-teal-600 text-white rounded-xl disabled:opacity-30 hover:bg-teal-700 shadow-md">
                   <Send className="h-3.5 w-3.5" />
