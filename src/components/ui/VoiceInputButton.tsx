@@ -15,7 +15,7 @@ interface VoiceInputButtonProps {
 }
 
 /** Auto-stop guard so a forgotten recording can't grow past the upload limit. */
-const MAX_RECORDING_MS = 2 * 60 * 1000;
+const MAX_RECORDING_MS = 60 * 1000;
 
 function pickMimeType(): string | undefined {
   const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -122,7 +122,7 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
       setSeconds(0);
       tickRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       stopTimerRef.current = setTimeout(() => {
-        message.info('Recording stopped after 2 minutes');
+        message.info('Recording stopped after 60 seconds');
         stopRecording();
       }, MAX_RECORDING_MS);
     } catch (err: any) {
@@ -158,8 +158,8 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
             <Square className={`${iconSize} fill-current`} />
             <span className="absolute inset-[-5px] rounded-full border-2 border-red-400 animate-ping opacity-30" />
           </span>
-          <span className="text-[11px] font-bold tabular-nums">
-            {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
+          <span className={`text-[11px] font-bold tabular-nums ${seconds >= 50 ? 'animate-pulse' : ''}`}>
+            0:{String(seconds).padStart(2, '0')}
           </span>
         </>
       ) : state === 'transcribing' ? (
