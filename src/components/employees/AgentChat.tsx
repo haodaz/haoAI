@@ -351,7 +351,7 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
                   {/* Bubble */}
                   <div className={`max-w-[75%] group/bubble ${msg.role === 'user' ? 'text-right flex flex-col items-end' : ''}`}>
                     <div
-                      className={`inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                      className={`inline-block px-4 py-3 rounded-2xl text-[14px] leading-relaxed ${
                         msg.role === 'user'
                           ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-tr-sm'
                           : 'bg-white/80 backdrop-blur-sm text-gray-800 rounded-tl-sm border border-gray-100/80 shadow-sm'
