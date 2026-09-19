@@ -141,6 +141,7 @@
       "slideNum": "Slide {{num}}"
     },
     "newTask": {
+      "voiceInput": "Voice input",
       "title": "Publish New Task",
       "step1Desc": "Step 1: Input task details, Chief AI will analyze and decompose",
       "step2Desc": "Step 2: Confirm task breakdown and select approval nodes",

@@ -369,7 +369,7 @@ export default function ProposalPage() {
               placeholder="School name (e.g. Queen's College) *" 
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" 
             />
-            <VoiceTextarea 
+            <VoiceTextarea hintKey="toolbox-proposal" 
               value={proposalForm.schoolProfile} 
               onChange={e => setProposalForm({ ...proposalForm, schoolProfile: e.target.value })} 
               placeholder="School context & challenges (e.g. 50 vacant beds, looking to expand in Asian markets but lacking local marketing team)" 

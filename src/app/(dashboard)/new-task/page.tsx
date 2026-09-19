@@ -325,11 +325,14 @@ export default function NewTaskPage() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                     />
-                    <div className="absolute bottom-4 left-4">
+                    <div className="absolute bottom-3.5 left-4">
                       <VoiceInputButton
-                    onTranscript={(text) => setInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
-                    prompt={input.slice(-400)}
-                  />
+                        onTranscript={(text) => setInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
+                        prompt={input.slice(-400)}
+                    hintKey="new-task"
+                        label={t('bristh.newTask.voiceInput', 'Voice input')}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white shadow-sm hover:border-indigo-300"
+                      />
                     </div>
                     <div className="absolute bottom-4 right-4 text-xs text-gray-400 font-mono">
                       {t('bristh.newTask.charCount', { count: input.length })}

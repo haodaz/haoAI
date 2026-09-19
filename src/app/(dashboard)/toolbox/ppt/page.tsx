@@ -213,7 +213,7 @@ function PptView() {
                   </button>
                 ))}
               </div>
-              <VoiceTextarea value={pptForm.preferences} onChange={e => setPptForm({ ...pptForm, preferences: e.target.value })} placeholder="Preferences (tone, style, target audience...)" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
+              <VoiceTextarea hintKey="toolbox-ppt" value={pptForm.preferences} onChange={e => setPptForm({ ...pptForm, preferences: e.target.value })} placeholder="Preferences (tone, style, target audience...)" rows={3} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-indigo-400 resize-none" />
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">

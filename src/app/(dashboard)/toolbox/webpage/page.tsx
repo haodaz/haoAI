@@ -185,7 +185,7 @@ function WebpageView() {
                 </div>
               )}
               <p className="text-xs text-gray-400 mb-2 italic">💡 If no KB files selected, AI will auto-search your knowledge base for relevant content.</p>
-              <VoiceTextarea value={webForm.background} onChange={e => setWebForm({ ...webForm, background: e.target.value })} placeholder="Paste background info, course details, school USPs etc." rows={5} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
+              <VoiceTextarea hintKey="toolbox-webpage" value={webForm.background} onChange={e => setWebForm({ ...webForm, background: e.target.value })} placeholder="Paste background info, course details, school USPs etc." rows={5} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-teal-400 resize-none" />
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">

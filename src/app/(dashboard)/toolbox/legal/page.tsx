@@ -394,7 +394,7 @@ export default function LegalPage() {
             <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Key Terms</h3>
           </div>
           <div className="p-5">
-            <VoiceTextarea value={form.keyTerms} onChange={e => setForm({ ...form, keyTerms: e.target.value })}
+            <VoiceTextarea hintKey="toolbox-legal" value={form.keyTerms} onChange={e => setForm({ ...form, keyTerms: e.target.value })}
               placeholder="Key business terms (e.g. 60:40 revenue split, 3-year term, £3,000/month service fee)" rows={4}
               className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-violet-400 resize-none" />
           </div>

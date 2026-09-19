@@ -464,17 +464,16 @@ export default function AgentChat({ agent, onBack }: { agent: AgentConfig; onBac
 
               <div className="relative flex items-end bg-white/90 backdrop-blur-sm border border-gray-200/80 rounded-xl shadow-sm focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
                 {/* Upload button */}
-                <div className="flex items-center pl-2 pb-2 shrink-0">
+                <div className="flex items-center gap-0.5 pl-2 pb-1.5 shrink-0">
                   <input type="file" id="agent-chat-upload" className="hidden" multiple onChange={handleFileUpload} />
-                  <label htmlFor="agent-chat-upload" className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
+                  <label htmlFor="agent-chat-upload" className="flex items-center justify-center w-9 h-9 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
                      {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                   </label>
-                </div>
-                {/* Mic button — inside left */}
-                <div className="flex items-center pb-2 shrink-0">
                   <VoiceInputButton
                     onTranscript={(text) => setInput(prev => (prev && !/\s$/.test(prev) ? prev + ' ' : prev) + text)}
                     prompt={input.slice(-400)}
+                    hintKey="agent-chat"
+                    className="h-9 min-w-9 px-2 hover:bg-gray-100 rounded-lg"
                   />
                 </div>
                 {/* Textarea */}

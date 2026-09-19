@@ -141,6 +141,7 @@
       "slideNum": "第 {{num}} 页"
     },
     "newTask": {
+      "voiceInput": "语音输入",
       "title": "发布新任务",
       "step1Desc": "第一步：填写任务内容，Chief AI 将分析并拆解",
       "step2Desc": "第二步：确认任务分解方案，选择审批节点",

@@ -9,13 +9,15 @@ type Props = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | '
   /** Called with value + transcript; defaults to appending the transcript. */
   onTranscript?: (text: string) => void;
   wrapperClassName?: string;
+  /** Show the one-time "try speaking" coach mark for this screen. */
+  hintKey?: string;
 };
 
 /**
  * Textarea with a microphone button in its bottom-right corner.
  * Speech is transcribed and appended to whatever is already typed.
  */
-export default function VoiceTextarea({ value, onChange, onTranscript, wrapperClassName = '', className = '', ...rest }: Props) {
+export default function VoiceTextarea({ value, onChange, onTranscript, wrapperClassName = '', className = '', hintKey, ...rest }: Props) {
   const appendTranscript = (text: string) => {
     if (onTranscript) return onTranscript(text);
     const next = value && !/\s$/.test(value) ? `${value} ${text}` : `${value || ''}${text}`;
@@ -29,8 +31,8 @@ export default function VoiceTextarea({ value, onChange, onTranscript, wrapperCl
         <VoiceInputButton
           onTranscript={appendTranscript}
           prompt={value?.slice(-400)}
-          size="sm"
-          className="p-1.5 rounded-lg bg-white/90 border border-gray-200 hover:border-gray-300 shadow-sm"
+          hintKey={hintKey}
+          className="h-8 min-w-8 px-2 rounded-lg bg-white border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm"
         />
       </div>
     </div>

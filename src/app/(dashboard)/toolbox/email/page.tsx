@@ -422,7 +422,7 @@ export default function AIEmailPage() {
                       </h3>
                     </div>
                     <div className="p-5">
-                      <VoiceTextarea
+                      <VoiceTextarea hintKey="toolbox-email"
                         value={composeForm.prompt}
                         onChange={e => setComposeForm(prev => ({ ...prev, prompt: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-emerald-300 resize-none"

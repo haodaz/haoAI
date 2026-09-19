@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { message } from 'antd';
 
@@ -12,7 +13,18 @@ interface VoiceInputButtonProps {
   className?: string;
   /** Visual size of the icon. */
   size?: 'sm' | 'md';
+  /** Optional text shown next to the icon (idle state only). */
+  label?: string;
+  /**
+   * Show a one-time coach mark pointing at this button. The key identifies the
+   * screen, so each screen introduces voice input once per browser.
+   */
+  hintKey?: string;
 }
+
+/** Bump the suffix to re-introduce the hint after a change. */
+const HINT_STORAGE_PREFIX = 'bep_voice_hint_v1:';
+const HINT_TEXT = 'Try speaking instead';
 
 /** Auto-stop guard so a forgotten recording can't grow past the upload limit. */
 const MAX_RECORDING_MS = 60 * 1000;
@@ -35,7 +47,7 @@ function extensionFor(mimeType: string): string {
  * Uses MediaRecorder + /api/transcribe (OpenAI), so it works in every modern
  * browser rather than only Chrome's built-in speech recognition.
  */
-export default function VoiceInputButton({ onTranscript, prompt, className = '', size = 'md' }: VoiceInputButtonProps) {
+export default function VoiceInputButton({ onTranscript, prompt, className = '', size = 'md', label, hintKey }: VoiceInputButtonProps) {
   const [state, setState] = useState<'idle' | 'recording' | 'transcribing'>('idle');
   const [seconds, setSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -45,6 +57,41 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const promptRef = useRef(prompt);
   promptRef.current = prompt;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [hint, setHint] = useState<{ top: number; left: number; below: boolean } | null>(null);
+
+  const dismissHint = useCallback(() => {
+    setHint(null);
+    if (hintKey) {
+      try { localStorage.setItem(HINT_STORAGE_PREFIX + hintKey, '1'); } catch { /* private mode */ }
+    }
+  }, [hintKey]);
+
+  // One-time coach mark: point at the button the first time this screen is opened
+  useEffect(() => {
+    if (!hintKey) return;
+    try {
+      if (localStorage.getItem(HINT_STORAGE_PREFIX + hintKey)) return;
+    } catch { return; }
+
+    const place = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
+      const below = rect.top < 90;
+      setHint({ top: below ? rect.bottom + 10 : rect.top - 10, left: rect.left + rect.width / 2, below });
+    };
+
+    const showTimer = setTimeout(place, 700);
+    const hideTimer = setTimeout(() => dismissHint(), 15000);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [hintKey, dismissHint]);
 
   const cleanup = useCallback(() => {
     if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; }
@@ -86,6 +133,7 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
   }, []);
 
   const startRecording = useCallback(async () => {
+    dismissHint();
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       message.error('This browser does not support audio recording');
       return;
@@ -137,17 +185,19 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
             : err?.message || 'Could not start recording',
       );
     }
-  }, [cleanup, stopRecording, transcribe]);
+  }, [cleanup, stopRecording, transcribe, dismissHint]);
 
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
 
   return (
+    <>
     <button
+      ref={buttonRef}
       type="button"
       onClick={() => (state === 'recording' ? stopRecording() : state === 'idle' ? startRecording() : undefined)}
       disabled={state === 'transcribing'}
       className={`relative flex items-center gap-1.5 justify-center transition-all duration-200 shrink-0 ${
-        state === 'recording' ? 'text-red-500' : state === 'transcribing' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-600'
+        state === 'recording' ? 'text-red-600' : state === 'transcribing' ? 'text-indigo-500' : 'text-gray-500 hover:text-indigo-600'
       } ${className}`}
       title={state === 'recording' ? 'Stop and transcribe' : state === 'transcribing' ? 'Transcribing…' : 'Voice input'}
       aria-label={state === 'recording' ? 'Stop recording' : 'Start voice input'}
@@ -163,10 +213,37 @@ export default function VoiceInputButton({ onTranscript, prompt, className = '',
           </span>
         </>
       ) : state === 'transcribing' ? (
-        <Loader2 className={`${iconSize} animate-spin`} />
+        <>
+          <Loader2 className={`${iconSize} animate-spin`} />
+          {label && <span className="text-[11px] font-bold">Transcribing…</span>}
+        </>
       ) : (
-        <Mic className={iconSize} />
+        <>
+          <Mic className={iconSize} />
+          {label && <span className="text-[11px] font-bold">{label}</span>}
+        </>
       )}
     </button>
+
+    {hint && typeof document !== 'undefined' && createPortal(
+      <div
+        className="fixed z-[2000] voice-hint-in"
+        style={{ top: hint.top, left: hint.left, transform: `translate(-50%, ${hint.below ? '0' : '-100%'})` }}
+        role="status"
+      >
+        <div className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+          <Mic className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-bold whitespace-nowrap">{HINT_TEXT}</span>
+          <button type="button" onClick={dismissHint} className="ml-1 text-[11px] font-bold text-indigo-100 hover:text-white underline underline-offset-2">
+            Got it
+          </button>
+          <span
+            className={`absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-indigo-600 rotate-45 ${hint.below ? '-top-1' : '-bottom-1'}`}
+          />
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }

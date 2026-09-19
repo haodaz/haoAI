@@ -438,7 +438,7 @@ export default function FinancePage() {
             <h3 className="text-xs font-bold text-gray-600">Description *</h3>
           </div>
           <div className="p-5">
-            <VoiceTextarea
+            <VoiceTextarea hintKey="toolbox-finance"
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder={PLACEHOLDERS[docType]}
