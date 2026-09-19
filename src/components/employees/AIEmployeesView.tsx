@@ -85,27 +85,28 @@ export default function AIEmployeesView() {
       </div>
 
       {/* Grid */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-fit mx-auto pb-8">
+          // Fixed card width (260–300px); the number of columns follows the screen width
+          <div className="grid gap-6 justify-center pb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 300px))' }}>
             {agents.map(agent => {
               const colors = COLOR_MAP[agent.color] || COLOR_MAP.blue;
               return (
                 <div
                   key={agent.id}
-                  className="w-[350px] sm:w-auto flex flex-col group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                  className="w-full flex flex-col group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                   onClick={() => setSelectedAgent(agent)}
                 >
                   {/* Large Image Header */}
-                  <div className="relative w-full overflow-hidden bg-gray-100 shrink-0" style={{ height: 220 }}>
+                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 shrink-0">
                     <img
                       src={agent.realistic_avatar || agent.avatar}
                       alt={agent.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur rounded-full shadow-sm">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

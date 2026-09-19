@@ -7,7 +7,7 @@ import { Modal, Tooltip, Spin } from 'antd';
 import { marked } from 'marked';
 import { useWorkspace } from '@/components/layout/WorkspaceContext';
 import { ThinkBlock, ToolCallsBlock, renderPreviewStandalone, COLOR_BORDER_MAP } from '@/components/shared/UIBlocks';
-import { Building2, Cpu, Activity, History, BookOpen, Settings, Send, CheckCircle2, ChevronRight, ChevronLeft, Users, Layout, Plus, FileText, Calendar, Presentation, AlertTriangle, Scale, Mail, StopCircle, Edit, Edit3, Link2, UploadCloud, Terminal, Info, Download, MessageSquare, Wrench, PenTool, CheckCircle, XCircle, Hourglass, ChevronDown, ChevronUp, Database, Menu, X, Copy, RefreshCw, GitMerge, LogOut, UserCircle, Phone, AtSign, Camera, Save, ArrowLeft, ArrowRight, SaveAll, Loader2 } from 'lucide-react';
+import { Activity, History, Send, ChevronRight, ChevronLeft, Plus, FileText, StopCircle, Terminal, Download, MessageSquare, ChevronDown, ChevronUp, Copy, RefreshCw, Loader2 } from 'lucide-react';
 
 interface LogEntry {
   id: number | string;
@@ -22,7 +22,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const { pendingDispatchTask, setPendingDispatchTask } = useWorkspace();
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'dispatching' | 'completed' | 'failed'>('idle');
   const [activeNodes, setActiveNodes] = useState<{agent: string, instruction: string, status: string, taskId: string, depth: number, summary?: string, hasAttachments?: boolean}[]>([]);
-  const [currentTaskDisplay, setCurrentTaskDisplay] = useState(t('bristh.office.noTask'));
+  const [currentTaskDisplay, setCurrentTaskDisplay] = useState<string>(t('bristh.office.noTask'));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [currentContextId, setCurrentContextId] = useState<string | null>(null);
@@ -96,13 +96,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .catch(() => {
         // Fallback: if API fails, use hardcoded defaults
         setSubAIs([
-          { id: 'Alice', name: `Alice, ${t('bristh.agents.Alice.title', {defaultValue: 'Proposal Architect'})}`, desc: t('bristh.agents.Alice.desc', {defaultValue: 'Business proposals'}), image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Bob', name: `Bob, ${t('bristh.agents.Bob.title', {defaultValue: 'Scheduling Assistant'})}`, desc: t('bristh.agents.Bob.desc', {defaultValue: 'Calendar invites'}), image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
-          { id: 'Edda', name: `Edda, ${t('bristh.agents.Edda.title', {defaultValue: 'Presentation Specialist'})}`, desc: t('bristh.agents.Edda.desc', {defaultValue: 'Slide decks'}), image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20' },
-          { id: 'David', name: `David, ${t('bristh.agents.David.title', {defaultValue: 'Internal Audit Specialist'})}`, desc: t('bristh.agents.David.desc', {defaultValue: 'Compliance audit'}), image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20' },
-          { id: 'Fiona', name: `Fiona, ${t('bristh.agents.Fiona.title', {defaultValue: 'Communications Specialist'})}`, desc: t('bristh.agents.Fiona.desc', {defaultValue: 'Memos & brochures'}), image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20' },
-          { id: 'Eric', name: `Eric, ${t('bristh.agents.Eric.title', {defaultValue: 'Legal Officer'})}`, desc: t('bristh.agents.Eric.desc', {defaultValue: 'Legal documents'}), image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20' },
-          { id: 'Grace', name: `Grace, ${t('bristh.agents.Grace.title', {defaultValue: 'Email Dispatch'})}`, desc: t('bristh.agents.Grace.desc', {defaultValue: 'Send emails'}), image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20' },
+          { id: 'Alice', name: `Alice, ${t('bristh.agents.Alice.title', {defaultValue: 'Proposal Architect'})}`, desc: t('bristh.agents.Alice.desc', {defaultValue: 'Business proposals'}), image: '/pixel_worker_analysis.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20', category: 'general' },
+          { id: 'Bob', name: `Bob, ${t('bristh.agents.Bob.title', {defaultValue: 'Scheduling Assistant'})}`, desc: t('bristh.agents.Bob.desc', {defaultValue: 'Calendar invites'}), image: '/pixel_worker_social.png', color: 'border-emerald-500', shadow: 'shadow-emerald-500/20', category: 'general' },
+          { id: 'Edda', name: `Edda, ${t('bristh.agents.Edda.title', {defaultValue: 'Presentation Specialist'})}`, desc: t('bristh.agents.Edda.desc', {defaultValue: 'Slide decks'}), image: '/pixel_worker_presentation.png', color: 'border-purple-500', shadow: 'shadow-purple-500/20', category: 'general' },
+          { id: 'David', name: `David, ${t('bristh.agents.David.title', {defaultValue: 'Internal Audit Specialist'})}`, desc: t('bristh.agents.David.desc', {defaultValue: 'Compliance audit'}), image: '/pixel_worker_support.png', color: 'border-red-500', shadow: 'shadow-red-500/20', category: 'general' },
+          { id: 'Fiona', name: `Fiona, ${t('bristh.agents.Fiona.title', {defaultValue: 'Communications Specialist'})}`, desc: t('bristh.agents.Fiona.desc', {defaultValue: 'Memos & brochures'}), image: '/pixel_worker.png', color: 'border-amber-500', shadow: 'shadow-amber-500/20', category: 'general' },
+          { id: 'Eric', name: `Eric, ${t('bristh.agents.Eric.title', {defaultValue: 'Legal Officer'})}`, desc: t('bristh.agents.Eric.desc', {defaultValue: 'Legal documents'}), image: '/pixel_worker_filing.png', color: 'border-cyan-500', shadow: 'shadow-cyan-500/20', category: 'general' },
+          { id: 'Grace', name: `Grace, ${t('bristh.agents.Grace.title', {defaultValue: 'Email Dispatch'})}`, desc: t('bristh.agents.Grace.desc', {defaultValue: 'Send emails'}), image: '/pixel_worker_social.png', color: 'border-pink-500', shadow: 'shadow-pink-500/20', category: 'general' },
         ]);
       });
   }, []);
@@ -113,7 +113,7 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   const [copilotMessage, setCopilotMessage] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [idlePanelOpen, setIdlePanelOpen] = useState(true);
+  const [logOpen, setLogOpen] = useState(false);
 
   // Live progress ticker: maps taskId -> current status message
   const [nodeProgress, setNodeProgress] = useState<Record<string, string>>({});
@@ -195,9 +195,6 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNodes.map(n => n.taskId + n.status).join(',')]);
 
-  const activeAgentIds = activeNodes.map(n => n.agent);
-  const idleAIs = subAIs.filter(ai => !activeAgentIds.includes(ai.id));
-  const activeAIs = subAIs.filter(ai => activeAgentIds.includes(ai.id));
 
   const addLog = (source: string, message: string) => {
     setLogs(prev => [...prev, {
@@ -224,8 +221,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   };
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+    // Scroll only inside the log box, never the whole page
+    const box = logEndRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [logs, logOpen]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -779,393 +778,305 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     );
   };
 
+  const isIdle = status === 'idle' && activeNodes.length === 0;
+  // 'pingfang' agents stay hidden from the roster (still dispatchable by Chief)
+  const rosterAIs = subAIs.filter(ai => ai.category !== 'pingfang');
+  const isRunning = status === 'analyzing' || status === 'dispatching';
+  const lastLog = logs[logs.length - 1];
+
+  // Group nodes into phases (top → bottom), each phase wraps its cards in a grid
+  const phases = (() => {
+    const map = new Map<number, typeof activeNodes>();
+    activeNodes.forEach(n => map.set(n.depth || 1, [...(map.get(n.depth || 1) || []), n]));
+    const PHASE_LABEL_MAP: Record<number, string> = { 1: t('bristh.office.phase1'), 2: t('bristh.office.phase2'), 3: t('bristh.office.phase3') };
+    return [...map.keys()].sort((a, b) => a - b).map(d => ({ depth: d, label: PHASE_LABEL_MAP[d] || `Phase ${d}`, nodes: map.get(d)! }));
+  })();
+
+  const renderNodeCard = (node: typeof activeNodes[number]) => {
+    const ai = subAIs.find(a => a.id === node.agent);
+    const isDone = node.status === 'done';
+    const isFailed = node.status === 'failed';
+    const isWorking = node.status === 'working';
+    const isAwaitingApproval = node.status === 'awaiting_approval';
+
+    return (
+      <div
+        key={node.taskId || node.agent}
+        onClick={() => {
+          if ((isDone || isAwaitingApproval) && node.taskId) openCopilot(ai?.name || node.agent, node.taskId);
+        }}
+        className={`rounded-xl border-2 overflow-hidden transition-all duration-300 group relative flex flex-col ${
+          isFailed ? 'bg-red-50/50 border-red-300' :
+          isAwaitingApproval ? 'bg-amber-50/40 border-amber-400 shadow-amber-100/50 shadow-md' :
+          isDone ? 'bg-white border-emerald-400 cursor-pointer hover:shadow-emerald-200/60 hover:shadow-lg hover:-translate-y-0.5' :
+          isWorking ? 'bg-white border-indigo-300' :
+          'bg-gray-50 border-gray-200 border-dashed'
+        }`}
+      >
+        {/* Card Header */}
+        <div className={`px-3 py-2.5 flex items-center gap-2.5 border-b ${
+          isAwaitingApproval ? 'border-amber-100 bg-amber-50/50' : isDone ? 'border-emerald-50' : isFailed ? 'border-red-100' : 'border-gray-100'
+        }`}>
+          {ai?.image ? (
+            <img src={ai.image} alt={node.agent} className="w-8 h-8 rounded-lg object-contain bg-white border border-gray-100 shrink-0" style={{ imageRendering: 'pixelated' }} />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-xs font-black text-gray-600 shrink-0">{node.agent[0]}</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-800 truncate">
+              {node.agent}
+              {node.hasAttachments && <span className="ml-1 text-xs text-blue-400" title={t('bristh.office.hasAttachment')}>📎</span>}
+            </p>
+            {ai?.name && <p className="text-[11px] text-gray-400 truncate">{ai.name.split(',')[1]?.trim()}</p>}
+          </div>
+          {isDone && <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs shrink-0">✓</div>}
+          {isFailed && <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-xs shrink-0">✗</div>}
+          {isWorking && <Loader2 className="w-5 h-5 text-indigo-500 animate-spin shrink-0" />}
+          {isAwaitingApproval && <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold shrink-0">!</div>}
+        </div>
+
+        {/* Card Body: instruction */}
+        <div className="px-3 py-2.5 flex-1">
+          <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{node.instruction}</p>
+        </div>
+
+        {/* Card Footer: summary or status */}
+        {isAwaitingApproval ? (
+          <div className="px-3 py-2.5 border-t border-amber-100 bg-amber-50/50">
+            <p className="text-xs text-amber-700 font-bold mb-2">🟡 {t('bristh.office.waitManualApproval')}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); if (node.taskId) openCopilot(ai?.name || node.agent, node.taskId); }}
+                className="flex-1 px-2 py-2 bg-white border border-amber-200 rounded-lg text-xs font-bold text-amber-700 hover:bg-amber-50 transition-colors"
+              >
+                👁 {t('bristh.office.viewEditBtn')}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (node.taskId) handleApproveTask(node.taskId, node.agent); }}
+                className="flex-1 px-2 py-2 bg-emerald-500 border border-emerald-600 rounded-lg text-xs font-bold text-white hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20"
+              >
+                ✅ {t('bristh.office.approveBtn')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={`px-3 py-2 text-xs font-medium border-t ${
+            isDone ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700' :
+            isFailed ? 'bg-red-50/50 border-red-100 text-red-600' :
+            isWorking ? 'bg-indigo-50/50 border-indigo-100 text-indigo-600' :
+            'bg-gray-50 border-gray-100 text-gray-400'
+          }`}>
+            {isDone && node.summary ? (
+              <div>
+                <p className="line-clamp-2">{node.summary}</p>
+                {node.summary.includes('工具中生成') && <p className="text-[11px] text-blue-500 mt-0.5 font-bold">→ {t('bristh.office.clickToToolDraft')}</p>}
+              </div>
+            ) : isDone ? (
+              <p>✅ {t('bristh.office.completedStatus')}</p>
+            ) : isFailed ? (
+              <div className="flex items-center justify-between">
+                <p>❌ {t('bristh.office.failedStatus')}</p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); if (node.taskId) handleRetryTask(node.taskId, node.agent); }}
+                  className="px-3 py-1 bg-red-100 text-red-600 rounded-lg shadow-sm text-xs font-bold hover:bg-red-200 transition-colors"
+                >{t('bristh.office.retrySmallBtn')}</button>
+              </div>
+            ) : isWorking ? (
+              <p className="font-mono truncate flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping shrink-0" />
+                {nodeProgress[node.taskId] || t('bristh.office.toolExecuting')}
+              </p>
+            ) : (
+              <p>⏳ {t('bristh.office.waitingExecution')}</p>
+            )}
+          </div>
+        )}
+
+        {/* Hover overlay for Copilot */}
+        {isDone && (
+          <div className="absolute inset-0 bg-indigo-900/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-10 rounded-xl">
+            <MessageSquare className="w-5 h-5 mb-1 text-violet-300" />
+            <span className="text-xs font-bold">{t('bristh.office.enterCopilot')}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full h-auto md:h-full flex flex-col md:flex-row overflow-visible md:overflow-hidden relative">
+    <div className="w-full h-auto md:h-full flex flex-col overflow-visible md:overflow-hidden relative">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#6366f1 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
 
-      {/* 左侧中枢区 (Command Center) */}
-      <div className="w-full md:w-[380px] h-auto md:h-full border-b md:border-b-0 md:border-r border-gray-200/80 bg-white flex flex-col z-20 shadow-sm relative shrink-0">
-        
-        <div className="p-5 border-b border-gray-200 bg-white">
-          <div className="flex justify-between items-center mb-3">
-             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center">
-               {t('bristh.office.currentTaskCard')} <ChevronRight className="w-3 h-3 mx-1"/> {status === 'idle' ? t('bristh.office.standby') : status === 'completed' ? t('bristh.office.completedStatus') : status === 'failed' ? t('bristh.office.failedStatus') : t('bristh.office.executing')}
-             </h2>
-             {(status !== 'idle' && status !== 'failed' && status !== 'completed') && (
-               <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
-             )}
-          </div>
-          {status !== 'idle' && (
-            <p className="text-sm font-bold text-gray-700 mb-2">{t('bristh.office.taskInProgress')}</p>
-          )}
-          <p className="font-mono text-[12px] text-gray-800 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px] line-clamp-3">
-             {currentTaskDisplay}
-          </p>
-          
-          <div className="mt-4 flex space-x-2">
-            {status === 'idle' ? (
-              <>
-                <button onClick={() => router.push('/new-task')} className="flex-1 flex items-center justify-center py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-500 shadow-md shadow-emerald-500/20">
-                  <Plus className="w-3 h-3 mr-1" /> {t('bristh.office.newTaskBtn')}
-                </button>
-                <button onClick={() => loadHistory('latest')} className="flex-1 flex items-center justify-center py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 shadow-sm border border-emerald-300">
-                  <History className="w-3 h-3 mr-1" /> {t('bristh.office.loadLatestBtn')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={terminateTask} className="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100">
-                  <StopCircle className="w-3 h-3 mr-1" /> {t('bristh.office.endTaskBtn')}
-                </button>
-                {resumable && currentContextId && status !== 'dispatching' && (
-                  <button onClick={() => drivePipeline(currentContextId)} className="flex-1 flex items-center justify-center py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 shadow-sm border border-emerald-300">
-                    <Activity className="w-3 h-3 mr-1" /> {t('bristh.office.resumeBtn')}
-                  </button>
-                )}
-                {status === 'failed' && !resumable && lastDispatchedInputRef.current && (
-                  <button onClick={() => handleDispatch(lastDispatchedInputRef.current, 'text')} className="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 shadow-sm border border-orange-200">
-                    <Activity className="w-3 h-3 mr-1" /> {t('bristh.office.retryTaskBtn')}
-                  </button>
-                )}
-                {status === 'completed' && (
-                  <button onClick={() => {
-                    const savedInput = lastDispatchedInputRef.current;
-                    if (savedInput) {
-                      terminateTask();
-                      setTimeout(() => handleDispatch(savedInput, 'text'), 100);
-                    }
-                  }} className="flex-1 flex items-center justify-center py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200">
-                    <RefreshCw className="w-3 h-3 mr-1" /> {t('bristh.office.rerunBtn')}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="p-5 border-b border-gray-200">
-          <div className={`relative w-full rounded-2xl bg-white border-2 shadow-lg transition-all duration-300 overflow-hidden flex items-center p-3 ${
-              status === 'idle' ? 'border-gray-200' :
-              (status === 'analyzing' || status === 'dispatching') ? 'border-emerald-500 shadow-emerald-500/20' : 'border-gray-200'
-            }`}
-          >
-            <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center mr-4">
-              <img src="/pixel_worker_analysis.png" alt="Chief AI" className="h-[90%] object-contain filter drop-shadow-md scale-125" style={{ imageRendering: 'pixelated' }} />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-extrabold text-base text-gray-900 leading-tight">{t('bristh.office.chiefTitle')}</h3>
-              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wide">{t('bristh.office.chiefSub')}</p>
-              <div className="mt-2 flex items-center space-x-1">
-                 <div className={`w-2 h-2 rounded-full ${status !== 'idle' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                 <span className="text-[10px] font-bold text-gray-500">{status !== 'idle' ? 'ONLINE' : 'IDLE'}</span>
-              </div>
+      <div className="flex-1 relative z-10 md:overflow-y-auto">
+        {isIdle ? (
+          /* ── Idle: one clear call to action + the team ── */
+          <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 flex flex-col items-center">
+            <div className="w-full bg-white rounded-3xl border border-gray-200 shadow-sm p-6 md:p-10 flex flex-col items-center text-center">
+              <img src="/pixel-office.png" alt="BEP Virtual Office" className="w-44 h-44 md:w-60 md:h-60 object-contain" />
+              <h1 className="mt-4 text-xl md:text-2xl font-black text-gray-900">{t('bristh.office.idleTitle')}</h1>
+              <p className="mt-2 text-sm md:text-base text-gray-500 max-w-md leading-relaxed">{t('bristh.office.idleSubtitle')}</p>
+              <button
+                onClick={() => router.push('/new-task')}
+                className="mt-6 w-full sm:w-auto sm:min-w-[240px] flex items-center justify-center gap-2 px-8 py-3.5 bg-emerald-600 text-white rounded-xl text-base font-bold hover:bg-emerald-500 shadow-lg shadow-emerald-500/25 transition-colors"
+              >
+                <Plus className="w-5 h-5" /> {t('bristh.office.newTaskCta')}
+              </button>
+              <button
+                onClick={() => loadHistory('latest')}
+                className="mt-3 flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" /> {t('bristh.office.viewLatestCta')}
+              </button>
             </div>
 
-            {status === 'analyzing' && (
-              <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-end pr-8 backdrop-blur-[1px]">
-                 <div className="flex items-center text-emerald-600 font-bold text-sm tracking-widest animate-pulse">
-                   <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-                   {t('bristh.office.initializingStatus')}
-                 </div>
+            {rosterAIs.length > 0 && (
+              <div className="w-full mt-8">
+                <h2 className="text-sm font-bold text-gray-500 mb-3 px-1">{t('bristh.office.teamTitle')} · {rosterAIs.length}</h2>
+                <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))' }}>
+                  {rosterAIs.map(ai => (
+                    <Tooltip key={ai.id} title={ai.desc} placement="top">
+                      <div className="bg-white rounded-xl border border-gray-200 p-2 flex flex-col items-center text-center cursor-default hover:border-emerald-300 transition-colors">
+                        <img src={ai.image} alt={ai.id} className="w-14 h-14 object-contain" style={{ imageRendering: 'pixelated' }} />
+                        <p className="mt-1 text-xs font-bold text-gray-700 leading-tight">{ai.name.split(',')[0]}</p>
+                        <p className="text-[10px] text-gray-400 leading-tight line-clamp-2">{ai.name.split(',')[1]?.trim() || ''}</p>
+                      </div>
+                    </Tooltip>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex-1 flex flex-col p-5 overflow-hidden">
-           <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
-             <Terminal className="w-3 h-3 mr-1" /> {t('bristh.office.execLog')}
-           </h3>
-           <div className="flex-1 bg-white rounded-xl p-4 overflow-y-auto font-mono text-[11px] text-slate-700 space-y-2 shadow-inner border border-slate-200 scrollbar-thin scrollbar-thumb-slate-200">
-             {logs.length === 0 ? (
-               <div className="text-slate-400 italic">{t('bristh.office.noLogs')}</div>
-             ) : (
-               logs.map(log => (
-                 <div key={log.id} className="leading-relaxed">
-                   <span className="text-slate-400">[{log.time}]</span>{' '}
-                    <span className={log.source === 'Chief' ? 'text-emerald-600 font-bold' : log.source === 'System' ? 'text-slate-500' : 'text-blue-600 font-medium'}>
-                     [{log.source}]
-                   </span>{' '}
-                   <span className="text-slate-700">{log.message}</span>
-                 </div>
-               ))
-             )}
-             <div ref={logEndRef} />
-           </div>
-        </div>
-      </div>
-
-
-      <div className="flex-1 flex flex-col p-4 md:p-6 relative z-20 min-h-[300px] overflow-y-auto">
-
-        {activeAIs.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center flex flex-col items-center max-w-md">
-              <img src="/pixel-office.png" alt="BEP Virtual Office" className="w-96 h-96 object-contain mb-4" />
-              <p className="text-gray-400 font-medium text-sm">{t('bristh.office.noAgentFallback')}</p>
-              <p className="text-gray-300 text-xs mt-1">{t('bristh.office.noAgentHintFallback')}</p>
-            </div>
-          </div>
-        ) : (() => {
-          // Group nodes by depth for Kanban columns
-          const depthMap = new Map<number, typeof activeNodes>();
-          activeNodes.forEach(n => {
-            const list = depthMap.get(n.depth) || [];
-            list.push(n);
-            depthMap.set(n.depth, list);
-          });
-          const maxDepth = Math.max(...Array.from(depthMap.keys()));
-          const columns: { depth: number; label: string; nodes: typeof activeNodes }[] = [
-            { depth: 0, label: t('bristh.office.orchestrationStage'), nodes: [{ agent: 'Chief', instruction: t('bristh.office.orchestrationInstruction', {count: activeNodes.length}), status: status === 'completed' || status === 'dispatching' ? 'done' : 'working', taskId: '', depth: 0, summary: t('bristh.office.participatingAgents', {agents: activeNodes.map(n => n.agent).join(', ')}) }] },
-          ];
-          for (let d = 1; d <= maxDepth; d++) {
-            const PHASE_LABEL_MAP: Record<number, string> = { 1: t('bristh.office.phase1'), 2: t('bristh.office.phase2'), 3: t('bristh.office.phase3') };
-            columns.push({ depth: d, label: PHASE_LABEL_MAP[d] || `Phase ${d}`, nodes: depthMap.get(d) || [] });
-          }
-
-          const AGENT_ROLES: Record<string, string> = {};
-          subAIs.forEach(ai => { AGENT_ROLES[ai.id] = ai.desc; });
-
-          return (
-            <div className="flex gap-4 md:gap-6 flex-1 min-h-0 items-start overflow-x-auto pb-4">
-              {columns.map((col, colIdx) => (
-                <div key={col.depth} className="flex items-start gap-0 shrink-0">
-                  {/* Column */}
-                  <div className="flex flex-col w-[200px] md:w-[240px]">
-                    {/* Column header */}
-                    <div className={`text-center mb-3 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                      col.depth === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+        ) : (
+          /* ── Active: status bar + phases stacked top → bottom (no horizontal scrolling) ── */
+          <div className="max-w-6xl mx-auto px-4 py-4 md:px-6 md:py-6 space-y-5">
+            {/* Task status bar */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 md:p-5">
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                      isRunning ? 'bg-indigo-50 text-indigo-700' :
+                      status === 'failed' ? 'bg-red-50 text-red-600' :
+                      'bg-emerald-50 text-emerald-700'
                     }`}>
-                      {col.label}
-                    </div>
-
-                    {/* Cards */}
-                    <div className="space-y-3">
-                      {col.nodes.map((node) => {
-                        const ai = subAIs.find(a => a.id === node.agent);
-                        const isDone = node.status === 'done';
-                        const isFailed = node.status === 'failed';
-                        const isWorking = node.status === 'working';
-                        const isAwaitingApproval = node.status === 'awaiting_approval';
-                        const isChief = node.agent === 'Chief';
-
-                        return (
-                          <div
-                            key={node.taskId || node.agent}
-                            onClick={() => {
-                              if ((isDone || isAwaitingApproval) && node.taskId && !isChief) {
-                                openCopilot(ai?.name || node.agent, node.taskId);
-                              }
-                            }}
-                            className={`rounded-xl border-2 overflow-hidden transition-all duration-300 group relative ${
-                              isChief ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-300 shadow-indigo-100/50 shadow-md' :
-                              isFailed ? 'bg-red-50/50 border-red-300' :
-                              isAwaitingApproval ? 'bg-amber-50/40 border-amber-400 shadow-amber-100/50 shadow-md' :
-                              isDone ? 'bg-white border-emerald-400 cursor-pointer hover:shadow-emerald-200/60 hover:shadow-lg hover:-translate-y-0.5' :
-                              isWorking ? 'bg-white border-indigo-300 animate-pulse' :
-                              'bg-gray-50 border-gray-200 border-dashed'
-                            }`}
-                          >
-                            {/* Card Header */}
-                            <div className={`px-3 py-2 flex items-center gap-2 border-b ${
-                              isChief ? 'border-emerald-100 bg-emerald-50/50' :
-                              isAwaitingApproval ? 'border-amber-100 bg-amber-50/50' :
-                              isDone ? 'border-emerald-50' :
-                              isFailed ? 'border-red-100' :
-                              'border-gray-100'
-                            }`}>
-                              {isChief ? (
-                                <div className="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-[9px] font-black shrink-0">C</div>
-                              ) : ai?.image ? (
-                                <img src={ai.image} alt={node.agent} className="w-6 h-6 rounded-lg object-contain bg-white border border-gray-100" style={{ imageRendering: 'pixelated' }} />
-                              ) : (
-                                <div className="w-6 h-6 rounded-lg bg-gray-200 flex items-center justify-center text-[9px] font-black text-gray-600 shrink-0">{node.agent[0]}</div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-bold text-gray-800 truncate">
-                                  {node.agent}
-                                  {node.hasAttachments && <span className="ml-1 text-[9px] text-blue-400" title={t('bristh.office.hasAttachment')}>📎</span>}
-                                </p>
-                              </div>
-                              {isDone && <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[9px] shrink-0">✓</div>}
-                              {isFailed && <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-[9px] shrink-0">✗</div>}
-                              {isWorking && <Activity className="w-4 h-4 text-emerald-500 animate-spin shrink-0" />}
-                              {isAwaitingApproval && <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-white text-[9px] shrink-0">!</div>}
-                            </div>
-
-                            {/* Card Body: instruction */}
-                            <div className="px-3 py-2">
-                              <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2">{node.instruction}</p>
-                            </div>
-
-                            {/* Card Footer: summary or status */}
-                            {isAwaitingApproval ? (
-                              <div className="px-3 py-2 border-t border-amber-100 bg-amber-50/50">
-                                <p className="text-[10px] text-amber-700 font-bold mb-2">🟡 {t('bristh.office.waitManualApproval')}</p>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (node.taskId) openCopilot(ai?.name || node.agent, node.taskId);
-                                    }}
-                                    className="flex-1 px-2 py-1.5 bg-white border border-amber-200 rounded-lg text-[10px] font-bold text-amber-700 hover:bg-amber-50 transition-colors"
-                                  >
-                                    👁 {t('bristh.office.viewEditBtn')}
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (node.taskId) handleApproveTask(node.taskId, node.agent);
-                                    }}
-                                    className="flex-1 px-2 py-1.5 bg-emerald-500 border border-emerald-600 rounded-lg text-[10px] font-bold text-white hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20"
-                                  >
-                                    ✅ {t('bristh.office.approveBtn')}
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className={`px-3 py-1.5 text-[10px] font-medium border-t ${
-                                isDone ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700' :
-                                isFailed ? 'bg-red-50/50 border-red-100 text-red-600' :
-                                isWorking ? 'bg-emerald-50/50 border-emerald-100 text-emerald-600' :
-                                'bg-gray-50 border-gray-100 text-gray-400'
-                              }`}>
-                                {isDone && node.summary ? (
-                                  <div>
-                                    <p className="truncate">{node.summary}</p>
-                                    {node.summary.includes('工具中生成') && <p className="text-[9px] text-blue-500 mt-0.5 font-bold">→ {t('bristh.office.clickToToolDraft')}</p>}
-                                  </div>
-                                ) : isDone ? (
-                                  <p>✅ {t('bristh.office.completedStatus')}</p>
-                                ) : isFailed ? (
-                                  <div className="flex items-center justify-between">
-                                    <p>❌ {t('bristh.office.failedStatus')}</p>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (node.taskId) handleRetryTask(node.taskId, node.agent);
-                                      }}
-                                      className="px-2 py-0.5 bg-red-100 text-red-600 rounded shadow-sm text-[9px] font-bold hover:bg-red-200 transition-colors"
-                                    >{t('bristh.office.retrySmallBtn')}</button>
-                                  </div>
-                                ) : isWorking ? (
-                                  <div className="overflow-hidden">
-                                    <p className="text-[10px] text-emerald-600 font-mono animate-pulse truncate flex items-center gap-1">
-                                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                                      {nodeProgress[node.taskId] || t('bristh.office.toolExecuting')}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <p>⏳ {t('bristh.office.waitingExecution')}</p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Hover overlay for Copilot */}
-                            {isDone && !isChief && (
-                              <div className="absolute inset-0 bg-indigo-900/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-10 rounded-xl">
-                                <MessageSquare className="w-5 h-5 mb-1 text-violet-300" />
-                                <span className="text-[10px] font-bold">{t('bristh.office.enterCopilot')}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                      {isRunning && <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />}
+                      {isRunning ? t('bristh.office.executing') : status === 'failed' ? t('bristh.office.failedStatus') : t('bristh.office.completedStatus')}
+                    </span>
+                    {activeNodes.length > 0 && (
+                      <span className="text-xs text-gray-400 font-medium">{t('bristh.office.teamSize', { count: activeNodes.length })}</span>
+                    )}
                   </div>
-
-                  {/* Arrow between columns */}
-                  {colIdx < columns.length - 1 && (
-                    <div className="flex flex-col justify-center self-stretch px-1 md:px-2 shrink-0">
-                      {col.nodes.map((_, rowIdx) => {
-                        const nextCol = columns[colIdx + 1];
-                        const hasTarget = nextCol && (rowIdx === col.nodes.length - 1 || rowIdx < nextCol.nodes.length);
-                        return (
-                          <div key={rowIdx} className="flex items-center h-full flex-1">
-                            {hasTarget && (
-                              <div className="flex items-center">
-                                <div className="w-6 md:w-10 h-[2px] bg-gradient-to-r from-indigo-300 to-indigo-400 relative">
-                                  {status === 'dispatching' && (
-                                    <div className="absolute inset-0 overflow-hidden">
-                                      <div className="w-2 h-full bg-emerald-500 rounded-full animate-pulse" style={{ animation: 'flowRight 1s linear infinite' }} />
-                                    </div>
-                                  )}
-                                </div>
-                                <ChevronRight className="w-3 h-3 text-emerald-400 -ml-1" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <p className="text-sm md:text-base font-semibold text-gray-800 leading-relaxed line-clamp-2">{currentTaskDisplay}</p>
+                  {lastLog && (
+                    <p className="mt-2 text-xs text-gray-500 font-mono truncate">
+                      <span className={lastLog.source === 'Chief' ? 'text-emerald-600 font-bold' : lastLog.source === 'System' ? 'text-gray-400' : 'text-blue-600 font-medium'}>[{lastLog.source}]</span>{' '}
+                      {lastLog.message}
+                    </p>
                   )}
                 </div>
-              ))}
+
+                <div className="flex flex-wrap md:flex-nowrap gap-2 shrink-0">
+                  {resumable && currentContextId && status !== 'dispatching' && (
+                    <button onClick={() => drivePipeline(currentContextId)} className="flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-500 shadow-md shadow-emerald-500/20">
+                      <Activity className="w-4 h-4 mr-1.5" /> {t('bristh.office.resumeBtn')}
+                    </button>
+                  )}
+                  {status === 'failed' && !resumable && lastDispatchedInputRef.current && (
+                    <button onClick={() => handleDispatch(lastDispatchedInputRef.current, 'text')} className="flex items-center justify-center px-4 py-2.5 bg-orange-50 text-orange-600 rounded-xl text-sm font-bold hover:bg-orange-100 border border-orange-200">
+                      <Activity className="w-4 h-4 mr-1.5" /> {t('bristh.office.retryTaskBtn')}
+                    </button>
+                  )}
+                  {status === 'completed' && (
+                    <button onClick={() => {
+                      const savedInput = lastDispatchedInputRef.current;
+                      if (savedInput) {
+                        terminateTask();
+                        setTimeout(() => handleDispatch(savedInput, 'text'), 100);
+                      }
+                    }} className="flex items-center justify-center px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200">
+                      <RefreshCw className="w-4 h-4 mr-1.5" /> {t('bristh.office.rerunBtn')}
+                    </button>
+                  )}
+                  <button onClick={terminateTask} className="flex items-center justify-center px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100">
+                    <StopCircle className="w-4 h-4 mr-1.5" /> {t('bristh.office.endTaskBtn')}
+                  </button>
+                </div>
+              </div>
             </div>
-          );
-        })()}
-      </div>
 
-      {/* 右侧闲置区 (Idle Agents) — collapsible */}
-      <div className={`hidden md:flex bg-white/80 backdrop-blur-xl border-l border-gray-200/80 flex-col z-20 shadow-sm shrink-0 transition-all duration-300 ${idlePanelOpen ? 'w-[520px] p-6' : 'w-[40px] p-0'}`}>
-        {/* Toggle button */}
-        <button
-          onClick={() => setIdlePanelOpen(v => !v)}
-          className="shrink-0 flex items-center justify-center gap-1 py-2 hover:bg-gray-100 transition-colors rounded-lg"
-          title={idlePanelOpen ? 'Collapse' : 'Expand'}
-        >
-          {idlePanelOpen ? (
-            <>
-              <h2 className="text-base font-black text-gray-600 text-center flex-1">{t('bristh.office.idleAiTitle')}</h2>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </>
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-gray-400 mx-auto" />
-          )}
-        </button>
-        
-        {idlePanelOpen && (
-        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
-          {/* 通用能力 AI */}
-          {idleAIs.filter(ai => ai.category !== 'pingfang').length > 0 && (
-            <>
-              <div className="flex items-center gap-2 mb-3 px-2">
-                <div className="h-px flex-1 bg-gray-200"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{t('bristh.office.generalCapabilities')}</span>
-                <div className="h-px flex-1 bg-gray-200"></div>
+            {/* Chief analyzing (before any agent is assigned) */}
+            {activeNodes.length === 0 && (
+              <div className="bg-white rounded-2xl border-2 border-dashed border-emerald-200 p-8 flex flex-col items-center text-center">
+                <img src="/pixel_worker_analysis.png" alt="Chief" className="w-20 h-20 object-contain" style={{ imageRendering: 'pixelated' }} />
+                <p className="mt-3 text-sm font-bold text-emerald-700 flex items-center gap-2">
+                  {isRunning && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isRunning ? t('bristh.office.chiefAnalyzing') : t('bristh.office.noAgentFallback')}
+                </p>
               </div>
-              <div className="flex flex-wrap justify-center gap-4 mb-5">
-                {idleAIs.filter(ai => ai.category !== 'pingfang').map((ai) => (
-                  <div key={ai.id} className="w-[140px] flex flex-col items-center transition-all cursor-default hover:scale-105 relative">
-                    <div className="absolute top-1 right-1 z-30">
-                      <Tooltip title={ai.desc} placement="top">
-                        <div className="p-1 cursor-pointer hover:bg-gray-100 rounded-full transition-colors bg-white/80">
-                          <Info className="w-4 h-4 text-gray-500 hover:text-emerald-600" />
-                        </div>
-                      </Tooltip>
-                    </div>
-                    <div className="w-full bg-white rounded-xl border-2 border-gray-200 overflow-hidden flex flex-col shadow-sm">
-                      <div className="h-[120px] bg-white flex items-center justify-center p-2 relative">
-                        <img src={ai.image} alt={ai.name} className="max-h-[90%] max-w-[90%] object-contain filter drop-shadow-sm scale-125 pt-2" style={{ imageRendering: 'pixelated' }} />
-                      </div>
-                      <div className="pb-3 text-center bg-white border-t border-gray-50 pt-2 px-1">
-                        <h4 className="font-extrabold text-[12px] text-gray-500 leading-tight">{ai.name.split(',')[0]}</h4>
-                        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{ai.name.split(',')[1]?.trim() || ''}</p>
+            )}
+
+            {/* Phases */}
+            {phases.map((phase, idx) => {
+              const doneCount = phase.nodes.filter(n => n.status === 'done').length;
+              const phaseActive = phase.nodes.some(n => n.status === 'working');
+              const phaseDone = doneCount === phase.nodes.length;
+              return (
+                <div key={phase.depth}>
+                  {idx > 0 && (
+                    <div className="flex justify-center -mt-2 mb-3" aria-hidden>
+                      <div className="flex flex-col items-center">
+                        <div className={`w-0.5 h-5 ${phaseActive ? 'bg-indigo-400 animate-pulse' : 'bg-gray-300'}`} />
+                        <ChevronDown className={`w-5 h-5 -mt-1.5 ${phaseActive ? 'text-indigo-500' : 'text-gray-400'}`} />
                       </div>
                     </div>
+                  )}
+                  <section className={`rounded-2xl border p-4 md:p-5 ${phaseActive ? 'bg-indigo-50/40 border-indigo-200' : phaseDone ? 'bg-white border-emerald-200' : 'bg-white/70 border-gray-200'}`}>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h3 className="flex items-center gap-2 text-sm md:text-base font-black text-gray-800">
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 ${phaseDone ? 'bg-emerald-500' : phaseActive ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+                          {phaseDone ? '✓' : phase.depth}
+                        </span>
+                        {phase.label}
+                      </h3>
+                      <span className="text-xs font-bold text-gray-400 shrink-0">{t('bristh.office.stageProgress', { done: doneCount, total: phase.nodes.length })}</span>
+                    </div>
+                    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                      {phase.nodes.map(renderNodeCard)}
+                    </div>
+                  </section>
+                </div>
+              );
+            })}
+
+            {/* Execution log — collapsed by default */}
+            {logs.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200">
+                <button
+                  onClick={() => setLogOpen(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-2xl"
+                >
+                  <span className="flex items-center gap-2"><Terminal className="w-4 h-4" /> {logOpen ? t('bristh.office.hideLog') : t('bristh.office.showLog', { count: logs.length })}</span>
+                  {logOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {logOpen && (
+                  <div ref={logEndRef} className="max-h-80 overflow-y-auto border-t border-gray-100 px-4 py-3 font-mono text-xs text-slate-700 space-y-1.5">
+                    {logs.map(log => (
+                      <div key={log.id} className="leading-relaxed">
+                        <span className="text-slate-400">[{log.time}]</span>{' '}
+                        <span className={log.source === 'Chief' ? 'text-emerald-600 font-bold' : log.source === 'System' ? 'text-slate-500' : 'text-blue-600 font-medium'}>
+                          [{log.source}]
+                        </span>{' '}
+                        <span>{log.message}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </>
-          )}
-
-          {/* 平方专业能力 AI — 隐藏显示，功能仍可通过 Chief 调度 */}
-        </div>)
-        }
+            )}
+          </div>
+        )}
       </div>
-
-      
 
       {/* Copilot Mode Modal */}
       <Modal
