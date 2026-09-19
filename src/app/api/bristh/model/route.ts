@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { MODEL_REGISTRY, getSelectedModelId, setSelectedModelId } from '@/lib/model-registry';
+import { MODEL_REGISTRY, DEFAULT_MODEL_ID, getSelectedModelId, setSelectedModelId } from '@/lib/model-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const currentModelId = await getSelectedModelId();
-    const currentModel = MODEL_REGISTRY[currentModelId] || MODEL_REGISTRY['gemini-38-flash'];
+    const currentModel = MODEL_REGISTRY[currentModelId] || MODEL_REGISTRY[DEFAULT_MODEL_ID];
     
     const available = Object.values(MODEL_REGISTRY).map(m => ({
       id: m.id,

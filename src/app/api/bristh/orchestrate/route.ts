@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import fs from 'fs/promises';
 import path from 'path';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/auth-server';
+import { INTERNAL_SECRET_HEADER, isValidInternalSecret } from '@/lib/session';
 import { loadAgentConfig } from '@/lib/bristh-config';
 import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
 import { TokenTracker } from '@/lib/token-tracker';
@@ -29,22 +30,9 @@ async function loadCapabilityDict(): Promise<string> {
   }
 }
 
-// Extract userId from session cookie
-async function getSessionUserId(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get('autoffice_session')?.value;
-    if (!raw) return null;
-    const session = JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
-    return session.userId || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   try {
-    const { source, rawContent, locale, approvalConfig, attachments } = await req.json();
+    const { source, rawContent, locale, approvalConfig, attachments, senderEmail } = await req.json();
     console.log('[Orchestrate] Received request. attachments:', attachments?.length || 0, attachments?.map((a: any) => a.originalName));
 
     if (!rawContent) {
@@ -55,10 +43,27 @@ export async function POST(req: Request) {
     const { config: modelConfig } = await getModelClient();
 
     // Get current user
-    let userId = await getSessionUserId();
+    let userId = (await getSessionUser())?.id ?? null;
     if (userId) {
       const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
       if (!userExists) userId = null;
+    }
+
+    // Email-triggered tasks: only from the email daemon, and only from senders whose
+    // address is bound to a registered user (that user becomes the task owner).
+    const isEmailSource = source === 'EMAIL';
+    if (isEmailSource) {
+      if (!isValidInternalSecret(req.headers.get(INTERNAL_SECRET_HEADER))) {
+        return NextResponse.json({ error: 'Email tasks must come from the email daemon' }, { status: 403 });
+      }
+      const sender = typeof senderEmail === 'string' ? senderEmail.trim() : '';
+      const owner = sender
+        ? await prisma.user.findFirst({ where: { email: { equals: sender, mode: 'insensitive' } }, select: { id: true } })
+        : null;
+      if (!owner) {
+        return NextResponse.json({ error: `Sender ${sender || '(unknown)'} is not an allowed user` }, { status: 403 });
+      }
+      userId = owner.id;
     }
 
     const context = await prisma.taskContext.create({
@@ -197,6 +202,8 @@ ${attachmentContext}${langInstruction}`;
     // 3. Save parsed tasks to database linked to the context
     // Support approvalConfig if provided (e.g. from email-daemon with pre-configured approval)
     const approvalSet = new Set((approvalConfig || []).map((a: string) => a.toLowerCase()));
+    // Outgoing email from an email-triggered task always needs a human sign-off
+    if (isEmailSource) approvalSet.add('grace');
 
     const createdTasks = await Promise.all(
       tasksToCreate.map((t: any) => 

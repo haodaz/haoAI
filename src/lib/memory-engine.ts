@@ -157,6 +157,28 @@ export async function loadAgentMemories(agentId: string, limit: number = 20): Pr
 }
 
 /**
+ * Load task summaries written by writeTaskMemory, newest first
+ */
+export async function loadTaskMemories(agentId: string, limit: number = 50): Promise<MemoryEntry[]> {
+  const records = await prisma.agentMemory.findMany({
+    where: { agentId: agentId.toLowerCase(), type: 'task_summary', archived: false },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return records.map(r => ({
+    id: r.id,
+    ts: r.createdAt.toISOString(),
+    type: r.type as MemoryEntry['type'],
+    source: r.source as MemoryEntry['source'],
+    content: r.content,
+    importance: r.importance,
+    taskId: r.taskId || undefined,
+    archived: r.archived,
+  }));
+}
+
+/**
  * List all agents that have memory entries or soul files
  */
 export async function listAgentsWithMemory(): Promise<string[]> {

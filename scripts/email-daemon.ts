@@ -8,13 +8,56 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const IMAP_USER = process.env.IMAP_USER;
 const IMAP_PASSWORD = process.env.IMAP_PASSWORD;
-const BASE_URL = 'http://localhost:5859';
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+const BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5859';
 const ORCHESTRATE_URL = `${BASE_URL}/api/bristh/orchestrate`;
 const APPROVAL_REPLY_URL = `${BASE_URL}/api/bristh/approval-reply`;
+const ADVANCE_URL = `${BASE_URL}/api/bristh/pipeline/advance`;
 
-if (!IMAP_USER || !IMAP_PASSWORD) {
-  console.error('❌ Error: IMAP_USER or IMAP_PASSWORD is not set in .env.local');
+if (!IMAP_USER || !IMAP_PASSWORD || !INTERNAL_API_SECRET) {
+  console.error('❌ Error: IMAP_USER, IMAP_PASSWORD and INTERNAL_API_SECRET must be set in .env.local');
   process.exit(1);
+}
+
+/** fetch() against the Autoffice API, authenticated as a trusted internal caller. */
+function apiFetch(url: string, init: RequestInit = {}) {
+  return fetch(url, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', 'x-internal-secret': INTERNAL_API_SECRET!, ...(init.headers || {}) },
+  });
+}
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Only trust the From address if the receiving server verified it:
+ * DMARC pass, or a DKIM signature from the sender's own domain.
+ */
+function isSenderAuthenticated(authResults: string, fromAddress: string): boolean {
+  const results = authResults.toLowerCase();
+  if (/\bdmarc=pass\b/.test(results)) return true;
+  const domain = fromAddress.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+  return new RegExp(`\\bdkim=pass\\b[^;]*header\\.(?:i|d)=@?${domain.replace(/\./g, '\\.')}(?=[\\s;]|$)`).test(results);
+}
+
+/** Run a pipeline phase by phase until it completes or pauses for approval. */
+async function drivePipeline(contextId: string) {
+  for (let step = 0; step < 50; step++) {
+    try {
+      const res = await apiFetch(ADVANCE_URL, { method: 'POST', body: JSON.stringify({ contextId }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `status ${res.status}`);
+      console.log(`   ↳ pipeline ${contextId}: ${data.state}${data.phase ? ` (phase ${data.phase})` : ''}`);
+      if (data.state === 'completed' || data.state === 'awaiting_approval') return data.state;
+      if (data.state === 'busy') await sleep(5000);
+    } catch (err: any) {
+      // The request may time out while agents keep running; poll again.
+      console.error(`   ⚠️ advance failed: ${err.message}. Retrying...`);
+      await sleep(5000);
+    }
+  }
+  console.error(`   ❌ pipeline ${contextId} did not settle; resume it from the Office page.`);
 }
 
 const config = {
@@ -25,7 +68,6 @@ const config = {
     port: 993,
     tls: true,
     authTimeout: 3000,
-    tlsOptions: { rejectUnauthorized: false }
   }
 };
 
@@ -52,7 +94,7 @@ async function findApprovalContext(inReplyTo: string | undefined, references: st
   // Search for matching TaskContext
   for (const msgId of messageIds) {
     try {
-      const res = await fetch(`${BASE_URL}/api/bristh/tasks?approvalEmailId=${encodeURIComponent(msgId)}`);
+      const res = await apiFetch(`${BASE_URL}/api/bristh/tasks?approvalEmailId=${encodeURIComponent(msgId)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.contextId) return data.contextId;
@@ -94,7 +136,9 @@ async function pollEmails(connection: imaps.ImapSimple) {
       
       const subject = parsed.subject || 'No Subject';
       const from = parsed.from?.text || 'Unknown Sender';
-      const body = parsed.text || parsed.html?.replace(/<[^>]+>/g, '') || 'No content';
+      const fromAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || '';
+      const authResults = [parsed.headers.get('authentication-results')].flat().filter(Boolean).join('; ');
+      const body = parsed.text || (parsed.html ? parsed.html.replace(/<[^>]+>/g, '') : '') || 'No content';
       const inReplyTo = parsed.inReplyTo;
       const references = typeof parsed.references === 'string' ? parsed.references : Array.isArray(parsed.references) ? parsed.references.join(' ') : undefined;
       
@@ -104,6 +148,11 @@ async function pollEmails(connection: imaps.ImapSimple) {
       if (inReplyTo) console.log(`↩️ IN-REPLY-TO: ${inReplyTo}`);
       console.log(`========================================`);
 
+      if (!fromAddress || !isSenderAuthenticated(String(authResults), fromAddress)) {
+        console.warn(`🚫 Ignored: sender ${fromAddress || '(none)'} failed DMARC/DKIM verification.`);
+        continue;
+      }
+
       // ====== Check if this is an approval reply ======
       const approvalContextId = await findApprovalContext(inReplyTo, references);
 
@@ -112,12 +161,12 @@ async function pollEmails(connection: imaps.ImapSimple) {
         console.log(`📋 Routing to approval-reply handler...`);
 
         try {
-          const response = await fetch(APPROVAL_REPLY_URL, {
+          const response = await apiFetch(APPROVAL_REPLY_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contextId: approvalContextId,
               replyContent: body,
+              fromEmail: fromAddress,
             })
           });
 
@@ -125,7 +174,8 @@ async function pollEmails(connection: imaps.ImapSimple) {
             const data = await response.json();
             console.log(`✅ Approval reply processed: ${data.results?.length || 0} action(s)`);
             if (data.allApproved) {
-              console.log(`🎉 All tasks approved! Grace will handle final dispatch.`);
+              console.log(`🎉 All tasks approved! Resuming pipeline...`);
+              await drivePipeline(approvalContextId);
             } else {
               console.log(`⏳ ${data.remainingApprovals} task(s) still awaiting approval.`);
             }
@@ -146,12 +196,12 @@ async function pollEmails(connection: imaps.ImapSimple) {
       console.log(`🚀 Dispatching task to Chief Orchestrator...`);
       
       try {
-        const response = await fetch(ORCHESTRATE_URL, {
+        const response = await apiFetch(ORCHESTRATE_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             source: 'EMAIL',
-            rawContent
+            rawContent,
+            senderEmail: fromAddress,
           })
         });
 
@@ -159,57 +209,15 @@ async function pollEmails(connection: imaps.ImapSimple) {
           const data = await response.json();
           console.log(`✅ Task successfully dispatched! Task Context ID: ${data.contextId}`);
           console.log(`🤖 ${data.tasks.length} Agent(s) assigned to the pipeline. Executing...`);
-
-          const otherTasks = data.tasks.filter((t: any) => t.agent.toLowerCase() !== 'grace');
-          const graceTasks = data.tasks.filter((t: any) => t.agent.toLowerCase() === 'grace');
-
-          const runAgent = async (t: any) => {
-            const agentName = t.agent.toLowerCase();
-            try {
-              console.log(`➡️  Starting ${t.agent}...`);
-              const agentRes = await fetch(`${BASE_URL}/api/bristh/agents/${agentName}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId: t.id })
-              });
-              if (!agentRes.ok) {
-                console.error(`❌ ${t.agent} failed with status ${agentRes.status}`);
-              } else {
-                console.log(`✅ ${t.agent} completed successfully.`);
-              }
-            } catch (err: any) {
-              console.error(`❌ ${t.agent} error:`, err.message);
-            }
-          };
-
-          // 1. Run all other agents concurrently
-          await Promise.all(otherTasks.map(runAgent));
-          
-          // 2. Check if any tasks require approval
-          const hasApprovalTasks = otherTasks.some((t: any) => t.requiresApproval);
-          
-          if (hasApprovalTasks) {
-            console.log(`⏸️ Some tasks require approval. Sending notification email...`);
-            try {
-              await fetch(`${BASE_URL}/api/bristh/notify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contextId: data.contextId }),
-              });
-              console.log(`📧 Approval notification sent. Waiting for user response.`);
-            } catch (err: any) {
-              console.error(`❌ Notify error:`, err.message);
-            }
-          } else if (graceTasks.length > 0) {
-            // 3. Run Grace only if no approval needed and after everyone else is done
-            console.log(`⏳ Dependencies met. Starting Grace for attachment delivery...`);
-            await Promise.all(graceTasks.map(runAgent));
+          const finalState = await drivePipeline(data.contextId);
+          if (finalState === 'awaiting_approval') {
+            console.log(`📧 Paused for approval. A notification was sent to the task owner.`);
+          } else if (finalState === 'completed') {
+            console.log(`🎉 All background agents have finished processing the email!`);
           }
-          
-          console.log(`🎉 All background agents have finished processing the email!`);
         } else {
-          const errorData = await response.json();
-          console.error(`❌ Orchestrator returned an error:`, errorData);
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`❌ Orchestrator rejected the email (${response.status}):`, errorData.error || errorData);
         }
       } catch (postError: any) {
         console.error(`❌ Failed to connect to Orchestrator API at ${ORCHESTRATE_URL}. Is Next.js running?`, postError.message);

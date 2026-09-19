@@ -95,9 +95,11 @@ Output format:
     const webResults = await Promise.allSettled(
       queries.map(q => searchWeb(q))
     );
+    // Keep each result paired with its own query (filtering first would shift the indexes)
     const webData = webResults
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && !!r.value.AbstractText)
-      .map((r, i) => `### 搜索「${queries[i]}」\n${r.value.AbstractText}`)
+      .map((r, i) => ({ r, query: queries[i] }))
+      .filter(({ r }) => r.status === 'fulfilled' && !!r.value.AbstractText)
+      .map(({ r, query }) => `### 搜索「${query}」\n${(r as PromiseFulfilledResult<any>).value.AbstractText}`)
       .join('\n\n---\n\n');
 
     await writeProgress('[2/4] 检索内部知识库...');
@@ -109,8 +111,8 @@ Output format:
         const kbResults = await prisma.knowledgeItem.findMany({
           where: {
             OR: kbKeywords.flatMap(kw => [
-              { title: { contains: kw } },
-              { content: { contains: kw } },
+              { title: { contains: kw, mode: 'insensitive' } },
+              { content: { contains: kw, mode: 'insensitive' } },
             ]),
           },
           take: 5,

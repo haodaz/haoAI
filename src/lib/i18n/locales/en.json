@@ -95,6 +95,7 @@
       "loadLatestBtn": "Load Latest Execution",
       "endTaskBtn": "End Task",
       "retryTaskBtn": "Retry Task",
+      "resumeBtn": "Resume Pipeline",
       "rerunBtn": "Re-run",
       "hasAttachmentHint": "This task is associated with attachments",
       "waitApprovalHint": "🟡 Awaiting manual approval",

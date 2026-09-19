@@ -170,15 +170,15 @@ async function executeSearchKB(query: string) {
   const items = await prisma.knowledgeItem.findMany({
     where: {
       OR: [
-        { title: { contains: query } },
-        { content: { contains: query } },
-        { category: { contains: query } },
+        { title: { contains: query, mode: 'insensitive' } },
+        { content: { contains: query, mode: 'insensitive' } },
+        { category: { contains: query, mode: 'insensitive' } },
       ],
     },
     take: 3,
   });
   const result = items.length > 0
-    ? items.map(i => ({ title: i.title, content: i.content.slice(0, 500), category: i.category }))
+    ? items.map(i => ({ title: i.title, content: (i.content || '').slice(0, 500), category: i.category }))
     : [{ note: '知识库中没有查到该词条的相关信息。' }];
   return { result };
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isGraceTask, sendGraceDraft } from '@/lib/grace-mailer';
 
 /**
  * POST /api/bristh/approve
@@ -8,7 +9,8 @@ import prisma from '@/lib/prisma';
  * Body: { taskId: string }
  *   - Changes task status from AWAITING_APPROVAL → APPROVED
  *   - Checks if all approval-required tasks in the context are now approved
- *   - Returns { allApproved: boolean } to signal if Grace can execute
+ *   - Approving a Grace draft sends the email
+ *   - Returns { allApproved: boolean } so the caller can resume the pipeline
  */
 export async function POST(req: Request) {
   try {
@@ -31,11 +33,24 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Update task status to APPROVED
-    await prisma.task.update({
-      where: { id: taskId },
+    // Update task status to APPROVED (atomic, so a double click can't send an email twice)
+    const { count } = await prisma.task.updateMany({
+      where: { id: taskId, status: 'AWAITING_APPROVAL' },
       data: { status: 'APPROVED' }
     });
+    if (count === 0) {
+      return NextResponse.json({ error: 'Task was already approved' }, { status: 409 });
+    }
+
+    // Grace drafts are only sent once a human approves them
+    if (isGraceTask(task)) {
+      try {
+        await sendGraceDraft(taskId);
+      } catch (err: any) {
+        await prisma.task.update({ where: { id: taskId }, data: { status: 'AWAITING_APPROVAL' } });
+        return NextResponse.json({ error: `Email not sent: ${err.message}` }, { status: 500 });
+      }
+    }
 
     // Check if all approval-required tasks in this context are now approved
     const pendingApprovalTasks = await prisma.task.findMany({
@@ -60,6 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       taskId,
+      contextId: task.contextId,
       agent: task.agent,
       allApproved,
       remainingApprovals: pendingApprovalTasks.length,

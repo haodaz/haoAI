@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getModelClient, buildCompletionParams, trackableCompletion, getInternalBaseUrl } from '@/lib/model-registry';
+import { getModelClient, buildCompletionParams, trackableCompletion } from '@/lib/model-registry';
+import { internalFetch } from '@/lib/internal-api';
 import { TokenTracker } from '@/lib/token-tracker';
+import { isGraceTask, sendGraceDraft } from '@/lib/grace-mailer';
 
 /**
  * POST /api/bristh/approval-reply
  * Process a user's email reply to an approval notification.
  * 
- * Body: { contextId: string, replyContent: string }
+ * Body: { contextId: string, replyContent: string, fromEmail: string }
+ * Only replies sent from the task owner's bound email are accepted.
  * 
  * Uses AI to parse the reply and determine per-task actions:
  * - "approve" → call approve logic
@@ -15,20 +18,27 @@ import { TokenTracker } from '@/lib/token-tracker';
  */
 export async function POST(req: Request) {
   try {
-    const { contextId, replyContent } = await req.json();
+    const { contextId, replyContent, fromEmail } = await req.json();
 
-    if (!contextId || !replyContent) {
-      return NextResponse.json({ error: 'Missing contextId or replyContent' }, { status: 400 });
+    if (!contextId || !replyContent || !fromEmail) {
+      return NextResponse.json({ error: 'Missing contextId, replyContent or fromEmail' }, { status: 400 });
     }
 
     // Load context with awaiting tasks
     const context = await prisma.taskContext.findUnique({
       where: { id: contextId },
-      include: { tasks: true },
+      include: { tasks: true, user: true },
     });
 
     if (!context) {
       return NextResponse.json({ error: 'TaskContext not found' }, { status: 404 });
+    }
+
+    // Only the task owner may approve by email
+    const ownerEmail = context.user?.email?.trim().toLowerCase();
+    if (!ownerEmail || ownerEmail !== String(fromEmail).trim().toLowerCase()) {
+      console.warn(`[ApprovalReply] Rejected reply from ${fromEmail} for context ${contextId}`);
+      return NextResponse.json({ error: 'Sender is not the owner of this task' }, { status: 403 });
     }
 
     const awaitingTasks = context.tasks.filter(t => t.status === 'AWAITING_APPROVAL');
@@ -50,19 +60,19 @@ The user replied with:
 ${replyContent}
 ---
 
-Parse the user's intent for EACH task. Output a JSON array where each item has:
+Parse the user's intent for EACH task. Output a JSON object {"actions": [...]} where each item has:
 - "taskNumber": number (1-indexed, matching the task list above)
-- "action": "approve" | "revise"  
-- "feedback": string (only for "revise" — the specific modification request. Empty string for "approve")
+- "action": "approve" | "revise" | "unclear"
+- "feedback": string (only for "revise" — the specific modification request. Empty string otherwise)
 
 Rules:
 - If user says "全部确认", "all approved", "OK", "确认" (without a number), mark ALL tasks as "approve"
 - If user references a specific number like "#1 确认" or "#1 OK", only that task is "approve"  
 - If user says "#2 请修改..." or "#2 改为...", that task is "revise" with the feedback
-- If user's intent is unclear for a task, default to "approve"
+- If user's intent is unclear for a task, use "unclear" — never guess "approve"
 - Always return entries for ALL awaiting tasks
 
-Output ONLY valid JSON array. No markdown, no explanations.`;
+Output ONLY the valid JSON object. No markdown, no explanations.`;
 
     const tracker = new TokenTracker();
     const response = await trackableCompletion(
@@ -100,11 +110,22 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
       const task = awaitingTasks[taskIndex];
 
       if (action.action === 'approve') {
-        // Approve this task
-        await prisma.task.update({
-          where: { id: task.id },
+        // Approve this task (atomic, so duplicate replies can't send a Grace email twice)
+        const { count } = await prisma.task.updateMany({
+          where: { id: task.id, status: 'AWAITING_APPROVAL' },
           data: { status: 'APPROVED' },
         });
+        if (count === 0) continue;
+        if (isGraceTask(task)) {
+          try {
+            await sendGraceDraft(task.id);
+          } catch (err: any) {
+            console.error(`[ApprovalReply] Grace send failed:`, err.message);
+            await prisma.task.update({ where: { id: task.id }, data: { status: 'AWAITING_APPROVAL' } });
+            results.push({ taskNumber: action.taskNumber, agent: task.agent, action: 'send_failed' });
+            continue;
+          }
+        }
         console.log(`[ApprovalReply] #${action.taskNumber} ${task.agent}: APPROVED`);
         results.push({ taskNumber: action.taskNumber, agent: task.agent, action: 'approved' });
 
@@ -114,9 +135,8 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
 
         // Call the agent's copilot endpoint to apply the modification
         try {
-          const copilotRes = await fetch(`${getInternalBaseUrl()}/api/bristh/copilot`, {
+          const copilotRes = await internalFetch('/api/bristh/copilot', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               taskId: task.id,
               message: action.feedback,
@@ -158,31 +178,15 @@ Output ONLY valid JSON array. No markdown, no explanations.`;
         where: { id: contextId },
         data: { pipelineStatus: 'ALL_APPROVED' },
       });
-
-      // Auto-trigger Grace if present
-      const graceTask = context.tasks.find(t => t.agent.toLowerCase() === 'grace');
-      if (graceTask) {
-        console.log(`[ApprovalReply] All approved! Triggering Grace...`);
-        try {
-          await fetch(`${getInternalBaseUrl()}/api/bristh/agents/grace`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ taskId: graceTask.id }),
-          });
-          console.log(`[ApprovalReply] Grace completed.`);
-        } catch (err: any) {
-          console.error(`[ApprovalReply] Grace error:`, err.message);
-        }
-      }
+      // The caller (email daemon) resumes the pipeline via /api/bristh/pipeline/advance
     }
 
     // If there were revisions, re-send notification email
     if (hasRevisions && stillAwaiting.length > 0) {
       console.log(`[ApprovalReply] Revisions applied. Re-sending notification email...`);
       try {
-        await fetch(`${getInternalBaseUrl()}/api/bristh/notify`, {
+        await internalFetch('/api/bristh/notify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contextId }),
         });
         console.log(`[ApprovalReply] Notification re-sent.`);

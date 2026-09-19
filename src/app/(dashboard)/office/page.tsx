@@ -231,6 +231,100 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [copilotData?.copilotHistory]);
 
+  // Map a DB task to an office card
+  const taskToNode = (t: any) => {
+    const statusMap: Record<string, string> = {
+      COMPLETED: 'done', APPROVED: 'done', FAILED: 'failed',
+      AWAITING_APPROVAL: 'awaiting_approval', RUNNING: 'working', PENDING: 'idle',
+    };
+    return {
+      agent: t.agent,
+      instruction: t.instruction,
+      status: statusMap[t.status] || 'done',
+      taskId: t.id,
+      depth: Number(t.phase) || 1,
+      summary: (() => { try { return JSON.parse(t.resultPayload || '{}').summary || ''; } catch { return ''; } })(),
+      hasAttachments: !!t.attachmentIds,
+    };
+  };
+
+  // True when a restored pipeline stopped midway (e.g. the tab was closed) and can continue
+  const [resumable, setResumable] = useState(false);
+
+  const refreshNodes = async (ctxId: string) => {
+    const res = await fetch(`/api/bristh/tasks?contextId=${ctxId}`);
+    const tasks = await res.json();
+    if (Array.isArray(tasks)) setActiveNodes(tasks.map(taskToNode));
+    return Array.isArray(tasks) ? tasks : [];
+  };
+
+  /**
+   * Execute a pipeline by repeatedly asking the server to run its next phase.
+   * The server owns the state (phases, approval gates, inter-phase outputs), so this
+   * loop can stop at any time and be resumed later from the DB.
+   */
+  const drivePipeline = async (ctxId: string) => {
+    const en = i18n.language === 'en';
+    setResumable(false);
+    setStatus('dispatching');
+    let failures = 0;
+    for (let step = 0; step < 50; step++) {
+      // Show the next runnable phase as working while the server executes it
+      const tasks = await refreshNodes(ctxId).catch(() => [] as any[]);
+      const pendingPhases = tasks.filter((t: any) => t.status === 'PENDING').map((t: any) => Number(t.phase) || 1);
+      const nextPhase = pendingPhases.length ? Math.min(...pendingPhases) : null;
+      if (nextPhase !== null && !tasks.some((t: any) => t.status === 'AWAITING_APPROVAL')) {
+        setActiveNodes(prev => prev.map(n => (n.depth === nextPhase && n.status === 'idle') ? { ...n, status: 'working' } : n));
+        if (nextPhase > 1) addLog('System', `⏩ Phase ${nextPhase} — ${en ? 'Previous phase outputs injected' : '前序阶段产出已注入'}`);
+      }
+
+      let data: any;
+      try {
+        const res = await fetch('/api/bristh/pipeline/advance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contextId: ctxId, locale: i18n.language }),
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error || `status ${res.status}`);
+        failures = 0;
+      } catch (err: any) {
+        // Long phases can outlive the HTTP request while agents keep running server-side
+        if (++failures >= 5) {
+          addLog('System', `❌ ${err.message}`);
+          setStatus('failed');
+          setResumable(true);
+          break;
+        }
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+
+      if (data.state === 'progressed') {
+        addLog('System', `✅ Phase ${data.phase} ${en ? 'finished' : '完成'}`);
+      } else if (data.state === 'busy') {
+        await new Promise(r => setTimeout(r, 3000));
+      } else if (data.state === 'awaiting_approval') {
+        await refreshNodes(ctxId).catch(() => {});
+        const n = data.notification;
+        if (n?.success) {
+          addLog('System', en ? `📧 Approval notification sent to ${n.emailSentTo} (${n.tasksNotified} pending)` : `📧 审批通知已发送至 ${n.emailSentTo}（${n.tasksNotified} 项待审批）`);
+        } else if (n?.error) {
+          addLog('System', `⚠️ ${en ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${n.error}`);
+        }
+        addLog('Chief', en ? 'Pipeline paused. Waiting for human approval on flagged tasks.' : '管线已暂停，等待人工审批。');
+        setStatus('completed');
+        break;
+      } else if (data.state === 'completed') {
+        await refreshNodes(ctxId).catch(() => {});
+        addLog('Chief', en ? 'All sub-tasks reported back. Pipeline finished.' : '所有子任务已完成，管线结束。');
+        setStatus('completed');
+        break;
+      }
+    }
+    setTimeout(() => flushLogs(ctxId), 500);
+  };
+
   const loadHistory = async (contextId: string = 'latest') => {
     try {
       const res = await fetch(`/api/bristh/tasks?contextId=${contextId}`);
@@ -240,24 +334,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
         return;
       }
       
-      const statusMap = (s: string) => {
-        if (s === 'COMPLETED' || s === 'APPROVED') return 'done';
-        if (s === 'FAILED') return 'failed';
-        if (s === 'AWAITING_APPROVAL') return 'awaiting_approval';
-        if (s === 'RUNNING') return 'working';
-        if (s === 'PENDING') return 'idle';
-        return 'done';
-      };
-
-      const mappedNodes = tasks.map((t: any) => ({
-        agent: t.agent,
-        instruction: t.instruction,
-        status: statusMap(t.status),
-        taskId: t.id,
-        summary: (() => { try { return JSON.parse(t.resultPayload || '{}').summary || ''; } catch { return ''; } })(),
-        requiresApproval: t.requiresApproval,
-        hasAttachments: !!t.attachmentIds,
-      }));
+      const mappedNodes = tasks.map(taskToNode);
+      setResumable(
+        tasks.some((t: any) => t.status === 'PENDING' || t.status === 'RUNNING') &&
+        !tasks.some((t: any) => t.status === 'AWAITING_APPROVAL') &&
+        tasks[0].context?.pipelineStatus !== 'DRAFT'
+      );
       setActiveNodes(mappedNodes);
       setStatus('completed');
       const restoredCtxId = tasks[0].contextId;
@@ -291,8 +373,8 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
     }
   };
 
-  // Auto-restore active pipeline on mount
-  // Only restore if there are RUNNING tasks (actively executing).
+  // Auto-restore active pipeline on mount: tasks still RUNNING, or a pipeline from the
+  // last 24h that stopped midway (e.g. the tab was closed) — the latter shows a Resume button.
   // Stale AWAITING_APPROVAL tasks from old pipelines should not hijack the idle view.
   useEffect(() => {
     if (pendingDispatchTask) return; // Skip if we're about to dispatch
@@ -301,8 +383,12 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       .then(r => r.json())
       .then((contexts: any[]) => {
         if (!Array.isArray(contexts)) return;
-        const activeCtx = contexts.find((c: any) => 
-          c.tasks?.some((t: any) => t.status === 'RUNNING')
+        const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const activeCtx = contexts.find((c: any) =>
+          c.tasks?.some((t: any) => t.status === 'RUNNING') ||
+          (['ACTIVE', 'ALL_APPROVED'].includes(c.pipelineStatus) &&
+            new Date(c.createdAt).getTime() > dayAgo &&
+            c.tasks?.some((t: any) => t.status === 'PENDING'))
         );
         if (activeCtx) {
           loadHistory(activeCtx.id);
@@ -360,107 +446,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
       setStatus('dispatching');
       const assignedTasks = data.tasks || [];
       addLog('Chief', `Orchestration complete. Participating agents: ${assignedTasks.map((t:any) => t.agent).join(', ')}.`);
-      // Use Chief's phase assignments (dynamic pipeline)
-      const PHASE_LABELS: Record<number, string> = { 1: 'Information Prep', 2: 'Core Execution', 3: 'Consolidation' };
-
-      const initialActiveNodes = assignedTasks.map((t:any) => ({
-        agent: t.agent,
-        instruction: t.instruction,
-        status: 'working',
-        taskId: t.id,
-        depth: t.phase || 1,
-        hasAttachments: !!t.attachmentIds,
-      }));
-      setActiveNodes(initialActiveNodes);
-
-      // Collect results per phase for inter-phase data flow
-      const phaseResults: Record<number, { agent: string; summary: string; content: string }[]> = {};
-
-      const executeAgent = async (taskRecord: any, priorResults?: { agent: string; summary: string; content: string }[]) => {
-        const agentName = taskRecord.agent;
-        const tId = taskRecord.id;
-        addLog(agentName, `Executing sub-task: ${taskRecord.instruction.substring(0, 40)}...`);
-        try {
-           const agentEndpoint = `/api/bristh/agents/${agentName.toLowerCase()}`;
-           
-           const agentRes = await fetch(agentEndpoint, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ taskId: tId, locale: i18n.language, priorPhaseResults: priorResults || [] })
-           });
-
-           if (!agentRes.ok) {
-             if (agentRes.status === 404) {
-                addLog(agentName, `(Mock) Completed task successfully.`);
-                setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'done'} : n));
-                return null;
-             }
-             throw new Error(`Failed with status ${agentRes.status}`);
-           }
-
-           const agentData = await agentRes.json();
-           
-           if (agentData.task?.thinkLog) {
-             addLog(agentName, `[Thinking Completed]`);
-           }
-           if (agentData.task?.toolCallsLog) {
-             addLog(agentName, `[Tool Dispatched: ${JSON.parse(agentData.task.toolCallsLog)[0]?.tool}]`);
-           }
-
-           addLog(agentName, `✅ Completed. Output payload saved to asset DB.`);
-           // Extract summary and content for inter-phase data flow
-           let summary = '';
-           let content = '';
-           try {
-             const payload = agentData.task?.resultPayload;
-             if (payload) {
-               const parsed = JSON.parse(payload);
-               summary = parsed.summary || '';
-               content = parsed.content || '';
-             }
-           } catch { summary = ''; }
-           setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'done', summary} : n));
-           return { agent: agentName, summary, content };
-        } catch (err: any) {
-           addLog(agentName, `❌ Error: ${err.message}`);
-           setActiveNodes(prev => prev.map(n => n.taskId === tId ? {...n, status: 'failed'} : n));
-           return null;
-        }
-      };
-
-      // Group tasks by phase (from Chief) and execute sequentially
-      const phaseGroups = new Map<number, any[]>();
-      data.tasks.forEach((t: any) => {
-        const phase = t.phase || 1;
-        phaseGroups.set(phase, [...(phaseGroups.get(phase) || []), t]);
-      });
-
-      // Collect all prior results across phases
-      let allPriorResults: { agent: string; summary: string; content: string }[] = [];
-
-      for (const phase of [...phaseGroups.keys()].sort()) {
-        const group = phaseGroups.get(phase)!;
-        const label = PHASE_LABELS[phase] || `Phase ${phase}`;
-        if (phase > 1) addLog('System', `⏩ Phase ${phase} (${label}): ${group.map((t: any) => t.agent).join(', ')} — ${i18n.language === 'en' ? 'Previous phase outputs injected' : '前序阶段产出已注入'}`);
-        
-        const results = await Promise.all(group.map((t: any) => executeAgent(t, allPriorResults)));
-        
-        // Collect this phase's results for next phase
-        const phaseOutput = results.filter(Boolean) as { agent: string; summary: string; content: string }[];
-        phaseResults[phase] = phaseOutput;
-        allPriorResults = [...allPriorResults, ...phaseOutput];
-      }
-
-      addLog('Chief', 'All sub-tasks reported back. Pipeline finished.');
-      setStatus('completed');
-      // Flush logs to DB on completion
-      const ctxId = data.tasks?.[0]?.contextId;
+      const ctxId = assignedTasks[0]?.contextId || data.contextId;
+      setActiveNodes(assignedTasks.map(taskToNode));
       if (ctxId) {
         setCurrentContextId(ctxId);
-        // Use setTimeout to ensure the final addLog is included
-        setTimeout(() => flushLogs(ctxId), 500);
+        await drivePipeline(ctxId);
       }
-      
+
     } catch (err: any) {
       addLog('System', `Error: ${err.message}`);
       setStatus('failed');
@@ -473,162 +465,33 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
   // Two-step flow: tasks already created, go straight to execution
   const handleDispatchWithTasks = async (dispatchInput: string, preCreatedTasks: any[]) => {
     const ctxId = preCreatedTasks[0]?.contextId;
-    if (ctxId) setCurrentContextId(ctxId);
     setCurrentTaskDisplay(dispatchInput.substring(0, 50) + '...');
-    setStatus('dispatching');
-    setActiveNodes([]);
+    setActiveNodes(preCreatedTasks.map(taskToNode));
     setLogs([]);
+    lastDispatchedInputRef.current = dispatchInput;
 
     addLog('System', 'Task confirmed. Executing pre-assigned pipeline.');
     addLog('Chief', `Dispatching ${preCreatedTasks.length} agents: ${preCreatedTasks.map((t: any) => t.agent).join(', ')}.`);
-
-    // Use Chief's phase assignments (dynamic pipeline)
-    const PHASE_LABELS2: Record<number, string> = { 1: 'Information Prep', 2: 'Core Execution', 3: 'Consolidation' };
-
-    const initialActiveNodes = preCreatedTasks.map((t: any) => ({
-      agent: t.agent,
-      instruction: t.instruction,
-      status: 'working',
-      taskId: t.id,
-      depth: t.phase || 1,
-      hasAttachments: !!t.attachmentIds,
-    }));
-    setActiveNodes(initialActiveNodes);
-
-    // Collect results per phase for inter-phase data flow
-    const phaseResults2: Record<number, { agent: string; summary: string; content: string }[]> = {};
-
-    const executeAgent = async (taskRecord: any, priorResults?: { agent: string; summary: string; content: string }[]) => {
-      const agentName = taskRecord.agent;
-      addLog(agentName, `Executing sub-task: ${taskRecord.instruction.substring(0, 40)}...`);
-      try {
-        const agentEndpoint = `/api/bristh/agents/${agentName.toLowerCase()}`;
-        const agentRes = await fetch(agentEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId: taskRecord.id, locale: i18n.language, priorPhaseResults: priorResults || [] })
-        });
-
-        if (!agentRes.ok) {
-          if (agentRes.status === 404) {
-            addLog(agentName, `(Mock) Completed task successfully.`);
-            setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: 'done'} : n));
-            return null;
-          }
-          const errData = await agentRes.json().catch(() => ({}));
-          throw new Error(errData.error || `Failed with status ${agentRes.status}`);
-        }
-        const agentData = await agentRes.json();
-        if (agentData.task?.thinkLog) addLog(agentName, `[Thinking Completed]`);
-        if (agentData.task?.toolCallsLog) addLog(agentName, `[Tool Dispatched: ${JSON.parse(agentData.task.toolCallsLog)[0]?.tool}]`);
-
-        addLog(agentName, `✅ Completed. Output payload saved to asset DB.`);
-        let summary = '';
-        let content = '';
-        try {
-          const payload = agentData.task?.resultPayload;
-          if (payload) { const parsed = JSON.parse(payload); summary = parsed.summary || ''; content = parsed.content || ''; }
-        } catch { summary = ''; }
-
-        // Check if this task requires approval
-        const finalStatus = taskRecord.requiresApproval ? 'awaiting_approval' : 'done';
-        if (taskRecord.requiresApproval) {
-          addLog(agentName, `🟡 ${i18n.language === 'en' ? 'Requires manual approval to continue.' : '需要人工审批确认才能继续。'}`);
-        }
-        setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: finalStatus, summary} : n));
-        return { agent: agentName, summary, content };
-      } catch (err: any) {
-        addLog(agentName, `❌ Error: ${err.message}`);
-        setActiveNodes(prev => prev.map(n => n.taskId === taskRecord.id ? {...n, status: 'failed'} : n));
-        return null;
-      }
-    };
-
-    // Group tasks by phase and execute sequentially, respecting approval gates
-    const phaseGroups2 = new Map<number, any[]>();
-    preCreatedTasks.forEach((t: any) => {
-      const phase = t.phase || 1;
-      phaseGroups2.set(phase, [...(phaseGroups2.get(phase) || []), t]);
-    });
-    const sortedPhases = [...phaseGroups2.keys()].sort();
-    let hasAwaitingApproval = false;
-    let allPriorResults2: { agent: string; summary: string; content: string }[] = [];
-
-    for (const phase of sortedPhases) {
-      const group = phaseGroups2.get(phase)!;
-      if (hasAwaitingApproval) {
-        addLog('System', `⏸️ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} ${i18n.language === 'en' ? 'waiting for approval to execute...' : '等待审批完成后执行...'}`);
-        break;
-      }
-      if (phase > 1) addLog('System', `⏩ Phase ${phase} (${PHASE_LABELS2[phase] || `Phase ${phase}`}): ${group.map((t: any) => t.agent).join(', ')} — ${i18n.language === 'en' ? 'Previous phase outputs injected' : '前序阶段产出已注入'}`);
-      
-      const results = await Promise.all(group.map((t: any) => executeAgent(t, allPriorResults2)));
-      const phaseOutput = results.filter(Boolean) as { agent: string; summary: string; content: string }[];
-      phaseResults2[phase] = phaseOutput;
-      allPriorResults2 = [...allPriorResults2, ...phaseOutput];
-      
-      hasAwaitingApproval = group.some((t: any) => t.requiresApproval);
-    }
-
-    if (!hasAwaitingApproval) {
-      addLog('Chief', 'All sub-tasks reported back. Pipeline finished.');
-      setStatus('completed');
-      if (ctxId) setTimeout(() => flushLogs(ctxId), 500);
-    } else {
-      // Send approval notification email
-      const ctxId = preCreatedTasks[0]?.contextId;
-      if (ctxId) {
-        addLog('System', `📧 ${i18n.language === 'en' ? 'Sending approval notification email...' : '正在发送审批通知邮件...'}`);
-        try {
-          const notifyRes = await fetch('/api/bristh/notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contextId: ctxId }),
-          });
-          const notifyData = await notifyRes.json();
-          if (notifyData.success) {
-            addLog('System', i18n.language === 'en' ? `✅ Approval notification sent to ${notifyData.emailSentTo} (${notifyData.tasksNotified} pending tasks)` : `✅ 审批通知已发送至 ${notifyData.emailSentTo}（${notifyData.tasksNotified} 项待审批）`);
-          } else {
-            addLog('System', `⚠️ ${i18n.language === 'en' ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${notifyData.error || notifyData.message || 'Unknown'}`);
-          }
-        } catch (err: any) {
-          addLog('System', `⚠️ ${i18n.language === 'en' ? 'Failed to send notification email:' : '通知邮件发送失败:'} ${err.message}`);
-        }
-      }
-      addLog('Chief', 'Pipeline paused. Waiting for human approval on flagged tasks.');
-      setStatus('completed');
-      if (ctxId) setTimeout(() => flushLogs(ctxId), 500);
-    }
+    if (!ctxId) return;
+    setCurrentContextId(ctxId);
+    await drivePipeline(ctxId);
+    dispatchingRef.current = false;
   };
 
-  // Handle retrying a failed task
+  // Handle retrying a failed task: the server re-runs it with earlier phases' outputs
   const handleRetryTask = async (taskId: string, agentName: string) => {
     addLog(agentName, `🔄 ${i18n.language === 'en' ? 'User manually retrying execution...' : '用户手动重试执行...'}`);
-    setActiveNodes(prev => prev.map(n => n.taskId === taskId ? { ...n, status: 'working' } : n));
     try {
-      const agentRes = await fetch(`/api/bristh/agents/${agentName.toLowerCase()}`, {
+      const res = await fetch('/api/bristh/pipeline/retry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, locale: i18n.language }),
+        body: JSON.stringify({ taskId }),
       });
-      if (!agentRes.ok) {
-        const errData = await agentRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed with status ${agentRes.status}`);
-      }
-      const agentData = await agentRes.json();
-      let summary = '';
-      try {
-        const payload = agentData.task?.resultPayload;
-        if (payload) { const parsed = JSON.parse(payload); summary = parsed.summary || ''; }
-      } catch {}
-      addLog(agentName, '✅ Completed.');
-      const requiresApproval = agentData.task?.requiresApproval;
-      const finalStatus = requiresApproval ? 'awaiting_approval' : 'done';
-      if (requiresApproval) addLog(agentName, `🟡 Requires manual approval to continue.`);
-      setActiveNodes(prev => prev.map(n => n.taskId === taskId ? { ...n, status: finalStatus, summary } : n));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed with status ${res.status}`);
+      await drivePipeline(data.contextId);
     } catch (err: any) {
       addLog(agentName, `❌ Error: ${err.message}`);
-      setActiveNodes(prev => prev.map(n => n.taskId === taskId ? { ...n, status: 'failed' } : n));
     }
   };
 
@@ -660,63 +523,10 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
 
       addLog('System', i18n.language === 'en' ? `✅ ${agentName} approved (${data.remainingApprovals} pending approvals remaining)` : `✅ ${agentName} 已批准 (剩余 ${data.remainingApprovals} 项待审批)`);
 
-      // If all tasks are approved, execute remaining pipeline stages in depth order
-      if (data.allApproved) {
+      // If all tasks are approved, resume the remaining phases
+      if (data.allApproved && data.contextId) {
         addLog('System', `🎉 ${i18n.language === 'en' ? 'All approvals passed! Resuming pipeline execution...' : '所有审批已通过！正在恢复管线执行...'}`);
-        
-        // Helper to execute a single agent
-        const executeAgent = async (node: { agent: string; taskId: string; depth: number }) => {
-          addLog(node.agent, `Executing sub-task...`);
-          setActiveNodes(prev => prev.map(n => n.taskId === node.taskId ? { ...n, status: 'working' } : n));
-          try {
-            const agentRes = await fetch(`/api/bristh/agents/${node.agent.toLowerCase()}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId: node.taskId, locale: i18n.language }),
-            });
-            if (!agentRes.ok) {
-              const errData = await agentRes.json().catch(() => ({}));
-              throw new Error(errData.error || `Failed with status ${agentRes.status}`);
-            }
-            const agentData = await agentRes.json();
-            let summary = '';
-            try {
-              const payload = agentData.task?.resultPayload;
-              if (payload) { const parsed = JSON.parse(payload); summary = parsed.summary || ''; }
-            } catch {}
-            addLog(node.agent, '✅ Completed.');
-            setActiveNodes(prev => prev.map(n => n.taskId === node.taskId ? { ...n, status: 'done', summary } : n));
-          } catch (err: any) {
-            addLog(node.agent, `❌ Error: ${err.message}`);
-            setActiveNodes(prev => prev.map(n => n.taskId === node.taskId ? { ...n, status: 'failed' } : n));
-          }
-        };
-
-        // Find all pending/working agents that haven't completed yet (depth > current approval depth)
-        // Use latest state via callback
-        const pendingNodes: { agent: string; taskId: string; depth: number }[] = [];
-        setActiveNodes(prev => {
-          prev.forEach(n => {
-            if ((n.status === 'working' || n.status === 'idle') && n.taskId && n.agent.toLowerCase() !== 'chief') {
-              pendingNodes.push({ agent: n.agent, taskId: n.taskId, depth: n.depth });
-            }
-          });
-          return prev;
-        });
-
-        // Group by depth and execute sequentially
-        const depthGroups = new Map<number, typeof pendingNodes>();
-        pendingNodes.forEach(n => {
-          depthGroups.set(n.depth, [...(depthGroups.get(n.depth) || []), n]);
-        });
-
-        for (const depth of [...depthGroups.keys()].sort()) {
-          const group = depthGroups.get(depth)!;
-          addLog('System', `Dependencies met. Starting stage ${depth}: ${group.map(n => n.agent).join(', ')}...`);
-          await Promise.all(group.map(n => executeAgent(n)));
-        }
-
-        addLog('Chief', 'All approvals complete. Pipeline finished. ✅');
+        await drivePipeline(data.contextId);
       }
     } catch (err: any) {
       addLog('System', `⚠️ ${i18n.language === 'en' ? 'Approval request failed:' : '审批请求失败:'} ${err.message}`);
@@ -1008,8 +818,13 @@ function VirtualOfficeView({ onOpenPptCopilot, onOpenDocCopilot }: { onOpenPptCo
                 <button onClick={terminateTask} className="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100">
                   <StopCircle className="w-3 h-3 mr-1" /> {t('bristh.office.endTaskBtn')}
                 </button>
-                {status === 'failed' && (
-                  <button onClick={() => handleDispatch(input, 'text')} className="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 shadow-sm border border-orange-200">
+                {resumable && currentContextId && status !== 'dispatching' && (
+                  <button onClick={() => drivePipeline(currentContextId)} className="flex-1 flex items-center justify-center py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 shadow-sm border border-emerald-300">
+                    <Activity className="w-3 h-3 mr-1" /> {t('bristh.office.resumeBtn')}
+                  </button>
+                )}
+                {status === 'failed' && !resumable && lastDispatchedInputRef.current && (
+                  <button onClick={() => handleDispatch(lastDispatchedInputRef.current, 'text')} className="flex-1 flex items-center justify-center py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 shadow-sm border border-orange-200">
                     <Activity className="w-3 h-3 mr-1" /> {t('bristh.office.retryTaskBtn')}
                   </button>
                 )}

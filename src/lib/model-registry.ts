@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
-import fs from 'fs/promises';
-import path from 'path';
+import prisma from '@/lib/prisma';
 
 // ============================================
 // Model Registry: All model configurations
@@ -85,32 +84,42 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   },
 };
 
-// File to persist model selection (server-side) — use /tmp for deployed environments
-const SELECTION_FILE = path.join('/tmp', 'bristh-model-selection.json');
+export const DEFAULT_MODEL_ID = 'gpt-56-luna';
+
+// Model selection is stored in the DB (SystemMeta) so every server instance agrees on it.
+const SELECTION_KEY = 'selected_model_id';
+const SELECTION_CACHE_MS = 15_000;
+let selectionCache: { modelId: string; at: number } | null = null;
 
 /**
  * Get the currently selected model ID.
- * Falls back to 'gemini-38-flash' if no selection exists.
+ * Falls back to DEFAULT_MODEL_ID if no valid selection exists.
  */
 export async function getSelectedModelId(): Promise<string> {
-  try {
-    const raw = await fs.readFile(SELECTION_FILE, 'utf-8');
-    const data = JSON.parse(raw);
-    // Validate the model still exists in registry
-    if (data.modelId && MODEL_REGISTRY[data.modelId]) {
-      return data.modelId;
-    }
-    return 'gpt-56-luna';
-  } catch {
-    return 'gpt-56-luna';
+  if (selectionCache && Date.now() - selectionCache.at < SELECTION_CACHE_MS) {
+    return selectionCache.modelId;
   }
+  let modelId = DEFAULT_MODEL_ID;
+  try {
+    const meta = await prisma.systemMeta.findUnique({ where: { key: SELECTION_KEY } });
+    if (meta?.value && MODEL_REGISTRY[meta.value]) modelId = meta.value;
+  } catch (err) {
+    console.error('[ModelRegistry] Failed to read model selection:', err);
+  }
+  selectionCache = { modelId, at: Date.now() };
+  return modelId;
 }
 
 /**
  * Set the currently selected model ID.
  */
 export async function setSelectedModelId(modelId: string): Promise<void> {
-  await fs.writeFile(SELECTION_FILE, JSON.stringify({ modelId, updatedAt: new Date().toISOString() }, null, 2), 'utf-8');
+  await prisma.systemMeta.upsert({
+    where: { key: SELECTION_KEY },
+    update: { value: modelId },
+    create: { key: SELECTION_KEY, value: modelId },
+  });
+  selectionCache = { modelId, at: Date.now() };
 }
 
 /**
@@ -118,7 +127,7 @@ export async function setSelectedModelId(modelId: string): Promise<void> {
  */
 export async function getActiveModelConfig(): Promise<ModelConfig> {
   const modelId = await getSelectedModelId();
-  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY['gpt-56-luna'];
+  return MODEL_REGISTRY[modelId] || MODEL_REGISTRY[DEFAULT_MODEL_ID];
 }
 
 /**

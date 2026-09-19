@@ -89,6 +89,12 @@ Use the Slide[] element-level format. Each slide has backgroundColor and element
   "reply": "Your conversational reply explaining changes.",
   "meeting": { "subject": "...", "start": [YYYY,MM,DD,HH,mm], "duration": 60, "description": "..." }
 }`;
+    } else if (task.agent === 'Grace') {
+      systemPrompt += `Output format:
+{
+  "reply": "Your conversational reply explaining changes.",
+  "draft": { "to": "recipient email", "cc": "comma-separated CC or empty string", "subject": "...", "htmlBody": "FULL revised HTML body" }
+}`;
     } else {
       systemPrompt += `Output format:
 {
@@ -161,6 +167,15 @@ Use the Slide[] element-level format. Each slide has backgroundColor and element
       finalPayload = JSON.stringify({
         summary: `已更新会议：${result.meeting.subject}`,
         icsContent: value
+      });
+    }
+    // === Grace: revise the unsent email draft ===
+    else if (task.agent === 'Grace' && result.draft?.subject) {
+      const draft = result.draft;
+      finalPayload = JSON.stringify({
+        summary: `📝 Draft to ${draft.to}: ${draft.subject} (not sent)`,
+        content: `### 📝 Email Draft — awaiting approval\n\n**To**: ${draft.to}${draft.cc ? `\n**CC**: ${draft.cc}` : ''}\n**Subject**: ${draft.subject}\n\n**Body Preview**:\n${String(draft.htmlBody || '').replace(/<[^>]+>/g, '')}`,
+        draft,
       });
     }
     // === Markdown agents: wrap in JSON ===

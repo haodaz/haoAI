@@ -95,6 +95,7 @@
       "loadLatestBtn": "加载最新后台执行",
       "endTaskBtn": "结束任务",
       "retryTaskBtn": "重试任务",
+      "resumeBtn": "继续执行",
       "rerunBtn": "重新运行",
       "hasAttachmentHint": "此任务关联附件",
       "waitApprovalHint": "🟡 等待人工审批确认",
